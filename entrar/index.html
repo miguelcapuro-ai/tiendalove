@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Entrar a mi boda · Mejorativa Love</title>
+<meta name="description" content="Vuelvan al portal de su boda con su código de pedido y su correo.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0B1F3A">
+<link rel="icon" type="image/png" sizes="48x48" href="../img/favicon-48.png">
+<link rel="apple-touch-icon" href="../img/apple-touch-icon.png">
+<link rel="preload" href="../assets/fonts/archivo-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../assets/site.css">
+<link rel="stylesheet" href="../assets/love.css">
+<style>
+  .entrar { padding: 140px 0 90px; }
+  .entrar .wrap { max-width: 560px; }
+  .entrar h1 { margin: 10px 0 12px; }
+  .entrar .lead { color: var(--muted); margin: 0 0 26px; }
+  .entrar form, .entrar .rapido { display: grid; gap: 16px; background: var(--bg); border: 1px solid var(--line); border-radius: 22px; padding: 24px; }
+  .entrar label span { display: block; font-size: .85rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+  .entrar input { width: 100%; box-sizing: border-box; font: inherit; font-size: 1.05rem; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line-strong); background: #fff; }
+  .entrar input#codigo { text-transform: uppercase; letter-spacing: .18em; font-weight: 700; }
+  .entrar input:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px rgba(18, 32, 58, .08); }
+  .entrar .msg { margin: 0; font-weight: 600; }
+  .entrar .msg.ok { color: #1d7a46; } .entrar .msg.mal { color: #b42318; }
+  .entrar .rapido { margin-bottom: 18px; background: #fffaf0; border-color: #ecd9a8; }
+  .entrar .rapido p { margin: 0; }
+  .entrar .ayuda { font-size: .9rem; color: var(--muted); margin-top: 22px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="island">
+    <a class="brand" href="../" aria-label="Mejorativa Love, inicio"><span class="mark mono" aria-hidden="true"></span><b translate="no">Mejorativa</b><i class="love-tag">Love</i></a>
+    <nav class="nav" aria-label="Principal"><a class="btn sm" href="../">Volver a la tienda</a></nav>
+  </div>
+</header>
+<main class="entrar">
+  <div class="wrap">
+    <span class="label">Su boda</span>
+    <h1 class="display">Entrar a mi boda.</h1>
+    <p class="lead">Escriban el código de su pedido (empieza con ML) y el correo con el que lo hicieron. Les enviamos el enlace a su portal: todo lo que guardaron sigue ahí.</p>
+    <div class="rapido" id="rapido" hidden>
+      <p>En este dispositivo ya entraron a la boda de <b id="rapNombres"></b>.</p>
+      <a class="btn" id="rapIr" href="../portal/">Continuar con nuestra boda</a>
+    </div>
+    <form id="fEntrar" novalidate>
+      <label for="codigo"><span>Código del pedido</span><input id="codigo" name="codigo" required maxlength="10" autocomplete="off" autocapitalize="characters" placeholder="ML2GKUX6" inputmode="text"></label>
+      <label for="correo"><span>Correo del pedido</span><input id="correo" name="correo" type="email" required autocomplete="email" placeholder="ustedes@correo.com"></label>
+      <button class="btn" type="submit" id="bEntrar">Enviarme el enlace</button>
+      <p class="msg" id="msg" role="status" aria-live="polite"></p>
+    </form>
+    <p class="ayuda">El código está en el correo de su pedido y en la pantalla de pago. ¿No lo encuentran? Escríbannos por <a id="waAyuda" href="https://wa.me/50766653528?text=Hola%2C%20Miguel.%20No%20encuentro%20el%20c%C3%B3digo%20de%20mi%20boda." target="_blank" rel="noopener">WhatsApp</a>.</p>
+  </div>
+</main>
+<footer><div class="wrap"><span>© 2026 <span translate="no">Mejorativa</span> by Miguel Capuro · Panamá</span><nav><a href="../">Mejorativa Love</a><a href="../aviso/">Aviso y condiciones</a></nav></div></footer>
+<script src="../assets/love-config.js"></script>
+<script>
+(() => {
+  const API = (window.LOVE && window.LOVE.api) || "";
+  let g = null; try { g = JSON.parse(localStorage.getItem("ml-boda")); } catch {}
+  if (g && g.h) { document.getElementById("rapido").hidden = false; document.getElementById("rapNombres").textContent = g.nombres || "su boda"; document.getElementById("rapIr").href = `../portal/#${g.h}`; }
+  const f = document.getElementById("fEntrar"), msg = document.getElementById("msg"), b = document.getElementById("bEntrar");
+  const codigo = document.getElementById("codigo");
+  codigo.addEventListener("input", () => { codigo.value = codigo.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8); });
+  f.addEventListener("submit", async (e) => {
+    e.preventDefault(); msg.className = "msg"; msg.textContent = "";
+    const c = codigo.value.trim(), m = document.getElementById("correo").value.trim();
+    if (!/^ML[A-Z0-9]{6}$/.test(c)) { msg.className = "msg mal"; msg.textContent = "El código empieza con ML y tiene 8 caracteres."; codigo.focus(); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)) { msg.className = "msg mal"; msg.textContent = "Revisen su correo."; return; }
+    b.disabled = true; b.textContent = "Enviando…";
+    try {
+      const r = await fetch(API + "/love/api/acceso", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ codigo: c, correo: m }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.mensaje || "No pudimos enviar el enlace. Intenten de nuevo.");
+      msg.className = "msg ok"; msg.textContent = j.mensaje;
+    } catch (err) { msg.className = "msg mal"; msg.textContent = err.message; }
+    b.disabled = false; b.textContent = "Enviarme el enlace";
+  });
+})();
+</script>
+</body>
+</html>

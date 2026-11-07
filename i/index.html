@@ -47,7 +47,7 @@
       const d = j.datos;
       document.title = `${d.nombre1} & ${d.nombre2} · ${j.invitado ? "Invitación para " + j.invitado.nombre : "Nuestra boda"}`;
       estado.hidden = true; document.getElementById("pagina").hidden = false;
-      Motor.construir(document.getElementById("screen"), {
+      Motor.construir(document.getElementById("screen"), { arte: j.arte || null,
         modelo: j.modelo, diseno: j.diseno, datos: d, fotos: j.fotos.map(u => API + u), portada: j.portada,
         invitado: j.invitado, cupoGeneral: j.cupoGeneral, cerrado: j.cerrado, api: API, slug: j.slug, vista: vista,
       });

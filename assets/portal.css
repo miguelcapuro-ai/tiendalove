@@ -113,3 +113,12 @@
 .stepper .st-lbl { display: none; }
 .p-fila.locked .stepper .st-lbl { display: inline; font-size: .85rem; color: var(--muted); margin-right: auto; }
 .p-fila.locked .stepper input { flex: 0 0 auto; width: 2.4ch; padding-left: 0 !important; margin-left: 10px; }
+
+.cq-lib { margin: 4px 0 0; font-size: .88rem; font-weight: 600; color: #1d7a46; }
+.p-fila.con-mesa { grid-template-columns: minmax(150px, 2fr) 112px minmax(120px, 1.1fr) minmax(150px, 1.5fr) 74px 120px 176px; }
+.p-fila .f-mesa { text-align: center; }
+.upsell { border: 1px dashed #c9a646; background: #fffaf0; }
+@media (max-width: 860px) {
+  .p-fila.con-mesa { grid-template-columns: 1fr auto; }
+  .p-fila > .f-mesa { grid-column: 1 / -1; text-align: left; }
+}

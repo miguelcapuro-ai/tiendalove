@@ -70,7 +70,8 @@
     postal: { cd: "ticket", tl: "postcards", loc: "postcard" },
   };
   // Los modelos nuevos (remoto: true) guardan su arte en el servidor de Love, no en este repositorio.
-  const asset = (m, kind, thumb) => m.remoto && window.LOVE && window.LOVE.api
+  const asset = (m, kind, thumb) => m.arte && m.arte[kind] ? `${(window.LOVE && window.LOVE.api) || ""}${m.arte[kind]}`
+    : m.remoto && window.LOVE && window.LOVE.api
     ? `${window.LOVE.api}/love/m/${m.id}/${thumb ? "thumb-" : ""}${kind}.webp${m.v ? `?v=${m.v}` : ""}`
     : `${window.LOVE_BASE || ""}assets/modelos/${m.id}/${thumb ? "thumb-" : ""}${kind}.webp`;
 
@@ -126,7 +127,9 @@
     cargarFuentes();
     if (timers.has(screen)) timers.get(screen)();
     screen.textContent = "";
-    const m = modelById(o.modelo);
+    const base = modelById(o.modelo);
+    // Diseño a medida (Premium): el arte propio del pedido reemplaza el del modelo; el diseño y el texto siguen igual.
+    const m = o.arte && o.arte.sobre ? { ...base, arte: o.arte, remoto: false, v: undefined, cardY: o.arte.cardY || base.cardY, cardInk: o.arte.cardInk || base.cardInk, video: Boolean(o.arte.video) } : base;
     const R = RECIPES[m.layout] || RECIPES.arco;
     const D = o.diseno && o.diseno.paleta ? o.diseno : disenoInicial(m);
     const T = D.textos || {};
@@ -330,6 +333,7 @@
       function mostrarOk(msg, asiste) {
         caja.querySelectorAll(".inv-rsvp-form, .inv-ok").forEach(x => x.remove());
         caja.append(el("div", { class: "inv-ok" }, [el("b", { class: "t-titulo", text: asiste ? "¡Gracias!" : "Gracias por avisar" }), msg || "",
+          asiste && o.invitado && o.invitado.mesa ? el("p", { class: "inv-mesa" }, [el("small", { text: "Su mesa" }), el("b", { class: "t-titulo", text: o.invitado.mesa })]) : null,
           el("div", { class: "inv-acc" }, [el("button", { class: "inv-mini", type: "button", text: "Cambiar mi respuesta", onclick: () => { caja.querySelector(".inv-ok").remove(); caja.append(formulario()); } })])]));
       }
       if (previa) mostrarOk(previa.asiste ? `Confirmaron ${previa.personas} ${previa.personas === 1 ? "persona" : "personas"}.` : "Nos dijeron que no podrán ir.", !!previa.asiste);
@@ -366,7 +370,7 @@
     const conVideo = m.video !== false && !reduced && !o.abierta && Boolean(window.LOVE && window.LOVE.api);
     const video = conVideo ? el("video", { class: "env-video", muted: "", playsinline: "", "webkit-playsinline": "", preload: "auto", poster: asset(m, "sobre"), "aria-hidden": "true" }) : null;
     const apiVideos = (window.LOVE && window.LOVE.api) || "";
-    if (video && apiVideos) { video.muted = true; video.src = `${apiVideos}/love/v/${m.id}.mp4${m.v ? `?v=${m.v}` : ""}`; video.load(); }
+    if (video && apiVideos) { video.muted = true; video.src = m.arte ? `${apiVideos}${m.arte.video}` : `${apiVideos}/love/v/${m.id}.mp4${m.v ? `?v=${m.v}` : ""}`; video.load(); }
     let videoListo = false;
     if (video) { video.addEventListener("canplaythrough", () => { videoListo = true; }, { once: true }); video.addEventListener("error", () => { videoListo = false; video.remove(); }, { once: true }); }
     const flash = el("div", { class: "env-flash" });
@@ -383,7 +387,7 @@
       if (abierto) return; abierto = true;
       if (reduced) { stage.classList.add("done"); hero.style.opacity = "1"; if (o.alAbrir) o.alAbrir(); return; }
       actualCam = respira ? getComputedStyle(cam).transform : "none";
-      if (respira) { respira.commitStyles && respira.commitStyles(); respira.cancel(); }
+      if (respira) { try { respira.commitStyles(); } catch (e) {} respira.cancel(); }
       const opt = (delay, duration, extra = {}) => ({ delay, duration, easing: EASE, fill: "forwards", ...extra });
       hint.animate([{ opacity: 1 }, { opacity: 0 }], opt(0, 350));
       // Conexión lenta: se espera un momento al video antes de usar el respaldo

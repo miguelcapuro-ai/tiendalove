@@ -31,15 +31,20 @@
 
   // Planes: los del servidor mandan; estos son el respaldo.
   let PLANES = [
-    { id: "esencial", nombre: "Esencial", precio: 129, revisiones: 2, maxFotos: 6, musica: false, listaInvitados: false, resumen: "Su invitación con un enlace para todos.",
-      incluye: ["Invitación con el sobre que se abre", "Un enlace para compartir con todos", "Confirmaciones en su tablero", "2 rondas de revisión", "Hasta 6 fotos"] },
-    { id: "clasico", nombre: "Clásico", precio: 189, revisiones: 3, maxFotos: 10, musica: true, listaInvitados: true, destacado: true, resumen: "Cada invitado recibe la suya, con su nombre y sus cupos.",
-      incluye: ["Todo lo del Esencial", "Lista de invitados con cupos", "Invitación con el nombre de cada invitado", "Envío por correo y WhatsApp con un toque", "Música y hasta 10 fotos", "3 rondas de revisión"] },
-    { id: "premium", nombre: "Premium", precio: 259, revisiones: 5, maxFotos: 20, musica: true, listaInvitados: true, cambiarModelo: true, resumen: "La experiencia completa, con más libertad para ajustar.",
-      incluye: ["Todo lo del Clásico", "Cambio de modelo en cualquier ronda", "Historia, hospedaje, transporte y preguntas frecuentes", "Hasta 20 fotos", "5 rondas de revisión"] },
+    { id: "esencial", nombre: "Esencial", precio: 129, revisiones: 2, maxFotos: 6, musica: false, listaInvitados: true, canales: ["correo"], maxInvitaciones: 60, resumen: "Su invitación y hasta 60 invitaciones personales por correo.",
+      incluye: ["Invitación con el sobre que se abre", "Hasta 60 invitaciones con nombre y cupos", "Envío por correo", "Confirmaciones en su tablero", "2 rondas de revisión", "Hasta 6 fotos"] },
+    { id: "clasico", nombre: "Clásico", precio: 189, revisiones: 3, maxFotos: 10, musica: true, listaInvitados: true, canales: ["correo", "whatsapp"], maxInvitaciones: 250, modelosExclusivos: true, destacado: true, resumen: "Cada invitado la recibe por WhatsApp o correo, con su nombre y sus cupos.",
+      incluye: ["Todo lo del Esencial", "Hasta 250 invitaciones", "Envío por WhatsApp con un toque", "Los modelos exclusivos (Épicos y Anime)", "Música y hasta 10 fotos", "3 rondas de revisión"] },
+    { id: "premium", nombre: "Premium", precio: 259, revisiones: 5, maxFotos: 20, musica: true, listaInvitados: true, canales: ["correo", "whatsapp"], maxInvitaciones: 600, modelosExclusivos: true, mesas: true, recordatorios: true, aMedida: true, cambiarModelo: true, resumen: "Diseño a medida del tema que sueñen y el panel completo.",
+      incluye: ["Todo lo del Clásico", "Diseño a medida: el tema que ustedes quieran", "Hasta 600 invitaciones", "Número de mesa en cada invitación", "Recordatorio a quienes no han respondido", "Cambio de modelo, 5 rondas y hasta 20 fotos"] },
   ];
   let PAGO = { yappy: "6665-3528", whatsapp: CFG.whatsapp || "50766653528" };
   const planById = id => PLANES.find(p => p.id === id) || PLANES[1];
+  // Modelos exclusivos: vienen desde el plan Clásico.
+  const ORDEN = { esencial: 0, clasico: 1, premium: 2 };
+  const alcanza = (planId, m) => !m || !m.plan || (ORDEN[planId] ?? 0) >= (ORDEN[m.plan] ?? 0);
+  const modeloActual = () => MODELS.find(m => m.id === data.modelo);
+  const sello = m => (m.plan ? el("span", { class: "excl", text: "Clásico y Premium" }) : null);
 
   // ---------- Datos del pedido ----------
   const data = Object.assign({ plan: "clasico", modelo: "", hora: "16:00", zona: "America/Panama", acompanantes: "si", cupoGeneral: 2, programa: [], ceremonia: "Ceremonia",
@@ -69,7 +74,10 @@
     onclick: e => { $$("#filters .chip").forEach(c => c.setAttribute("aria-pressed", String(c === e.currentTarget))); $$("#catalog .mcard").forEach(c => (c.hidden = f !== "Todos" && c.dataset.family !== f)); } })));
   const art = m => el("div", { class: "mart" }, [el("img", { class: "mart-a", src: Motor.asset(m, "sobre", true), alt: "", loading: "lazy", decoding: "async" }), el("img", { class: "mart-b", src: Motor.asset(m, "portada", true), alt: "", loading: "lazy", decoding: "async" })]);
   MODELS.forEach((m, i) => $("#catalog").append(el("button", { class: "mcard", type: "button", "data-family": m.family, "aria-label": `Ver el modelo ${m.name}`, onclick: () => abrirVista(m.id) }, [
-    art(m), el("div", { class: "mmeta" }, [el("div", {}, [el("b", { text: `${pad(i + 1)} · ${m.name}` }), el("small", { text: m.family })]), el("span", { class: "see", html: `Ver modelo ${arrow}` })])])));
+    art(m), sello(m), el("div", { class: "mmeta" }, [el("div", {}, [el("b", { text: `${pad(i + 1)} · ${m.name}` }), el("small", { text: m.family })]), el("span", { class: "see", html: `Ver modelo ${arrow}` })])])));
+
+  // ---------- Volver a su boda ----------
+  (() => { const g = store.get("ml-boda"); const a = $("#navEntrar"); if (g && g.h && a) { a.href = `portal/#${g.h}`; a.textContent = "Mi boda"; a.title = `Continuar con la boda de ${g.nombres}`; } })();
 
   // ---------- Planes ----------
   function pintarPlanes() {
@@ -168,10 +176,10 @@
     if (paso === 1) {
       const box = el("div", { class: "pick", role: "radiogroup", "aria-label": "Modelo de invitación" });
       MODELS.forEach(m => {
-        const card = el("div", { class: "pcard-m", role: "radio", tabindex: "0", "aria-checked": String(data.modelo === m.id), "aria-label": m.name }, [art(m),
+        const card = el("div", { class: "pcard-m", role: "radio", tabindex: "0", "aria-checked": String(data.modelo === m.id), "aria-label": m.plan ? `${m.name} (planes Clásico y Premium)` : m.name }, [art(m), sello(m),
           el("div", { class: "mmeta" }, [el("div", {}, [el("b", { text: m.name }), el("small", { text: m.family })]),
             el("button", { class: "see", type: "button", text: "Ver", "aria-label": `Ver ${m.name} en grande`, onclick: e => { e.stopPropagation(); abrirVista(m.id); } })])]);
-        const elegir = () => { data.modelo = m.id; save(); $$(".pcard-m", box).forEach(c => c.setAttribute("aria-checked", String(c === card))); err.textContent = ""; actualizarVista(true); };
+        const elegir = () => { data.modelo = m.id; if (!alcanza(data.plan, m)) data.plan = "clasico"; save(); $$(".pcard-m", box).forEach(c => c.setAttribute("aria-checked", String(c === card))); err.textContent = ""; actualizarVista(true); };
         card.addEventListener("click", elegir);
         card.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); elegir(); } });
         box.append(card);
@@ -190,18 +198,31 @@
     }
     if (paso === 3) {
       const box = el("div", { class: "plan-pick", role: "radiogroup", "aria-label": "Plan" });
+      const mod = modeloActual();
+      const medida = el("div", { class: "sub-block medida", id: "medidaBlock" }, [
+        el("p", { class: "label", text: "Diseño a medida · incluido en Premium" }),
+        campo("¿Qué tema sueñan?", area("aMedida", { maxlength: "500", rows: "3", placeholder: "Ej.: somos bomberos; nos encanta la montaña y el café; nuestra serie favorita de fantasía…" }),
+          "Miguel les escribe para afinarlo y les diseña un sobre, una portada y una apertura propios. Mientras tanto, su invitación arranca con el modelo que eligieron. Si el tema es de una película o serie famosa, lo hacemos con un estilo inspirado en ella, sin logos ni personajes oficiales.", true)]);
+      medida.hidden = data.plan !== "premium";
       PLANES.forEach(pl => {
-        const c = el("div", { class: "pp" + (pl.destacado ? " rec" : ""), role: "radio", tabindex: "0", "aria-checked": String(data.plan === pl.id) }, [
+        const bloqueado = mod && !alcanza(pl.id, mod);
+        const c = el("div", { class: "pp" + (pl.destacado ? " rec" : "") + (bloqueado ? " off" : ""), role: "radio", tabindex: bloqueado ? "-1" : "0", "aria-disabled": String(bloqueado), "aria-checked": String(data.plan === pl.id) }, [
           pl.destacado ? el("span", { class: "badge", text: "Recomendado" }) : null,
           el("div", { class: "pp-h" }, [el("b", { text: pl.nombre }), el("span", { class: "pp-price", html: `${money(pl.precio)}` })]),
           el("p", { class: "pp-r", text: pl.resumen }),
+          bloqueado ? el("p", { class: "pp-off", text: `No incluye el modelo ${mod.name}. Elijan Clásico o Premium, o cambien de modelo en el paso 1.` }) : null,
           el("ul", {}, pl.incluye.map(t => el("li", { text: t }))),
         ]);
-        const elegir = () => { data.plan = pl.id; save(); $$(".pp", box).forEach(x => x.setAttribute("aria-checked", String(x === c))); };
+        const elegir = () => {
+          if (bloqueado) { err.textContent = `El modelo ${mod.name} viene en los planes Clásico y Premium.`; return; }
+          data.plan = pl.id; save(); err.textContent = "";
+          $$(".pp", box).forEach(x => x.setAttribute("aria-checked", String(x === c)));
+          medida.hidden = pl.id !== "premium";
+        };
         c.addEventListener("click", elegir); c.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); elegir(); } });
         box.append(c);
       });
-      form.append(box, el("p", { class: "hint", text: "Corregir datos después (fecha, lugar, horas) es gratis y no gasta revisiones." }));
+      form.append(box, medida, el("p", { class: "hint", text: "Corregir datos después (fecha, lugar, horas) es gratis y no gasta revisiones." }));
     }
     if (paso === 4) {
       const rec = el("div", { class: "sub-block", id: "recBlock" }, [
@@ -361,6 +382,7 @@
   function validar(n) {
     const f = name => form.querySelector(`[name="${name}"]`);
     if (n === 1 && !data.modelo) return falla(null, "Elijan un modelo para seguir.");
+    if (n === 3 && !alcanza(data.plan, modeloActual())) return falla(null, `El modelo ${modeloActual().name} viene en los planes Clásico y Premium.`);
     if (n === 2) {
       if (!(data.nombre1 || "").trim()) return falla(f("nombre1"), "Falta el primer nombre.");
       if (!(data.nombre2 || "").trim()) return falla(f("nombre2"), "Falta el segundo nombre.");
@@ -385,7 +407,7 @@
     if (n === 5) {
       if (data.fechaLimite && (!fechaOk(data.fechaLimite) || data.fechaLimite < hoy() || data.fechaLimite > data.fecha)) return falla(f("fechaLimite"), "La fecha para confirmar debe estar entre hoy y el día de la boda.");
       for (const k of ["regalosEnlace", "transmision"]) if (!urlOk(data[k])) return falla(f(k), "Los enlaces deben empezar con https://");
-      if (planById(data.plan).id !== "premium") { data.historia = ""; data.hospedaje = ""; data.transporte = ""; save(); }
+      if (planById(data.plan).id !== "premium") { data.historia = ""; data.hospedaje = ""; data.transporte = ""; data.aMedida = ""; save(); }
     }
     if (n === 6) {
       if (fotos.length > planById(data.plan).maxFotos) return falla(null, `Su plan incluye hasta ${planById(data.plan).maxFotos} fotos.`);
