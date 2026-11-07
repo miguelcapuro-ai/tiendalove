@@ -218,9 +218,10 @@
     };
 
     // Lugar(es)
-    const mapsUrl = (mapa, lug, dr) => mapa || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lug}, ${dr}`)}`;
-    const wazeUrl = (lug, dr) => `https://waze.com/ul?q=${encodeURIComponent(`${lug}, ${dr}`)}&navigate=yes`;
-    function bloqueLugar(lug, dr, hora, mapa) {
+    // Con el punto exacto (buscador de lugares) los botones llevan directo; si no, buscan por nombre y dirección.
+    const mapsUrl = (mapa, lug, dr, geo) => mapa || (geo ? `https://www.google.com/maps/search/?api=1&query=${geo}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lug}, ${dr}`)}`);
+    const wazeUrl = (lug, dr, geo) => geo ? `https://waze.com/ul?ll=${geo}&navigate=yes` : `https://waze.com/ul?q=${encodeURIComponent(`${lug}, ${dr}`)}&navigate=yes`;
+    function bloqueLugar(lug, dr, hora, mapa, geo) {
       let loc;
       if (R.loc === "pass") {
         loc = el("div", { class: "loc loc-pass" }, [
@@ -237,8 +238,8 @@
         loc = el("div", { class: `loc loc-${R.loc}` }, [el("p", { class: "place", text: lug }), el("p", { class: "addr", text: dr }), el("p", { class: "when", text: `${shortDate(fecha)} · ${hora12(hora)}` })]);
       }
       return [loc, el("div", { class: "inv-acc" }, [
-        el("a", { class: "inv-mini", href: mapsUrl(mapa, lug, dr), target: "_blank", rel: "noopener", text: "Google Maps" }),
-        el("a", { class: "inv-mini", href: wazeUrl(lug, dr), target: "_blank", rel: "noopener", text: "Waze" }),
+        el("a", { class: "inv-mini", href: mapsUrl(mapa, lug, dr, geo), target: "_blank", rel: "noopener", text: "Google Maps" }),
+        el("a", { class: "inv-mini", href: wazeUrl(lug, dr, geo), target: "_blank", rel: "noopener", text: "Waze" }),
       ])];
     }
 
@@ -255,8 +256,8 @@
       },
       lugar: () => sec("s-loc", T.titulo_lugar || "Dónde", [
         rc ? el("span", { class: "inv-sub", text: d.ceremonia || "Ceremonia" }) : null,
-        ...bloqueLugar(lugar, dir, d.hora || "16:00", d.mapa),
-        rc ? el("div", { class: "inv-loc2" }, [el("span", { class: "inv-sub", text: "Recepción" }), ...bloqueLugar(rc.lugar, rc.direccion || "", rc.hora || d.hora, rc.mapa)]) : null,
+        ...bloqueLugar(lugar, dir, d.hora || "16:00", d.mapa, d.geo),
+        rc ? el("div", { class: "inv-loc2" }, [el("span", { class: "inv-sub", text: "Recepción" }), ...bloqueLugar(rc.lugar, rc.direccion || "", rc.hora || d.hora, rc.mapa, rc.geo)]) : null,
         d.transporte ? el("p", { class: "inv-nota", text: d.transporte }) : null,
       ]),
       historia: () => (T.historia || d.historia) ? sec("s-hist", "Nuestra historia", [el("p", { class: "inv-texto", text: T.historia || d.historia })]) : null,

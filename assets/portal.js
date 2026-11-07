@@ -72,11 +72,12 @@
     }
     $("#pLead").textContent = P.disenando ? "Estamos aplicando sus cambios. En un par de minutos ven la nueva versión aquí y en su correo." : "Su invitación está lista. Revísenla, carguen a sus invitados y envíenla cuando quieran.";
     if (P.disenando) tPoll = setInterval(refrescar, 8000);
-    const tabs = [["invitacion", "Su invitación"], ["invitados", P.plan.listaInvitados ? `Invitados (${P.invitados.length})` : "Compartir"], ["respuestas", `Confirmaciones (${P.totales.personas})`], ["datos", "Corregir datos"], ["cambios", `Pedir cambios (${P.revisiones.quedan})`]];
+    const tabs = [["invitacion", "Su invitación"], ["invitados", P.plan.listaInvitados ? `Invitados (${P.invitados.length})` : "Compartir"], ...(P.plan.mesas ? [["mesas", `Mesas (${(P.datos.mesas || []).length})`]] : []), ["respuestas", `Confirmaciones (${P.totales.personas})`], ["datos", "Corregir datos"], ["cambios", P.plan.cambiarModelo ? "Modelo y ajustes" : `Pedir ajustes (${P.revisiones.quedan})`]];
+    if (!tabs.some(([k]) => k === tab)) tab = "invitacion";
     const nav = $("#pTabs"); nav.hidden = false; nav.textContent = "";
     tabs.forEach(([k, t]) => nav.append(el("button", { type: "button", role: "tab", "aria-selected": String(tab === k), text: t, onclick: () => { tab = k; sessionStorage.setItem("ml-tab", k); pintar(); } })));
     const c = $("#pCuerpo"); c.textContent = "";
-    ({ invitacion, invitados, respuestas, datos: formDatos, cambios })[tab]?.(c);
+    ({ invitacion, invitados, mesas, respuestas, datos: formDatos, cambios })[tab]?.(c);
   }
   async function refrescar() { try { const nuevo = await api("/love/api/portal"); const cambio = !P || nuevo.version !== P.version || nuevo.estado !== P.estado || nuevo.pagado !== P.pagado; P = nuevo; if (cambio) { pintar(); if (P.estado === "lista") aviso("Su invitación está lista."); } } catch {} }
 
@@ -239,8 +240,17 @@
       const mail = el("input", { class: "f-mail", type: "email", value: i.correo || "", placeholder: "correo@ejemplo.com", "aria-label": "Correo" });
       const estado = el("span", { class: "est" });
       const acc = el("span", { class: "p-row-acc" });
-      const mesa = PLAN.mesas ? el("input", { class: "f-mesa", value: i.mesa || "", maxlength: "20", placeholder: "Mesa", "aria-label": "Número de mesa" }) : null;
-      if (mesa) mesa.addEventListener("input", () => { i.mesa = mesa.value; programar(); });
+      const MESAS = P.datos.mesas || [];
+      let mesa = null;
+      if (PLAN.mesas && MESAS.length) {
+        mesa = el("select", { class: "f-mesa", "aria-label": "Mesa" }, [el("option", { value: "", text: "Sin mesa" }), ...MESAS.map(m => el("option", { value: m.n, text: m.n }))]);
+        if (i.mesa && !MESAS.some(m => m.n === i.mesa)) mesa.append(el("option", { value: i.mesa, text: i.mesa }));
+        mesa.value = i.mesa || "";
+        mesa.addEventListener("change", () => { i.mesa = mesa.value; programar(); });
+      } else if (PLAN.mesas) {
+        mesa = el("input", { class: "f-mesa", value: i.mesa || "", maxlength: "30", placeholder: "Mesa", "aria-label": "Mesa", title: "Definan sus mesas en la pestaña «Mesas» para elegirlas de una lista" });
+        mesa.addEventListener("input", () => { i.mesa = mesa.value; programar(); });
+      }
       const nota = el("div", { class: "fila-nota", hidden: true });
       const fila = el("div", { class: "p-fila" + (mesa ? " con-mesa" : ""), role: "row" }, [nombre, stepper, tel, mail, mesa, estado, acc, nota]);
       const minimo = () => Math.max(1, i.rsvp && i.rsvp.asiste ? i.rsvp.personas : 1);
@@ -350,27 +360,131 @@
         el("div", { class: "p-acc" }, [masivo])]),
       PLAN.recordatorios ? tarjetaRecordatorio() : null,
       !conWa ? el("div", { class: "p-card upsell" }, [el("b", { text: "¿Prefieren enviarlas por WhatsApp?" }),
-        el("p", { text: "Con el plan Clásico, cada invitación sale por WhatsApp con un toque, con el nombre y los cupos ya escritos. También suben a 250 invitaciones." }),
+        el("p", { text: "Con el plan Clásico, cada invitación sale por WhatsApp con un toque, con el nombre y los cupos ya escritos. También suben a 150 invitaciones." }),
         el("a", { class: "btn sm", href: `https://wa.me/${WA}?text=${encodeURIComponent(`Hola, Miguel. Quiero pasar mi pedido ${P.codigo} al plan Clásico.`)}`, target: "_blank", rel: "noopener", text: "Pasar al plan Clásico" })]) : null,
     ].filter(Boolean));
     pintarCuadre();
   }
-  // Premium: recordatorio por correo a quienes ya recibieron su invitación y no han respondido.
+  // Premium: recordatorios por correo a quienes ya recibieron su invitación y no han respondido.
+  // Salen solos 7 y 2 días antes del cierre de confirmaciones; además pueden mandar uno cuando quieran (uno por día).
+  const diaCorto = f => new Date(f + "T12:00:00").toLocaleDateString("es-PA", { day: "numeric", month: "short" });
   function tarjetaRecordatorio() {
+    const R = P.recordatorios || { auto: true, fechas: [], hechos: 0 };
     const pendientes = P.invitados.filter(i => i.enviado_at && !i.rsvp && /@/.test(i.correo || "")).length;
     const hace = P.recordatorioAt ? Math.round((Date.now() / 1000 - P.recordatorioAt) / 3600) : null;
-    const btn = el("button", { class: "btn", type: "button", html: `Recordar a ${pendientes} ${pendientes === 1 ? "invitado" : "invitados"} ${arrow}`, disabled: !pendientes || (hace !== null && hace < 24) });
+    const btn = el("button", { class: "btn sm", type: "button", html: `Recordar ahora a ${pendientes} ${pendientes === 1 ? "invitado" : "invitados"} ${arrow}`, disabled: !pendientes || (hace !== null && hace < 24) });
     btn.addEventListener("click", async () => {
-      if (!confirm(`¿Enviar un recordatorio por correo a ${pendientes} ${pendientes === 1 ? "invitado que no ha respondido" : "invitados que no han respondido"}?`)) return;
+      if (!confirm(`¿Enviar ahora un recordatorio por correo a ${pendientes} ${pendientes === 1 ? "invitado que no ha respondido" : "invitados que no han respondido"}?`)) return;
       btn.disabled = true; btn.textContent = "Enviando…";
       try { const r = await api("/love/api/recordar", {}); aviso(r.configurado ? `Listo: enviamos ${r.enviados} ${r.enviados === 1 ? "recordatorio" : "recordatorios"}.` : "El envío por correo todavía no está activo.", !r.configurado); P.recordatorioAt = Date.now() / 1000; btn.textContent = "Recordatorio enviado hoy"; }
-      catch (e) { aviso(e.message, true); btn.disabled = false; btn.innerHTML = `Recordar a los que faltan ${arrow}`; }
+      catch (e) { aviso(e.message, true); btn.disabled = false; btn.innerHTML = `Recordar ahora ${arrow}`; }
     });
-    return el("div", { class: "p-card" }, [el("b", { text: "Recordar a quienes no han respondido" }),
-      el("p", { text: pendientes ? `${pendientes} ${pendientes === 1 ? "invitado recibió su invitación por correo y no ha respondido" : "invitados recibieron su invitación por correo y no han respondido"}. Les mandamos un recordatorio amable a nombre de ustedes, con su enlace.` : "Por ahora nadie tiene pendiente responder (de los que recibieron su invitación por correo)." }),
+    const auto = el("input", { type: "checkbox", id: "recAuto", ...(R.auto ? { checked: true } : {}) });
+    auto.addEventListener("change", async () => {
+      try { P = await api("/love/api/mesas", { recordatorioAuto: auto.checked }); aviso(auto.checked ? "Listo: los recordatorios automáticos están encendidos." : "Apagamos los recordatorios automáticos."); }
+      catch (e) { aviso(e.message, true); auto.checked = !auto.checked; }
+    });
+    const proximas = R.fechas.map((f, k) => `${diaCorto(f)}${k < R.hechos ? " (enviado)" : ""}`);
+    return el("div", { class: "p-card rec-card" }, [el("b", { text: "Recordatorios a quienes no han respondido" }),
+      el("label", { class: "check rec-auto" }, [auto, el("span", { html: R.fechas.length ? `<b>Automáticos.</b> Les escribimos solos el <b>${proximas.join("</b> y el <b>")}</b>: 7 y 2 días antes de que cierre la confirmación (${diaCorto(R.cierre)}). Solo a quienes recibieron su invitación por correo y no han respondido.` : "<b>Automáticos.</b> Les escribimos solos 7 y 2 días antes de que cierre la confirmación." })]),
+      el("p", { class: "hint", text: pendientes ? `Hoy ${pendientes === 1 ? "hay 1 invitado" : `hay ${pendientes} invitados`} sin responder. También pueden recordarles ahora, una vez por día.` : "Por ahora nadie tiene pendiente responder (de los que recibieron su invitación por correo)." }),
       hace !== null && hace < 24 ? el("p", { class: "hint", text: "Ya enviaron un recordatorio hoy. Pueden enviar otro mañana." }) : null,
       el("div", { class: "p-acc" }, [btn])]);
   }
+
+  // ----- Mesas (Premium): definen las mesas arriba y sientan a cada familia; ven cuántos caben en cada una. -----
+  function mesas(c) {
+    let M = (P.datos.mesas || []).map(m => ({ ...m }));
+    const inv = P.invitados.map(i => ({ ...i }));
+    const ocupa = i => (i.rsvp ? (i.rsvp.asiste ? Math.min(+i.cupos || 0, i.rsvp.personas) : 0) : (+i.cupos || 0));
+    const sentados = n => inv.filter(i => i.mesa === n);
+    const usados = n => sentados(n).reduce((a, i) => a + ocupa(i), 0);
+    let renombrar = {}, asignar = new Map(), timer = null;
+    const estado = el("span", { class: "autosave", "aria-live": "polite", text: "Todo guardado" });
+    const guardar = async () => {
+      timer = null;
+      const body = { mesas: M, renombrar, asignar: [...asignar].map(([id, mesa]) => ({ id, mesa })) };
+      renombrar = {}; asignar = new Map();
+      try { P = await api("/love/api/mesas", body); estado.className = "autosave ok"; estado.textContent = "Todo guardado"; }
+      catch (e) { estado.className = "autosave mal"; estado.textContent = "No se pudo guardar"; aviso(e.message, true); }
+    };
+    const programar = () => { estado.className = "autosave pend"; estado.textContent = "Guardando…"; clearTimeout(timer); timer = setTimeout(guardar, 700); };
+    window.onbeforeunload = () => (timer ? true : undefined);
+
+    // Arriba: crear las mesas de una vez
+    const cant = el("input", { type: "number", min: "1", max: "120", inputmode: "numeric", value: M.length || "", placeholder: "15", id: "mzCant" });
+    const cap = el("input", { type: "number", min: "1", max: "40", inputmode: "numeric", value: M[0]?.c || 10, id: "mzCap" });
+    const crear = el("button", { class: "btn sm", type: "button", text: M.length ? "Ajustar mesas" : "Crear mesas" });
+    crear.addEventListener("click", () => {
+      const n = Math.min(120, Math.max(1, Math.round(+cant.value) || 0)), k = Math.min(40, Math.max(1, Math.round(+cap.value) || 10));
+      if (!+cant.value) { aviso("Escriban cuántas mesas tendrán.", true); cant.focus(); return; }
+      if (n < M.length) {
+        const sobran = M.slice(n).filter(m => sentados(m.n).length);
+        if (sobran.length && !confirm(`Las mesas ${sobran.map(m => m.n).join(", ")} tienen invitados sentados: quedarán «sin mesa». ¿Seguir?`)) return;
+        M.slice(n).forEach(m => sentados(m.n).forEach(i => { i.mesa = ""; asignar.set(i.id, ""); }));
+        M = M.slice(0, n);
+      }
+      M.forEach(m => { m.c = k; });
+      for (let x = M.length; x < n; x++) { let nom = `Mesa ${x + 1}`, z = x + 1; while (M.some(m => m.n === nom)) nom = `Mesa ${++z}`; M.push({ n: nom, c: k }); }
+      programar(); dibujar();
+    });
+    const capTotal = el("b"), resumen = el("p", { class: "mz-res", "aria-live": "polite" });
+    const arriba = el("section", { class: "p-card mz-top" }, [
+      el("b", { text: "Sus mesas" }),
+      el("div", { class: "mz-form" }, [
+        el("label", { class: "field", for: "mzCant" }, [el("span", { text: "¿Cuántas mesas?" }), cant]),
+        el("label", { class: "field", for: "mzCap" }, [el("span", { text: "Personas por mesa" }), cap]),
+        crear]),
+      resumen,
+      el("p", { class: "hint", text: "Después cambian el nombre o la capacidad de cualquier mesa (por ejemplo, «Mesa de honor» para 12). Cada invitado ve su mesa en la invitación cuando confirma." })]);
+
+    const grilla = el("div", { class: "mz-grilla" });
+    const sinMesa = el("section", { class: "p-card mz-sin" });
+    const opciones = (actual) => [el("option", { value: "", text: "Sin mesa" }), ...M.map(m => { const q = m.c - usados(m.n); return el("option", { value: m.n, text: `${m.n} · ${q >= 0 ? `quedan ${q}` : `pasada por ${-q}`}` }); })].map(o => { if (o.value === (actual || "")) o.selected = true; return o; });
+    const mover = (i, nueva) => { i.mesa = nueva; asignar.set(i.id, nueva); programar(); dibujar(); };
+    const filaInv = (i) => {
+      const sel = el("select", { "aria-label": `Mesa de ${i.nombre}` }, opciones(i.mesa));
+      sel.addEventListener("change", () => mover(i, sel.value));
+      const n = ocupa(i);
+      return el("li", { class: "mz-inv" + (i.rsvp && !i.rsvp.asiste ? " no-va" : "") }, [el("span", { class: "mz-nom" }, [el("b", { text: i.nombre }), el("small", { text: i.rsvp ? (i.rsvp.asiste ? `confirmó ${n}` : "no asistirá") : `${n} ${n === 1 ? "cupo" : "cupos"}` })]), sel]);
+    };
+    function dibujar() {
+      const capacidad = M.reduce((a, m) => a + m.c, 0), personas = inv.reduce((a, i) => a + ocupa(i), 0), conMesa = inv.filter(i => i.mesa && M.some(m => m.n === i.mesa)).reduce((a, i) => a + ocupa(i), 0);
+      resumen.innerHTML = M.length ? `<b>${M.length}</b> mesas · <b>${capacidad}</b> sillas · <b>${conMesa}</b> de ${personas} personas sentadas${personas - conMesa ? ` · faltan ${personas - conMesa}` : " · ¡todos tienen mesa!"}${capacidad < personas ? ` · <span class="mal">faltan ${personas - capacidad} sillas</span>` : ""}` : "Escriban cuántas mesas tendrán y cuántas personas caben en cada una.";
+      crear.textContent = M.length ? "Ajustar mesas" : "Crear mesas";
+      grilla.replaceChildren(...M.map((m, k) => {
+        const u = usados(m.n), q = m.c - u;
+        const nom = el("input", { class: "mz-n", value: m.n, maxlength: "30", "aria-label": "Nombre de la mesa" });
+        nom.addEventListener("change", () => {
+          const v = nom.value.trim().slice(0, 30);
+          if (!v || M.some((x, j) => j !== k && x.n.toLowerCase() === v.toLowerCase())) { aviso(v ? "Ya hay una mesa con ese nombre." : "La mesa necesita un nombre.", true); nom.value = m.n; return; }
+          if (v === m.n) return;
+          renombrar[m.n] = v; inv.forEach(i => { if (i.mesa === m.n) i.mesa = v; }); m.n = v; programar(); dibujar();
+        });
+        const capIn = el("input", { class: "mz-c", type: "number", min: "1", max: "40", value: m.c, "aria-label": `Capacidad de ${m.n}` });
+        capIn.addEventListener("change", () => { m.c = Math.min(40, Math.max(1, Math.round(+capIn.value) || m.c)); programar(); dibujar(); });
+        const quitarM = el("button", { class: "rm", type: "button", "aria-label": `Quitar ${m.n}`, html: svg("i-x") });
+        quitarM.addEventListener("click", () => {
+          if (sentados(m.n).length && !confirm(`${m.n} tiene ${sentados(m.n).length} ${sentados(m.n).length === 1 ? "invitado" : "invitados"}: quedarán sin mesa. ¿Quitarla?`)) return;
+          sentados(m.n).forEach(i => { i.mesa = ""; asignar.set(i.id, ""); }); M.splice(k, 1); cant.value = M.length || ""; programar(); dibujar();
+        });
+        const lista = sentados(m.n);
+        return el("article", { class: "mz-mesa" + (q < 0 ? " pasada" : q === 0 ? " llena" : "") }, [
+          el("header", {}, [nom, el("span", { class: "mz-cap" }, [el("b", { text: String(u) }), el("span", { text: " de " }), capIn]), quitarM]),
+          el("div", { class: "mz-barra" }, [el("i", { style: `width:${Math.min(100, m.c ? (u / m.c) * 100 : 0)}%` })]),
+          el("p", { class: "mz-q", text: q > 0 ? `${q} ${q === 1 ? "silla libre" : "sillas libres"}` : q === 0 ? "Mesa completa" : `Se pasa por ${-q}` }),
+          lista.length ? el("ul", { class: "mz-l" }, lista.map(filaInv)) : el("p", { class: "hint", text: "Nadie sentado todavía." })]);
+      }));
+      const libres = inv.filter(i => !i.mesa || !M.some(m => m.n === i.mesa)).filter(i => !(i.rsvp && !i.rsvp.asiste));
+      sinMesa.replaceChildren(el("b", { text: `Sin mesa (${libres.length})` }),
+        !inv.length ? el("p", { class: "hint", text: "Primero agreguen a sus invitados en la pestaña «Invitados»." })
+          : libres.length ? el("ul", { class: "mz-l" }, libres.map(filaInv)) : el("p", { class: "hint", text: "Todos sus invitados tienen mesa." }));
+      sinMesa.hidden = !M.length;
+    }
+    c.append(arriba, el("div", { class: "p-acc barra-inv" }, [estado]), sinMesa, grilla);
+    dibujar();
+  }
+
   const textoWa = i => `Hola, ${i.nombre} 💌 ${P.datos.nombre1} y ${P.datos.nombre2} los invitan a su boda${P.datos.fecha ? ` el ${Motor.longDate(P.datos.fecha)}` : ""}. Su invitación es para ${i.cupos} ${i.cupos === 1 ? "persona" : "personas"}. Ábranla y confirmen aquí: ${i.enlace}`;
   function descargarCSV() {
     const filas = [["Invitado", "Cupos", "WhatsApp", "Correo", "Respuesta", "Personas", "Nombres", "Alergias", "Mensaje", "Enlace"]];
@@ -404,7 +518,7 @@
     };
     const row = (...k) => el("div", { class: "row2" }, k);
     f.append(
-      el("p", { class: "hint", text: "Corregir datos es gratis y no gasta revisiones. Sus invitados ven los cambios al instante, con el mismo enlace." }),
+      el("p", { class: "hint", text: "Corregir datos es gratis y no gasta la ronda de ajustes. Sus invitados ven los cambios al instante, con el mismo enlace." }),
       row(campo("Nombre (1)", "nombre1", { maxlength: "40" }), campo("Nombre (2)", "nombre2", { maxlength: "40" })),
       campo("Su frase", "frase", { maxlength: "120" }),
       row(campo("Fecha", "fecha", { type: "date", min: hoy(), max: maxF() }), campo("Hora", "hora", { type: "time" })),
@@ -436,24 +550,47 @@
   }
 
   // ---------- Pedir cambios de diseño ----------
+  // Premium: cambiar de modelo con un toque. Gratis, sin gastar la ronda; los enlaces ya enviados muestran el modelo nuevo.
+  function selectorModelo() {
+    const orden = { esencial: 0, clasico: 1, premium: 2 };
+    const disponibles = (window.MODELOS || []).filter(m => (orden[P.plan.id] ?? 0) >= (orden[m.plan || "esencial"] ?? 0));
+    const grid = el("div", { class: "mod-grid", role: "radiogroup", "aria-label": "Modelo" });
+    disponibles.forEach(m => {
+      const actual = m.id === P.modelo;
+      const b = el("button", { type: "button", class: "mod-op" + (actual ? " on" : ""), role: "radio", "aria-checked": String(actual), "aria-label": m.name }, [
+        el("img", { src: Motor.asset(m, "sobre", true), alt: "", loading: "lazy" }), el("span", { text: m.name })]);
+      b.addEventListener("click", async () => {
+        if (actual || P.disenando) return;
+        const enviadas = P.invitados.filter(i => i.enviado_at).length;
+        if (!confirm(`¿Cambiar su invitación al modelo ${m.name}?${enviadas ? ` Las ${enviadas} invitaciones que ya enviaron se verán con el modelo nuevo, con el mismo enlace: no hay que reenviarlas.` : ""} Sus textos y datos se quedan igual.`)) return;
+        grid.classList.add("cargando");
+        try { P = await api("/love/api/modelo", { modelo: m.id }); aviso(`Listo: su invitación ahora es ${m.name}.`); tab = "invitacion"; pintar(); }
+        catch (e) { aviso(e.message, true); grid.classList.remove("cargando"); }
+      });
+      grid.append(b);
+    });
+    return el("div", { class: "p-card" }, [el("b", { text: "Cambiar de modelo" }),
+      el("p", { class: "hint", text: "Gratis y al instante, las veces que quieran. Toman los colores, las letras y la apertura del modelo nuevo; sus textos, fotos y lista se quedan igual. Las invitaciones ya enviadas se actualizan solas, con el mismo enlace." }), grid]);
+  }
   function cambios(c) {
     const r = P.revisiones;
-    c.append(el("div", { class: "kpis" }, [kpi(r.quedan, r.quedan === 1 ? "revisión disponible" : "revisiones disponibles"), kpi(r.usadas, "usadas")]));
+    if (P.plan.cambiarModelo) c.append(selectorModelo());
+    c.append(el("div", { class: "kpis" }, [kpi(r.quedan, r.quedan === 1 ? "ronda de ajustes disponible" : "rondas de ajustes disponibles"), kpi(r.usadas, "usadas")]));
     if (r.quedan > 0) {
-      const t = el("textarea", { rows: "5", maxlength: "2000", placeholder: "Escriban todo lo que quieren cambiar en un solo mensaje. Ej.: más dorado, la frase de la portada más corta, el programa antes que el mapa, letra más moderna." });
+      const t = el("textarea", { rows: "5", maxlength: "2000", placeholder: "Escriban todo en un solo mensaje. Ej.: la frase de la portada más corta, una bienvenida más alegre, el programa antes que el mapa." });
       const b = el("button", { class: "btn", type: "button", html: `Enviar cambios ${arrow}`, disabled: P.disenando });
       b.addEventListener("click", async () => {
         if (t.value.trim().length < 4) { aviso("Cuéntennos qué quieren cambiar.", true); return; }
-        if (!confirm(`Esto usa 1 de sus ${r.quedan} revisiones. ¿Enviar?`)) return;
+        if (!confirm(r.quedan === 1 ? "Esto usa su ronda de ajustes. ¿Enviar?" : `Esto usa 1 de sus ${r.quedan} rondas de ajustes. ¿Enviar?`)) return;
         b.disabled = true; b.textContent = "Enviando…";
         try { const j = await api("/love/api/revision", { cambios: t.value }); aviso(j.mensaje); P = await api("/love/api/portal"); pintar(); }
         catch (x) { aviso(x.message, true); b.disabled = false; b.innerHTML = `Enviar cambios ${arrow}`; }
       });
-      c.append(el("div", { class: "p-card" }, [el("b", { text: "¿Qué quieren cambiar del diseño?" }),
-        el("p", { class: "hint", text: P.plan.cambiarModelo ? "Su plan permite cambiar de modelo. Para corregir nombres, fecha o lugar usen «Corregir datos»: es gratis." : "Para corregir nombres, fecha o lugar usen «Corregir datos»: es gratis." }), t, b]));
+      c.append(el("div", { class: "p-card" }, [el("b", { text: "¿Qué textos quieren ajustar?" }),
+        el("p", { class: "hint", text: "La ronda es para textos y el orden de las secciones. Los colores y el estilo vienen con el modelo" + (P.plan.cambiarModelo ? ": para cambiarlos, elijan otro modelo arriba, gratis." : ".") + " Para corregir nombres, fecha o lugar usen «Corregir datos»: es gratis." }), t, b]));
     } else {
-      c.append(el("div", { class: "p-card" }, [el("b", { text: "Ya usaron sus rondas de revisión" }), el("p", { text: `Cada ronda adicional cuesta $${r.precioExtra}.` }),
-        el("a", { class: "btn gold", href: `https://wa.me/${WA}?text=${encodeURIComponent(`Hola, Miguel. Quiero una revisión adicional para mi pedido ${P.codigo}.`)}`, target: "_blank", rel: "noopener", html: `Pedir una revisión adicional ${arrow}` })]));
+      c.append(el("div", { class: "p-card" }, [el("b", { text: "Ya usaron su ronda de ajustes" }), el("p", { text: `Cada ronda adicional cuesta $${r.precioExtra}.` }),
+        el("a", { class: "btn gold", href: `https://wa.me/${WA}?text=${encodeURIComponent(`Hola, Miguel. Quiero otra ronda de ajustes para mi pedido ${P.codigo}.`)}`, target: "_blank", rel: "noopener", html: `Pedir otra ronda ${arrow}` })]));
     }
     if (P.historial.length) c.append(el("div", { class: "p-hist" }, [el("span", { class: "label", text: "Historial" }), ...P.historial.map(h => el("div", { class: "p-hist-i" }, [
       el("small", { text: new Date(h.ts * 1000).toLocaleString("es-PA", { dateStyle: "medium", timeStyle: "short" }) + (h.version ? ` · versión ${h.version}` : "") }),

@@ -31,12 +31,9 @@
 
   // Planes: los del servidor mandan; estos son el respaldo.
   let PLANES = [
-    { id: "esencial", nombre: "Esencial", precio: 129, revisiones: 2, maxFotos: 6, musica: false, listaInvitados: true, canales: ["correo"], maxInvitaciones: 60, resumen: "Su invitación y hasta 60 invitaciones personales por correo.",
-      incluye: ["Invitación con el sobre que se abre", "Hasta 60 invitaciones con nombre y cupos", "Envío por correo", "Confirmaciones en su tablero", "2 rondas de revisión", "Hasta 6 fotos"] },
-    { id: "clasico", nombre: "Clásico", precio: 189, revisiones: 3, maxFotos: 10, musica: true, listaInvitados: true, canales: ["correo", "whatsapp"], maxInvitaciones: 250, modelosExclusivos: true, destacado: true, resumen: "Cada invitado la recibe por WhatsApp o correo, con su nombre y sus cupos.",
-      incluye: ["Todo lo del Esencial", "Hasta 250 invitaciones", "Envío por WhatsApp con un toque", "Los modelos exclusivos (Épicos y Anime)", "Música y hasta 10 fotos", "3 rondas de revisión"] },
-    { id: "premium", nombre: "Premium", precio: 259, revisiones: 5, maxFotos: 20, musica: true, listaInvitados: true, canales: ["correo", "whatsapp"], maxInvitaciones: 600, modelosExclusivos: true, mesas: true, recordatorios: true, aMedida: true, cambiarModelo: true, resumen: "Diseño a medida del tema que sueñen y el panel completo.",
-      incluye: ["Todo lo del Clásico", "Diseño a medida: el tema que ustedes quieran", "Hasta 600 invitaciones", "Número de mesa en cada invitación", "Recordatorio a quienes no han respondido", "Cambio de modelo, 5 rondas y hasta 20 fotos"] },
+    {"id":"esencial","nombre":"Esencial","precio":89,"revisiones":1,"maxFotos":6,"musica":false,"listaInvitados":true,"canales":["correo"],"maxInvitaciones":50,"modelosExclusivos":false,"mesas":false,"recordatorios":false,"aMedida":false,"cambiarModelo":false,"resumen":"Su invitación y hasta 50 invitaciones personales por correo.","incluye":["Invitación con el sobre que se abre","Hasta 50 invitaciones con nombre y cupos","Envío por correo","Confirmaciones en su tablero","Hasta 6 fotos","1 ronda de ajustes"]},
+    {"id":"clasico","nombre":"Clásico","precio":149,"revisiones":1,"maxFotos":10,"musica":true,"listaInvitados":true,"canales":["correo","whatsapp"],"maxInvitaciones":150,"modelosExclusivos":true,"destacado":true,"mesas":false,"recordatorios":false,"aMedida":false,"cambiarModelo":false,"resumen":"Cada invitado la recibe por WhatsApp o correo, con su nombre y sus cupos.","incluye":["Todo lo del Esencial","Hasta 150 invitaciones","Envío por WhatsApp con un toque","Los modelos exclusivos (Épicos y Anime)","Música y hasta 10 fotos","1 ronda de ajustes"]},
+    {"id":"premium","nombre":"Premium","precio":219,"revisiones":1,"maxFotos":20,"musica":true,"listaInvitados":true,"canales":["correo","whatsapp"],"maxInvitaciones":300,"modelosExclusivos":true,"mesas":true,"recordatorios":true,"aMedida":false,"cambiarModelo":true,"resumen":"El panel completo: mesas, recordatorios y cambio de modelo.","incluye":["Todo lo del Clásico","Hasta 300 invitaciones","Mesas: cada invitado ve la suya","Recordatorios automáticos a quienes no responden","Cambien de modelo cuando quieran","Hasta 20 fotos y 2 secciones extra"]},
   ];
   let PAGO = { yappy: "6665-3528", whatsapp: CFG.whatsapp || "50766653528" };
   const planById = id => PLANES.find(p => p.id === id) || PLANES[1];
@@ -164,6 +161,60 @@
   }
 
   // Campos
+  // Buscador de lugares (OpenStreetMap, sin costo): escriben el nombre, eligen y se llenan lugar, dirección y el punto exacto del mapa.
+  const BBOX_PA = "-83.1,7.1,-77.1,9.7";
+  function buscadorLugar(pref) {
+    const ruta = (k) => (pref ? `${pref}.${k}` : k);
+    const leer = (k) => (pref ? (data[pref] || {})[k] : data[k]);
+    const poner = (k, v) => { if (pref) { data[pref] = data[pref] || {}; data[pref][k] = v; } else data[k] = v; };
+    const q = el("input", { type: "search", class: "lb-q", autocomplete: "off", enterkeyhint: "search", placeholder: pref ? "Busquen el salón: Hotel…, Club…, Hacienda…" : "Busquen el lugar: Iglesia del Carmen, Hotel…", "aria-label": "Buscar el lugar" });
+    const lista = el("ul", { class: "lb-lista", role: "listbox", hidden: true });
+    const vista = el("div", { class: "lb-vista", hidden: true });
+    let t, ctl, res = [];
+    const quitarVista = () => { vista.hidden = true; vista.replaceChildren(); };
+    const mostrar = (geo, nombre) => {
+      const [la, lo] = geo.split(",").map(Number); const d = 0.004;
+      vista.replaceChildren(
+        el("iframe", { title: `Mapa de ${nombre}`, loading: "lazy", src: `https://www.openstreetmap.org/export/embed.html?bbox=${lo - d},${la - d},${lo + d},${la + d}&layer=mapnik&marker=${la},${lo}` }),
+        el("p", { class: "hint", html: `<b>¿Es aquí?</b> Así llegan sus invitados con Google Maps y Waze. Si no es, busquen de nuevo o peguen su enlace de Google Maps abajo.` }));
+      vista.hidden = false;
+    };
+    const texto = (p) => {
+      const calle = p.street ? `${p.street}${p.housenumber ? " " + p.housenumber : ""}` : "";
+      return [...new Set([calle, p.district || p.locality, p.city || p.county, p.state].filter(Boolean))].filter(x => x !== p.name).join(", ");
+    };
+    const pintar = () => {
+      lista.replaceChildren(...(res.length ? res.map((f, i) => el("li", { role: "option" }, [el("button", { type: "button", "data-i": i }, [el("b", { text: f.properties.name || texto(f.properties) }), el("small", { text: texto(f.properties) })])]))
+        : [el("li", { class: "lb-nada", text: "No lo encontramos. Escríbanlo abajo a mano: armamos el botón del mapa con la dirección." })]));
+      lista.hidden = false;
+    };
+    const buscar = async (v) => {
+      if (ctl) ctl.abort(); ctl = new AbortController();
+      try {
+        const j = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(v)}&limit=7&bbox=${BBOX_PA}`, { signal: ctl.signal }).then(r => r.json());
+        const vistos = new Set();
+        res = (j.features || []).filter(f => { const k = (f.properties.name || "") + texto(f.properties); if (vistos.has(k)) return false; vistos.add(k); return true; }).slice(0, 5);
+        pintar();
+      } catch (e) { if (e.name !== "AbortError") { res = []; lista.hidden = true; } }
+    };
+    q.addEventListener("input", () => { clearTimeout(t); const v = q.value.trim(); if (v.length < 3) { lista.hidden = true; return; } t = setTimeout(() => buscar(v), 350); });
+    q.addEventListener("keydown", e => { if (e.key === "Escape") lista.hidden = true; });
+    lista.addEventListener("click", e => {
+      const b = e.target.closest("button[data-i]"); if (!b) return;
+      const f = res[Number(b.dataset.i)], p = f.properties, [lo, la] = f.geometry.coordinates;
+      const nombre = (p.name || "").slice(0, 80), dir = texto(p).slice(0, 160);
+      const fijar = (k, v) => { const i = document.getElementById("f-" + ruta(k)); if (i) { i.value = v; i.dispatchEvent(new Event("input", { bubbles: true })); } };
+      if (nombre) fijar("lugar", nombre);
+      fijar("direccion", dir);
+      poner("geo", `${la.toFixed(6)},${lo.toFixed(6)}`); save();
+      lista.hidden = true; q.value = ""; mostrar(leer("geo"), nombre || dir);
+    });
+    // Si después corrigen el lugar a mano, el punto del mapa ya no corresponde.
+    setTimeout(() => ["lugar", "direccion"].forEach(k => { const i = document.getElementById("f-" + ruta(k)); if (i) i.addEventListener("input", e => { if (e.isTrusted && leer("geo")) { poner("geo", ""); save(); quitarVista(); } }); }), 0);
+    if (leer("geo")) setTimeout(() => mostrar(leer("geo"), leer("lugar") || ""), 0);
+    return el("div", { class: "lugar-busca" }, [el("span", { class: "lb-l", text: pref ? "Busquen la recepción" : "Busquen el lugar" }), el("div", { class: "lb-caja" }, [q, lista]), vista]);
+  }
+
   const campo = (label, input, ayuda, opcional) => el("label", { class: "field" }, [el("span", { html: esc(label) + (opcional ? ' <em>(opcional)</em>' : "") }), input, ayuda ? el("small", { class: "hint", text: ayuda }) : null]);
   const inp = (name, attrs = {}) => { const i = el("input", { name, id: "f-" + name, ...attrs }); const v = name.split(".").reduce((o, k) => (o ? o[k] : undefined), data); if (v != null && attrs.type !== "checkbox") i.value = v; if (attrs.type === "checkbox") i.checked = !!v; return i; };
   const area = (name, attrs = {}) => { const t = el("textarea", { name, id: "f-" + name, rows: "2", ...attrs }); t.value = data[name] || ""; return t; };
@@ -199,11 +250,6 @@
     if (paso === 3) {
       const box = el("div", { class: "plan-pick", role: "radiogroup", "aria-label": "Plan" });
       const mod = modeloActual();
-      const medida = el("div", { class: "sub-block medida", id: "medidaBlock" }, [
-        el("p", { class: "label", text: "Diseño a medida · incluido en Premium" }),
-        campo("¿Qué tema sueñan?", area("aMedida", { maxlength: "500", rows: "3", placeholder: "Ej.: somos bomberos; nos encanta la montaña y el café; nuestra serie favorita de fantasía…" }),
-          "Miguel les escribe para afinarlo y les diseña un sobre, una portada y una apertura propios. Mientras tanto, su invitación arranca con el modelo que eligieron. Si el tema es de una película o serie famosa, lo hacemos con un estilo inspirado en ella, sin logos ni personajes oficiales.", true)]);
-      medida.hidden = data.plan !== "premium";
       PLANES.forEach(pl => {
         const bloqueado = mod && !alcanza(pl.id, mod);
         const c = el("div", { class: "pp" + (pl.destacado ? " rec" : "") + (bloqueado ? " off" : ""), role: "radio", tabindex: bloqueado ? "-1" : "0", "aria-disabled": String(bloqueado), "aria-checked": String(data.plan === pl.id) }, [
@@ -217,18 +263,18 @@
           if (bloqueado) { err.textContent = `El modelo ${mod.name} viene en los planes Clásico y Premium.`; return; }
           data.plan = pl.id; save(); err.textContent = "";
           $$(".pp", box).forEach(x => x.setAttribute("aria-checked", String(x === c)));
-          medida.hidden = pl.id !== "premium";
         };
         c.addEventListener("click", elegir); c.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); elegir(); } });
         box.append(c);
       });
-      form.append(box, medida, el("p", { class: "hint", text: "Corregir datos después (fecha, lugar, horas) es gratis y no gasta revisiones." }));
+      form.append(box, el("p", { class: "hint", text: "Corregir datos después (fecha, lugar, horas) es gratis y no gasta su ronda de ajustes." }));
     }
     if (paso === 4) {
       const rec = el("div", { class: "sub-block", id: "recBlock" }, [
+        buscadorLugar("recepcion"),
         campo("Lugar de la recepción", inp("recepcion.lugar", { maxlength: "80", placeholder: "Ej.: Salón Las Américas" })),
         campo("Dirección de la recepción", inp("recepcion.direccion", { maxlength: "160" })),
-        fila(campo("Hora de la recepción", inp("recepcion.hora", { type: "time" }), "", true), campo("Enlace de Google Maps", inp("recepcion.mapa", { type: "url", inputmode: "url", placeholder: "https://maps.app.goo.gl/…" }), "", true)),
+        fila(campo("Hora de la recepción", inp("recepcion.hora", { type: "time" }), "", true), campo("Enlace de Google Maps", inp("recepcion.mapa", { type: "url", inputmode: "url", placeholder: "https://maps.app.goo.gl/…" }), "Solo si no lo encontraron arriba.", true)),
       ]);
       const otro = el("label", { class: "check" }, [el("input", { type: "checkbox", id: "f-otroLugar", ...(data.recepcion && data.recepcion.lugar ? { checked: true } : {}) }), el("span", { text: "La recepción es en otro lugar" })]);
       rec.hidden = !(data.recepcion && data.recepcion.lugar);
@@ -236,9 +282,10 @@
       const prog = el("div", { class: "program", id: "progList" });
       form.append(
         campo("¿Cómo llaman a la ceremonia?", (() => { const s = el("select", { name: "ceremonia", id: "f-ceremonia" }); ["Ceremonia", "Ceremonia religiosa", "Misa", "Ceremonia civil", "Ceremonia simbólica"].forEach(v => s.append(el("option", { value: v, text: v }))); s.value = data.ceremonia || "Ceremonia"; return s; })()),
+        buscadorLugar(""),
         campo("Lugar", inp("lugar", { maxlength: "80", placeholder: "Ej.: Iglesia San Francisco de Asís", required: true })),
         campo("Dirección", inp("direccion", { maxlength: "160", placeholder: "Ciudad, calle o referencia", required: true })),
-        campo("Enlace de Google Maps", inp("mapa", { type: "url", inputmode: "url", placeholder: "https://maps.app.goo.gl/…" }), "Si no lo tienen, armamos el botón con la dirección.", true),
+        campo("Enlace de Google Maps", inp("mapa", { type: "url", inputmode: "url", placeholder: "https://maps.app.goo.gl/…" }), "Solo si no lo encontraron arriba. Si no lo tienen, armamos el botón con la dirección.", true),
         otro, rec,
         el("p", { class: "label", style: "margin-top:18px", text: "Programa del día (opcional)" }), prog,
         el("button", { class: "link", type: "button", text: "+ Añadir momento", onclick: () => { data.programa = data.programa || []; if (data.programa.length < 8) { data.programa.push({ hora: "", acto: "" }); save(); pintarPrograma(); } } }),
@@ -291,7 +338,7 @@
           b.hidden = !data.quiereFactura; return b;
         })(),
         el("div", { class: "w-legal" }, [el("p", { html: "<b>Condiciones</b>" }),
-          el("p", { text: "Usamos sus datos y fotos solo para crear y publicar su invitación. Es privada: no aparece en buscadores y vive hasta tres meses después de la boda; después la borramos." }),
+          el("p", { text: "Usamos sus datos y fotos solo para crear y publicar su invitación. Es privada: no aparece en buscadores y está disponible hasta tres meses después de la boda; después la borramos." }),
           el("p", { text: "Desde que confirmamos su pago empezamos a diseñar. Por eso no hacemos devoluciones, ni si la boda se cancela. Si se pospone, la invitación sigue siendo suya." }),
           el("p", { html: '<a href="aviso/" target="_blank" rel="noopener">Leer el aviso completo</a>' })]),
         el("label", { class: "check" }, [el("input", { type: "checkbox", id: "ac-aviso" }), el("span", { text: "Leí y acepto el aviso de uso de información." })]),
@@ -304,7 +351,7 @@
       const m = Motor.modelById(data.modelo);
       const filas = [
         ["Modelo", m.name, 1], ["Ustedes", `${data.nombre1} & ${data.nombre2}${data.frase ? ` · “${data.frase}”` : ""}`, 2],
-        ["Fecha", `${Motor.longDate(data.fecha)} · ${Motor.hora12(data.hora)}`, 2], ["Plan", `${p.nombre} · ${money(p.precio)} · ${p.revisiones} revisiones`, 3],
+        ["Fecha", `${Motor.longDate(data.fecha)} · ${Motor.hora12(data.hora)}`, 2], ["Plan", `${p.nombre} · ${money(p.precio)} · ${p.revisiones === 1 ? "1 ronda de ajustes" : `${p.revisiones} rondas de ajustes`}`, 3],
         [data.ceremonia || "Ceremonia", `${data.lugar}, ${data.direccion}`, 4],
         data.recepcion && data.recepcion.lugar ? ["Recepción", `${data.recepcion.lugar}${data.recepcion.hora ? " · " + Motor.hora12(data.recepcion.hora) : ""}`, 4] : null,
         (data.programa || []).filter(a => a.hora && a.acto).length ? ["Programa", data.programa.filter(a => a.hora && a.acto).map(a => `${Motor.hora12(a.hora)} ${a.acto}`).join(" · "), 4] : null,
@@ -315,7 +362,7 @@
       ].filter(Boolean);
       form.append(el("dl", { class: "summary" }, filas.flatMap(([k, v, s]) => [el("dt", { text: k }), el("dd", {}, [el("span", { text: v }), el("button", { class: "link", type: "button", text: "Editar", onclick: () => irA(s) })])])),
         el("div", { class: "total" }, [el("span", { text: "Total" }), el("b", { text: `${money(p.precio)} USD` })]),
-        el("p", { class: "hint", text: "Al confirmar, les mostramos cómo pagar con Yappy. Apenas confirmemos su pago, Claude diseña su invitación y les llega al correo en minutos." }));
+        el("p", { class: "hint", text: "Al confirmar, les mostramos cómo pagar con Yappy. Apenas confirmemos su pago, diseñamos su invitación y les llega en minutos al correo y al WhatsApp." }));
     }
     // Guardar lo que escriban
     $$("input[name], select[name], textarea[name]", form).forEach(i => i.addEventListener("input", () => {

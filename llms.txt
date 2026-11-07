@@ -6,14 +6,14 @@
 - 17 modelos de diseño (por ejemplo Esmeralda y lirios, Marfil, Art déco, Playa, y los exclusivos del plan Clásico: Galaxia Lejana, Nivel Final de estilo gamer, Reino de Dragones de fantasía medieval, y los de estilo anime Hilo Rojo y Mecha Unidos), cada uno con apertura animada del sobre.
 - Diseño personalizado con los datos de la pareja: fecha, ceremonia, recepción, programa, padres y padrinos, vestimenta, regalos, hospedaje, fotos y música.
 - Lista de invitados con cupos por invitación, cuadre del total en vivo, envío por fila (correo en todos los planes; WhatsApp en Clásico y Premium) y confirmación de asistencia (RSVP) en línea. Si un invitado va con menos personas o no va, sus cupos quedan libres para otra familia.
-- Los novios vuelven a su boda con el enlace de su correo o en «Entrar a mi boda» con su código de pedido y su correo; todo se guarda en el servidor.
+- La invitación llega en minutos por correo y WhatsApp tras confirmar el pago. Los novios vuelven a su boda con el enlace de su correo o en «Entrar a mi boda» con su código de pedido y su correo; todo se guarda en el servidor.
 - Cambios de fecha o lugar sin costo desde el portal; el enlace se mantiene.
 - La invitación funciona hasta tres meses después de la boda; luego se borran los datos.
 
 ## Planes (USD)
-- Esencial: $129. Hasta 60 invitaciones con nombre y cupos, envío por correo, 2 rondas de cambios, hasta 6 fotos.
-- Clásico: $189. Todo lo del Esencial, hasta 250 invitaciones, envío por WhatsApp, modelos exclusivos (Épicos y Anime), música, 3 rondas de cambios, hasta 10 fotos.
-- Premium: $259. Todo lo del Clásico, diseño a medida con el tema que quieran, hasta 600 invitaciones, número de mesa, recordatorio a quienes no han respondido, cambio de modelo, 5 rondas de cambios, hasta 20 fotos.
+- Esencial: $89. Hasta 50 invitaciones con nombre y cupos, envío por correo, hasta 6 fotos, 1 ronda de ajustes.
+- Clásico: $149. Todo lo del Esencial, hasta 150 invitaciones, envío por WhatsApp, modelos exclusivos (Épicos y Anime), música, hasta 10 fotos, 1 ronda de ajustes.
+- Premium: $219. Todo lo del Clásico, hasta 300 invitaciones, mesas con número en cada invitación, recordatorios automáticos a quienes no responden, cambio de modelo cuando quieran, hasta 20 fotos.
 - Ronda de cambios adicional: $25.
 - No hay devoluciones una vez confirmado el pago.
 
