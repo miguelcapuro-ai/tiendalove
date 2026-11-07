@@ -70,8 +70,8 @@ window.MODELOS = [
     paper: "#070a14", ink: "#e6eefb", accent: "#d9b45a" },
   { id: "nivel-final", remoto: true, name: "Nivel Final", family: "Épico", layout: "deco", kicker: "Player 1 + Player 2",
     blurb: "Sobre negro, sello de corazón pixelado y luces de arcade. Para los que se conocieron jugando.",
-    cardY: .38, cardInk: "#2a0d22", heroY: .42, heroInk: "#ffd6ef",
-    title: "'Press Start 2P', monospace", body: "'Josefin Sans', sans-serif",
+    cardY: .40, cardInk: "#2a0d22", heroY: .42, heroInk: "#ffd6ef",
+    title: "'VT323', monospace", body: "'Josefin Sans', sans-serif",
     paper: "#121014", ink: "#f4e9f0", accent: "#ff3ea5" },
   { id: "hilo-rojo", remoto: true, name: "Hilo Rojo", family: "Anime", layout: "arco", kicker: "Unidos por el hilo rojo",
     blurb: "Papel washi, un hilo rojo del destino y cerezos al atardecer, como en una película de anime.",
@@ -80,7 +80,7 @@ window.MODELOS = [
     paper: "#fdf1ea", ink: "#5a2a2a", accent: "#c8232c" },
   { id: "mecha", remoto: true, name: "Mecha Unidos", family: "Anime", layout: "selva", kicker: "Secuencia de lanzamiento",
     blurb: "Sobre de acero, sello hexagonal y un hangar de robots gigantes. Épico y con carácter.",
-    cardY: .37, cardInk: "#1d2b3a", heroY: .42, heroInk: "#f1f5fa",
+    cardY: .43, cardInk: "#1d2b3a", heroY: .42, heroInk: "#f1f5fa",
     title: "'Rajdhani', sans-serif", body: "'Rajdhani', sans-serif",
     paper: "#1a2330", ink: "#e8eef5", accent: "#ff7a1a" }
 ];

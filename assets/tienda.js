@@ -64,7 +64,7 @@
 
   // ---------- Catálogo ----------
   const fams = ["Todos", ...new Set(MODELS.map(m => m.family))];
-  const plural = { Elegante: "Elegantes", "Orgánico": "Orgánicos" };
+  const plural = { Elegante: "Elegantes", "Orgánico": "Orgánicos", "Épico": "Épicos" };
   fams.forEach((f, i) => $("#filters").append(el("button", { class: "chip", type: "button", "aria-pressed": String(i === 0), text: plural[f] || f,
     onclick: e => { $$("#filters .chip").forEach(c => c.setAttribute("aria-pressed", String(c === e.currentTarget))); $$("#catalog .mcard").forEach(c => (c.hidden = f !== "Todos" && c.dataset.family !== f)); } })));
   const art = m => el("div", { class: "mart" }, [el("img", { class: "mart-a", src: Motor.asset(m, "sobre", true), alt: "", loading: "lazy", decoding: "async" }), el("img", { class: "mart-b", src: Motor.asset(m, "portada", true), alt: "", loading: "lazy", decoding: "async" })]);

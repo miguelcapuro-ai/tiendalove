@@ -50,9 +50,9 @@
   let fuentes = false;
   function cargarFuentes() {
     if (fuentes) return; fuentes = true;
-    document.head.append(el("link", { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Pinyon+Script&family=Bodoni+Moda:wght@500&family=Playfair+Display:ital,wght@0,500;1,500&family=Italiana&family=Poiret+One&family=Fraunces:wght@400;600&family=Josefin+Sans:wght@300;400;600&family=Cinzel:wght@500&family=Great+Vibes&family=Orbitron:wght@500;700&family=Press+Start+2P&family=Shippori+Mincho:wght@500;700&family=Rajdhani:wght@500;600&display=swap" }));
+    document.head.append(el("link", { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Pinyon+Script&family=Bodoni+Moda:wght@500&family=Playfair+Display:ital,wght@0,500;1,500&family=Italiana&family=Poiret+One&family=Fraunces:wght@400;600&family=Josefin+Sans:wght@300;400;600&family=Cinzel:wght@500&family=Great+Vibes&family=Orbitron:wght@500;700&family=VT323&family=Shippori+Mincho:wght@500;700&family=Rajdhani:wght@500;600&display=swap" }));
   }
-  const familia = f => `'${f}', ${/Josefin|Archivo|Orbitron|Rajdhani/.test(f) ? "sans-serif" : /Press Start/.test(f) ? "monospace" : /Pinyon|Vibes/.test(f) ? "cursive" : "serif"}`;
+  const familia = f => `'${f}', ${/Josefin|Archivo|Orbitron|Rajdhani/.test(f) ? "sans-serif" : /VT323/.test(f) ? "monospace" : /Pinyon|Vibes/.test(f) ? "cursive" : "serif"}`;
 
   // ---------- Composición propia de cada modelo ----------
   const RECIPES = {
