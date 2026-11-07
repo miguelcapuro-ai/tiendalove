@@ -365,3 +365,9 @@
 .env-flash { position: absolute; inset: 0; pointer-events: none; opacity: 0;
   background: radial-gradient(circle at 50% 40%, #fff8e6 0%, rgba(255,236,190,.85) 35%, rgba(255,220,160,.35) 70%, transparent 100%); }
 .env-card { z-index: 2; }
+/* Adornos de los modelos nuevos: bordes desvanecidos para que el fondo de la imagen se funda */
+.orn-img.fade { -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 55%, transparent 100%); mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 55%, transparent 100%); }
+/* Cuenta regresiva en columnas (Art déco y Nivel Final): que quepa «SEGUNDOS» */
+.cd-pillars { gap: 1.6cqw; }
+.cd-pillars .u { flex: none; width: 22cqw; padding-inline: 0; box-sizing: border-box; }
+.cd-pillars small { letter-spacing: 0; }

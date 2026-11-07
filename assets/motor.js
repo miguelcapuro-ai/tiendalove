@@ -163,7 +163,7 @@
     let numero = 0;
     const head = t => el("h4", { class: "inv-h", style: tituloCSS }, [R.numerar ? el("span", { class: "num", text: pad(++numero) }) : null, t]);
     const sec = (cls, t, kids) => el("section", { class: `inv-sec ${cls} rv` }, [t ? head(t) : null, ...kids]);
-    const ornament = (k = "") => el("img", { class: `orn-img ${R.dark ? "on-dark" : "on-light"} ${k} rv`, src: asset(m, "ornamento"), alt: "", loading: "lazy" });
+    const ornament = (k = "") => el("img", { class: `orn-img ${R.dark ? "on-dark" : "on-light"}${m.remoto ? " fade" : ""} ${k} rv`, src: asset(m, "ornamento"), alt: "", loading: "lazy" });
 
     // Intro, saludo personal y padres
     body.append(el("p", { class: "inv-intro rv" }, [T.intro || `${n1} & ${n2} los invitan a celebrar con ellos.`]));
