@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /i/
 Disallow: /portal/
+Sitemap: https://tiendalove.mejorativa.com/sitemap.xml
