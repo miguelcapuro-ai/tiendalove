@@ -172,11 +172,19 @@
     const vista = el("div", { class: "lb-vista", hidden: true });
     let t, ctl, res = [];
     const quitarVista = () => { vista.hidden = true; vista.replaceChildren(); };
+    // Vista del mapa con mosaicos (sin iframes de otros sitios): el punto queda al centro, con su pin.
+    const mapaFijo = (la, lo, z = 16) => {
+      const n = 2 ** z, fx = (lo + 180) / 360 * n, rad = la * Math.PI / 180, fy = (1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2 * n;
+      const tx = Math.floor(fx), ty = Math.floor(fy), dx = (fx - tx) * 256, dy = (fy - ty) * 256;
+      const capa = el("div", { class: "lb-tiles", style: `left:calc(50% - ${(256 + dx).toFixed(1)}px);top:calc(50% - ${(256 + dy).toFixed(1)}px)` });
+      for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) capa.append(el("img", { src: `https://a.basemaps.cartocdn.com/rastertiles/voyager/${z}/${tx + i}/${ty + j}.png`, alt: "", style: `left:${(i + 1) * 256}px;top:${(j + 1) * 256}px`, loading: "lazy" }));
+      return el("div", { class: "lb-mapa", role: "img", "aria-label": "Mapa del lugar elegido" }, [capa, el("span", { class: "lb-pin", "aria-hidden": "true" }), el("small", { class: "lb-attr", text: "© OpenStreetMap · © CARTO" })]);
+    };
     const mostrar = (geo, nombre) => {
-      const [la, lo] = geo.split(",").map(Number); const d = 0.004;
-      vista.replaceChildren(
-        el("iframe", { title: `Mapa de ${nombre}`, loading: "lazy", src: `https://www.openstreetmap.org/export/embed.html?bbox=${lo - d},${la - d},${lo + d},${la + d}&layer=mapnik&marker=${la},${lo}` }),
-        el("p", { class: "hint", html: `<b>¿Es aquí?</b> Así llegan sus invitados con Google Maps y Waze. Si no es, busquen de nuevo o peguen su enlace de Google Maps abajo.` }));
+      const [la, lo] = geo.split(",").map(Number);
+      const gm = `https://www.google.com/maps/search/?api=1&query=${la},${lo}`;
+      vista.replaceChildren(mapaFijo(la, lo),
+        el("p", { class: "hint", html: `<b>¿Es aquí?</b> Así llegan sus invitados con Google Maps y Waze (<a href="${gm}" target="_blank" rel="noopener">verlo en Google Maps</a>). Si no es, busquen de nuevo o peguen su enlace de Google Maps abajo.` }));
       vista.hidden = false;
     };
     const texto = (p) => {

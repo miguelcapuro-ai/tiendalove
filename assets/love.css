@@ -220,7 +220,12 @@ button.link { background: none; border: 0; padding: 0 0 2px; font: inherit; font
 .lb-lista small { color: var(--muted); font-size: .82rem; line-height: 1.35; }
 .lb-nada { padding: 12px; color: var(--muted); font-size: .88rem; }
 .lb-vista { display: grid; gap: 8px; }
-.lb-vista iframe { width: 100%; height: 180px; border: 0; border-radius: 14px; background: var(--surface); }
+.lb-mapa { position: relative; height: 190px; border-radius: 14px; overflow: hidden; background: #e8e4dc; }
+.lb-tiles { position: absolute; width: 768px; height: 768px; }
+.lb-tiles img { position: absolute; width: 256px; height: 256px; max-width: none; user-select: none; }
+.lb-pin { position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -26px 0 0 -13px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #c8232c; box-shadow: 0 3px 8px rgba(0,0,0,.35); }
+.lb-pin::after { content: ""; position: absolute; left: 8px; top: 8px; width: 10px; height: 10px; border-radius: 50%; background: #fff; }
+.lb-attr { position: absolute; right: 6px; bottom: 4px; font-size: 10px; color: #333; background: rgba(255,255,255,.75); padding: 1px 5px; border-radius: 4px; }
 
 /* «Qué incluye» compacto: la sección entera cabe en una pantalla al tocar el menú */
 #incluye { padding-block: clamp(40px, 5vw, 64px); scroll-margin-top: 64px; }
