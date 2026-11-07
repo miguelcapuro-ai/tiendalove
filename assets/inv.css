@@ -381,3 +381,10 @@
 .M-reino .inv-hero-text .inv-names { background: none; color: #3a2414; -webkit-text-fill-color: #3a2414; text-shadow: 0 0 2.4cqw #fff6e0, 0 0 .6cqw #fff6e0, 0 .3cqw 0 #c9a64666; }
 .M-reino .inv-hero-text .inv-kicker, .M-reino .inv-hero-text .inv-date, .M-reino .inv-hero-text .inv-phrase { text-shadow: 0 0 1.6cqw #fff6e0, 0 0 .4cqw #fff6e0; }
 .M-reino .inv-hero.has-photo .inv-names { color: #fff; -webkit-text-fill-color: #fff; text-shadow: 0 .4cqw 2cqw #000a; }
+/* Confirmación en dos toques: lo opcional queda plegado */
+.inv-rsvp-form [hidden] { display: none !important; }
+.inv-sino button { padding: 3.8cqw 2cqw; font-size: 4cqw; }
+.inv-extra { font-size: 3.4cqw; }
+.inv-extra summary { cursor: pointer; text-align: center; opacity: .8; text-decoration: underline; text-underline-offset: .3em; list-style: none; padding: 1cqw 0; }
+.inv-extra summary::-webkit-details-marker { display: none; }
+.inv-extra[open] summary { opacity: .6; }

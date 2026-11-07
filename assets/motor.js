@@ -284,41 +284,52 @@
       if (d.soloAdultos) caja.append(el("p", { class: "inv-nota", text: "Celebración solo para adultos." }));
       if (cerrado) return caja;
       const previa = o.invitado && o.invitado.rsvp;
+      // Confirmar en dos toques: «Sí» o «No» y el botón. Cuántos van solo si su invitación es para más de uno;
+      // nombres, alergias y mensaje quedan plegados y son opcionales, para que nadie se abrume.
       function formulario() {
-        let asiste = previa ? !!previa.asiste : true, personas = previa && previa.personas ? previa.personas : Math.min(max, max);
+        let asiste = previa ? !!previa.asiste : null, personas = previa && previa.personas ? previa.personas : max;
         const err = el("p", { class: "inv-err", role: "alert" });
         const out = el("output", { text: String(personas) });
         const menos = el("button", { type: "button", "aria-label": "Una persona menos", text: "−" });
         const mas = el("button", { type: "button", "aria-label": "Una persona más", text: "+" });
-        const sync = () => { out.textContent = personas; menos.disabled = personas <= 1; mas.disabled = personas >= max; cupos.hidden = !asiste; extra.hidden = !asiste; };
-        menos.onclick = () => { personas = Math.max(1, personas - 1); sync(); };
-        mas.onclick = () => { personas = Math.min(max, personas + 1); sync(); };
-        const si = el("button", { type: "button", "aria-pressed": String(asiste), text: "Sí, ahí estaremos" });
-        const no = el("button", { type: "button", "aria-pressed": String(!asiste), text: "No podremos ir" });
-        si.onclick = () => { asiste = true; si.setAttribute("aria-pressed", "true"); no.setAttribute("aria-pressed", "false"); sync(); };
-        no.onclick = () => { asiste = false; no.setAttribute("aria-pressed", "true"); si.setAttribute("aria-pressed", "false"); sync(); };
+        const si = el("button", { type: "button", "aria-pressed": String(asiste === true), text: "Sí, ahí estaremos" });
+        const no = el("button", { type: "button", "aria-pressed": String(asiste === false), text: "No podremos ir" });
         const nombre = o.invitado ? null : el("input", { name: "nombre", maxlength: "80", autocomplete: "name", placeholder: "Nombre y apellido" });
-        const cupos = el("label", {}, [max > 1 ? `¿Cuántos van? (hasta ${max})` : "Va 1 persona", max > 1 ? el("div", { class: "inv-cupos" }, [menos, out, mas]) : null]);
+        const cupos = el("label", {}, [`¿Cuántos van? (su invitación es para ${max})`, el("div", { class: "inv-cupos" }, [menos, out, mas])]);
         const nombres = el("input", { name: "nombres", maxlength: "300", placeholder: "Ej.: Ana, Pedro y Sofía" });
         const alergias = el("input", { name: "alergias", maxlength: "200", placeholder: "Ej.: maní, mariscos" });
         const cancion = el("input", { name: "cancion", maxlength: "120", placeholder: "La que no puede faltar" });
         const mensaje = el("textarea", { name: "mensaje", rows: "2", maxlength: "400", placeholder: "Unas palabras para los novios" });
-        const extra = el("div", { style: "display:grid;gap:3.6cqw" }, [
-          max > 1 ? el("label", {}, ["Nombres de quienes van (opcional)", nombres]) : null,
-          d.preguntarAlergias !== false ? el("label", {}, ["Alergias o comida especial (opcional)", alergias]) : null,
-          d.preguntarCancion ? el("label", {}, ["Una canción para la fiesta (opcional)", cancion]) : null,
-        ]);
-        if (previa) { nombres.value = previa.nombres || ""; }
-        const enviar = el("button", { class: "inv-btn", type: "submit", text: previa ? "Actualizar mi respuesta" : (T.boton_rsvp || "Confirmar asistencia") });
+        if (previa) nombres.value = previa.nombres || "";
+        const camposSi = [
+          max > 1 ? el("label", {}, ["Nombres de quienes van", nombres]) : null,
+          d.preguntarAlergias !== false ? el("label", {}, ["Alergias o comida especial", alergias]) : null,
+          d.preguntarCancion ? el("label", {}, ["Una canción para la fiesta", cancion]) : null,
+        ];
+        const extras = el("details", { class: "inv-extra" }, [el("summary", { text: "Agregar un detalle (opcional)" }), el("div", { style: "display:grid;gap:3.6cqw;margin-top:3.6cqw" }, [...camposSi, el("label", {}, ["Mensaje para los novios", mensaje])])]);
+        const enviar = el("button", { class: "inv-btn", type: "submit" });
+        const sync = () => {
+          out.textContent = personas; menos.disabled = personas <= 1; mas.disabled = personas >= max;
+          cupos.hidden = asiste !== true || max <= 1;
+          camposSi.forEach(x => { if (x) x.hidden = asiste !== true; });
+          extras.hidden = asiste === null; enviar.hidden = asiste === null;
+          enviar.textContent = asiste ? (max > 1 ? `Confirmar: ${personas === 1 ? "va 1 persona" : `van ${personas}`}` : (T.boton_rsvp || "Confirmar asistencia")) : "Avisar que no podremos ir";
+          if (previa && asiste !== null) enviar.textContent = asiste ? `Actualizar: ${max > 1 ? (personas === 1 ? "va 1 persona" : `van ${personas}`) : "sí vamos"}` : "Actualizar: no podremos ir";
+        };
+        menos.onclick = () => { personas = Math.max(1, personas - 1); sync(); };
+        mas.onclick = () => { personas = Math.min(max, personas + 1); sync(); };
+        si.onclick = () => { asiste = true; si.setAttribute("aria-pressed", "true"); no.setAttribute("aria-pressed", "false"); sync(); };
+        no.onclick = () => { asiste = false; no.setAttribute("aria-pressed", "true"); si.setAttribute("aria-pressed", "false"); sync(); };
         const f = el("form", { class: "inv-rsvp-form", novalidate: true }, [
           nombre ? el("label", {}, ["Su nombre", nombre]) : null,
-          el("div", { class: "inv-sino" }, [si, no]), cupos, extra, el("label", {}, ["Mensaje (opcional)", mensaje]), err, enviar]);
+          el("div", { class: "inv-sino" }, [si, no]), cupos, extras, err, enviar]);
         sync();
         f.addEventListener("submit", async e => {
           e.preventDefault(); err.textContent = "";
+          if (asiste === null) { err.textContent = "Toquen «Sí» o «No»."; return; }
           if (nombre && !nombre.value.trim()) { err.textContent = "Escriban su nombre."; nombre.focus(); return; }
           if (o.vista || !o.api) { err.textContent = "Así confirmarán sus invitados. En la vista previa no se guarda."; return; }
-          enviar.disabled = true; enviar.textContent = "Enviando…";
+          const txt = enviar.textContent; enviar.disabled = true; enviar.textContent = "Enviando…";
           try {
             const body = { s: o.slug, g: o.invitado ? o.invitado.id : undefined, asiste, personas: asiste ? personas : 0, nombre: nombre ? nombre.value : undefined,
               nombres: nombres.value, alergias: alergias.value, mensaje: [mensaje.value, cancion.value ? `Canción: ${cancion.value}` : ""].filter(Boolean).join(" · ") };
@@ -327,7 +338,7 @@
             if (!r.ok || !j.ok) throw new Error(j.mensaje || "No se pudo guardar. Intenten de nuevo.");
             if (o.invitado) o.invitado.rsvp = { asiste: asiste ? 1 : 0, personas: asiste ? personas : 0, nombres: nombres.value };
             mostrarOk(j.mensaje, asiste);
-          } catch (x) { err.textContent = x.message; enviar.disabled = false; enviar.textContent = T.boton_rsvp || "Confirmar asistencia"; }
+          } catch (x) { err.textContent = x.message; enviar.disabled = false; enviar.textContent = txt; }
         });
         return f;
       }
