@@ -154,7 +154,7 @@
     const listoFuentes = (document.fonts && document.fonts.load)
       ? Promise.race([Promise.all(fuentesModelo.map(f => document.fonts.load(`600 48px '${f}'`).catch(() => {}))), new Promise(r => setTimeout(r, 2000))])
       : Promise.resolve();
-    const inv = el("div", { class: `inv cargando-fuentes L-${m.layout}`, style: `--paper:${P.papel};--ink:${P.tinta};--acc:${P.acento};--suave:${P.suave || "transparent"};--titulo:${familia(D.tipografia.titulo)};--cuerpo:${familia(D.tipografia.cuerpo)}` });
+    const inv = el("div", { class: `inv cargando-fuentes L-${m.layout} M-${m.id}`, style: `--paper:${P.papel};--ink:${P.tinta};--acc:${P.acento};--suave:${P.suave || "transparent"};--titulo:${familia(D.tipografia.titulo)};--cuerpo:${familia(D.tipografia.cuerpo)}` });
 
     // Portada
     const hero = el("div", { class: "inv-hero" + (portada ? " has-photo" : "") }, [

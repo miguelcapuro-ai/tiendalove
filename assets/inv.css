@@ -377,3 +377,7 @@
 .inv-mesa { display: grid; justify-items: center; gap: 2px; margin: 14px auto 4px; padding: 10px 22px; border: 1px solid currentColor; border-radius: 14px; width: max-content; }
 .inv-mesa small { font-size: max(11px, 2.8cqw); letter-spacing: .2em; text-transform: uppercase; opacity: .75; }
 .inv-mesa b { font-size: max(22px, 8cqw); line-height: 1; }
+/* Reino de Dragones: portada de cielo claro → nombres en tinta oscura con filo dorado, legibles sobre el atardecer */
+.M-reino .inv-hero-text .inv-names { background: none; color: #3a2414; -webkit-text-fill-color: #3a2414; text-shadow: 0 0 2.4cqw #fff6e0, 0 0 .6cqw #fff6e0, 0 .3cqw 0 #c9a64666; }
+.M-reino .inv-hero-text .inv-kicker, .M-reino .inv-hero-text .inv-date, .M-reino .inv-hero-text .inv-phrase { text-shadow: 0 0 1.6cqw #fff6e0, 0 0 .4cqw #fff6e0; }
+.M-reino .inv-hero.has-photo .inv-names { color: #fff; -webkit-text-fill-color: #fff; text-shadow: 0 .4cqw 2cqw #000a; }
