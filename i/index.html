@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Su invitación · Mejorativa Love</title>
+<meta name="description" content="Tienen una invitación. Ábranla y toquen el sobre.">
+<meta property="og:title" content="Tienen una invitación 💌">
+<meta property="og:description" content="Ábranla y toquen el sobre.">
+<meta property="og:image" content="https://tiendalove.mejorativa.com/img/og-invitacion.jpg">
+<meta name="theme-color" content="#0b1424">
+<link rel="icon" type="image/png" sizes="48x48" href="../img/favicon-48.png">
+<link rel="apple-touch-icon" href="../img/apple-touch-icon.png">
+<link rel="stylesheet" href="../assets/inv.css">
+<style>
+  html, body { margin: 0; height: 100%; background: #0b1424; font-family: 'Cormorant Garamond', Georgia, serif; }
+  .inv-page .screen { height: 100dvh; }
+  .estado { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; color: #e9eef6; padding: 30px; }
+  .estado h1 { font-weight: 400; font-size: 2rem; margin: 18px 0 8px; }
+  .estado p { opacity: .75; max-width: 34ch; margin: 0 auto; line-height: 1.5; font-size: 1.15rem; }
+  .estado .sello { width: 64px; height: 64px; border-radius: 50%; margin: 0 auto; background: radial-gradient(circle at 35% 30%, #EBD3A0, #D2AE66 55%, #A9853F); animation: lat 1.6s ease-in-out infinite; }
+  @keyframes lat { 50% { transform: scale(.92); opacity: .8; } }
+  .marca { position: fixed; left: 0; right: 0; bottom: calc(10px + env(safe-area-inset-bottom)); text-align: center; font: 11px/1 Arial, sans-serif; letter-spacing: .2em; text-transform: uppercase; color: rgba(255,255,255,.35); pointer-events: none; z-index: 0; }
+</style>
+</head>
+<body>
+<div class="estado" id="estado"><div><div class="sello" aria-hidden="true"></div><h1>Un momento…</h1><p>Estamos abriendo su invitación.</p></div></div>
+<div class="inv-page" id="pagina" hidden><div class="screen" id="screen"></div></div>
+<script>window.LOVE_BASE = "../";</script>
+<script src="../assets/love-config.js"></script>
+<script src="../models.js"></script>
+<script src="../assets/motor.js"></script>
+<script>
+(() => {
+  const API = (window.LOVE.api || "").replace(/\/$/, "");
+  const estado = document.getElementById("estado");
+  const mostrar = (t, p) => { estado.innerHTML = `<div><div class="sello" aria-hidden="true" style="animation:none"></div><h1></h1><p></p></div>`; estado.querySelector("h1").textContent = t; estado.querySelector("p").textContent = p; estado.hidden = false; };
+  const [slug, g] = decodeURIComponent(location.hash.slice(1)).split(/[.\/]/);
+  const vista = new URLSearchParams(location.search).get("vista") === "1";
+  if (!/^[a-z0-9]{10}$/.test(slug || "")) { mostrar("No encontramos esta invitación", "Revisen que el enlace esté completo. Si lo copiaron de un mensaje, cópienlo de nuevo."); return; }
+  fetch(`${API}/love/api/inv?s=${slug}${g ? "&g=" + encodeURIComponent(g) : ""}${vista ? "&vista=1" : ""}`)
+    .then(r => r.json().then(j => ({ r, j })))
+    .then(({ r, j }) => {
+      if (r.status === 410) return mostrar("Esta celebración ya pasó", "Gracias por haber sido parte. La invitación ya no está disponible.");
+      if (!r.ok || !j.ok) return mostrar("No encontramos esta invitación", j.mensaje || "Revisen el enlace o pídanselo de nuevo a los novios.");
+      const d = j.datos;
+      document.title = `${d.nombre1} & ${d.nombre2} · ${j.invitado ? "Invitación para " + j.invitado.nombre : "Nuestra boda"}`;
+      estado.hidden = true; document.getElementById("pagina").hidden = false;
+      Motor.construir(document.getElementById("screen"), {
+        modelo: j.modelo, diseno: j.diseno, datos: d, fotos: j.fotos.map(u => API + u), portada: j.portada,
+        invitado: j.invitado, cupoGeneral: j.cupoGeneral, cerrado: j.cerrado, api: API, slug: j.slug, vista: vista,
+      });
+    })
+    .catch(() => mostrar("No pudimos abrir la invitación", "Revisen su conexión e intenten de nuevo en un momento."));
+})();
+</script>
+</body>
+</html>
