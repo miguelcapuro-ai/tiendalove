@@ -99,7 +99,13 @@
   function copiar(t, btn) { navigator.clipboard?.writeText(t).then(() => { const o = btn.textContent; btn.textContent = "Copiado"; setTimeout(() => (btn.textContent = o), 1600); }); }
 
   // ---------- Invitados ----------
-  let lista = null;
+  // Cuadre de cupos, guardado automático, envío por fila y filas bloqueadas una vez enviadas.
+  const ALFA = "abcdefghijkmnpqrstuvwxyz23456789";
+  const nuevoId = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), v => ALFA[v % ALFA.length]).join("");
+  const enlaceDe = i => `${P.enlaceGeneral}.${i.id}`;
+  const fechaCorta = ts => new Date(ts * 1000).toLocaleDateString("es-PA", { day: "numeric", month: "short" });
+  const svg = id => `<svg class="ico" aria-hidden="true"><use href="#${id}"/></svg>`;
+  const telBonito = t => { const d = digits(t); return d.length === 8 ? `${d.slice(0, 4)}-${d.slice(4)}` : d.length === 11 && d.startsWith("507") ? `+507 ${d.slice(3, 7)}-${d.slice(7)}` : (t || ""); };
   function invitados(c) {
     if (!P.plan.listaInvitados) {
       c.append(el("div", { class: "p-card" }, [el("b", { text: "Su plan comparte un solo enlace con todos" }),
@@ -107,51 +113,201 @@
         el("p", { class: "hint", html: `¿Quieren que cada invitado reciba la suya, con su nombre y sus cupos? Es parte del plan Clásico. <a href="https://wa.me/${WA}?text=${encodeURIComponent(`Hola, Miguel. Quiero pasar mi pedido ${P.codigo} al plan Clásico.`)}" target="_blank" rel="noopener">Escríbannos</a>.` })]));
       return;
     }
-    lista = P.invitados.map(i => ({ ...i }));
-    c.append(totales());
+    const lista = P.invitados.map(i => ({ ...i }));
+    const desbloqueados = new Set();
+    let total = P.datos.cuposTotales || null;
+    const conNombre = () => lista.filter(i => (i.nombre || "").trim());
+    const bloqueada = i => Boolean(i.enviado_at) && !desbloqueados.has(i.id);
+
+    // ----- Cuadre -----
+    const totalIn = el("input", { type: "number", min: "1", max: "3000", inputmode: "numeric", value: total || "", placeholder: "150", "aria-label": "Total de invitados de su boda", id: "cqTotal" });
+    const relleno = el("i");
+    const cqNum = el("div", { class: "cq-num", "aria-live": "polite" });
+    const cqMsg = el("p", { class: "cq-msg" });
+    const cqSub = el("p", { class: "cq-sub" });
+    const cuadre = el("section", { class: "p-card cuadre", "aria-label": "Cuadre de cupos" }, [
+      el("div", { class: "cq-top" }, [
+        el("label", { class: "cq-total", for: "cqTotal" }, [el("span", { text: "Total de invitados de su boda" }), totalIn]),
+        cqNum]),
+      el("div", { class: "cq-barra", role: "progressbar", "aria-label": "Cupos asignados" }, [relleno]), cqMsg, cqSub]);
+    const asignados = () => conNombre().reduce((s, i) => s + (+i.cupos || 0), 0);
+    const pasado = () => total && asignados() > total;
+    const pintarCuadre = () => {
+      const a = asignados(), env = lista.filter(i => i.enviado_at), pEnv = env.reduce((s, i) => s + i.cupos, 0), porEnviar = conNombre().filter(i => !i.enviado_at).length;
+      cuadre.classList.remove("exacto", "pasado", "sin-total");
+      if (!total) {
+        cuadre.classList.add("sin-total");
+        cqNum.innerHTML = `<b>${a}</b><span>${a === 1 ? "cupo asignado" : "cupos asignados"}</span>`;
+        cqMsg.textContent = "Escriban cuántas personas esperan en total y les llevamos la cuenta mientras reparten los cupos.";
+        relleno.style.width = "0%";
+      } else {
+        const q = total - a;
+        cqNum.innerHTML = `<b>${a}</b><span>de ${total}</span>`;
+        relleno.style.width = `${Math.min(100, (a / total) * 100)}%`;
+        cuadre.querySelector(".cq-barra").setAttribute("aria-valuenow", String(a)); cuadre.querySelector(".cq-barra").setAttribute("aria-valuemax", String(total));
+        if (q > 0) cqMsg.textContent = `Les quedan ${q} ${q === 1 ? "cupo" : "cupos"} por asignar.`;
+        else if (q === 0) { cuadre.classList.add("exacto"); cqMsg.textContent = "Cuadre perfecto: todos los cupos están asignados."; }
+        else { cuadre.classList.add("pasado"); cqMsg.textContent = `Se pasaron por ${-q} ${q === -1 ? "cupo" : "cupos"}. Bajen cupos o suban el total para poder enviar.`; }
+      }
+      cqSub.textContent = `${env.length} ${env.length === 1 ? "invitación enviada" : "invitaciones enviadas"} (${pEnv} ${pEnv === 1 ? "persona" : "personas"}) · ${porEnviar} por enviar`;
+      lista.forEach(refrescarFila);
+    };
+    totalIn.addEventListener("input", () => { const v = Math.round(+totalIn.value); total = v >= 1 ? Math.min(3000, v) : null; pintarCuadre(); programar(); });
+
+    // ----- Guardado automático -----
+    const estadoG = el("span", { class: "autosave", "aria-live": "polite", text: "Todo guardado" });
+    let timer = null, enCurso = null, otraVez = false;
+    const programar = () => { estadoG.className = "autosave pend"; estadoG.textContent = "Guardando…"; clearTimeout(timer); timer = setTimeout(guardar, 800); };
+    async function guardar() {
+      clearTimeout(timer); timer = null;
+      if (enCurso) { otraVez = true; return enCurso; }
+      enCurso = (async () => {
+        try {
+          const R = await api("/love/api/invitados", { total, desbloqueados: [...desbloqueados],
+            invitados: conNombre().map(i => ({ id: i.id, nombre: i.nombre, cupos: i.cupos, telefono: i.telefono, correo: i.correo, nota: i.nota })) });
+          const porId = new Map(R.invitados.map(x => [x.id, x]));
+          lista.forEach(i => { const x = porId.get(i.id); if (x) { i.enlace = x.enlace; i.enviado_at = x.enviado_at; i.enviado_por = x.enviado_por; i.abierto_at = x.abierto_at; i.rsvp = x.rsvp; i.guardado = true; } });
+          P = { ...R };
+          estadoG.className = "autosave ok"; estadoG.textContent = "Todo guardado";
+        } catch (e) { estadoG.className = "autosave mal"; estadoG.textContent = "No se pudo guardar"; aviso(e.message, true); }
+        enCurso = null;
+        pintarCuadre();
+        if (otraVez) { otraVez = false; return guardar(); }
+      })();
+      return enCurso;
+    }
+    // Si cierran la pestaña con cambios pendientes, se los recordamos.
+    window.onbeforeunload = () => (timer || enCurso ? true : undefined);
+
+    // ----- Filas -----
     const tabla = el("div", { class: "p-tabla", role: "table", "aria-label": "Lista de invitados" });
-    const cabecera = el("div", { class: "p-fila cab", role: "row" }, ["Invitado o familia", "Cupos", "WhatsApp", "Correo", "Estado", ""].map(t => el("span", { role: "columnheader", text: t })));
+    const cabecera = el("div", { class: "p-fila cab", role: "row" }, ["Invitado o familia", "Cupos", "WhatsApp", "Correo", "Estado", "Enviar"].map(t => el("span", { role: "columnheader", text: t })));
     const cuerpo = el("div", { role: "rowgroup" });
-    const estado = i => {
-      if (!i.id) return el("span", { class: "est", text: "Sin guardar" });
-      if (i.rsvp) return el("span", { class: "est " + (i.rsvp.asiste ? "si" : "no"), text: i.rsvp.asiste ? `Confirmó ${i.rsvp.personas}` : "No va" });
-      if (i.abierto_at) return el("span", { class: "est", text: "La abrió" });
-      if (i.enviado_at) return el("span", { class: "est", text: i.enviado_por === "whatsapp" ? "Enviada por WhatsApp" : "Enviada por correo" });
-      return el("span", { class: "est", text: "Sin enviar" });
+    const vacio = el("p", { class: "hint vacio", text: "Todavía no hay invitados. Agréguenlos uno por uno o péguenlos desde Excel." });
+    const refs = new Map();
+
+    function estadoTxt(i) {
+      if (!i.guardado && !i.id) return ["", "Sin guardar"];
+      if (i.rsvp) return [i.rsvp.asiste ? "si" : "no", i.rsvp.asiste ? `Confirmó ${i.rsvp.personas}` : "No asistirá"];
+      if (i.abierto_at) return ["vista", "La abrió"];
+      if (i.enviado_at) return ["env", `Enviada ${fechaCorta(i.enviado_at)}`];
+      return ["", "Sin enviar"];
+    }
+    async function enviarCorreo(i, btn) {
+      if (pasado()) { aviso(cqMsg.textContent, true); return; }
+      if (!i.correo || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(i.correo)) { aviso(`Escriban un correo válido para ${i.nombre}.`, true); return; }
+      if (P.estado !== "lista") { aviso("Su invitación todavía se está diseñando. En unos minutos pueden enviarla.", true); return; }
+      btn.disabled = true; btn.classList.add("cargando");
+      await guardar();
+      try {
+        const r = await api("/love/api/enviar", { canal: "correo", ids: [i.id] });
+        if (!r.configurado) aviso("El envío por correo todavía no está activo. Usen WhatsApp por ahora.", true);
+        else if (r.enviados) { i.enviado_at = Date.now() / 1000; i.enviado_por = "correo"; aviso(`Listo: ${i.nombre} ya tiene su invitación en su correo.`); }
+        else aviso(`No pudimos enviarla a ${i.correo}. Revisen el correo e intenten de nuevo.`, true);
+      } catch (e) { aviso(e.message, true); }
+      btn.disabled = false; btn.classList.remove("cargando"); pintarCuadre();
+    }
+    function crearFila(i) {
+      if (!i.id) i.id = nuevoId();
+      const nombre = el("input", { class: "f-nombre", value: i.nombre || "", maxlength: "80", placeholder: "Ej.: Familia Castillo", "aria-label": "Nombre del invitado o familia" });
+      const cuposIn = el("input", { class: "f-cupos", type: "number", min: "1", max: "20", inputmode: "numeric", value: i.cupos || 1, "aria-label": "Cupos" });
+      const menos = el("button", { type: "button", class: "st", "aria-label": "Un cupo menos", text: "−" });
+      const mas = el("button", { type: "button", class: "st", "aria-label": "Un cupo más", text: "+" });
+      const stepper = el("div", { class: "stepper" }, [menos, cuposIn, el("span", { class: "st-lbl", text: "cupos" }), mas]);
+      const tel = el("input", { class: "f-tel", value: telBonito(i.telefono), inputmode: "tel", placeholder: "WhatsApp 6000-0000", "aria-label": "WhatsApp" });
+      const mail = el("input", { class: "f-mail", type: "email", value: i.correo || "", placeholder: "correo@ejemplo.com", "aria-label": "Correo" });
+      const estado = el("span", { class: "est" });
+      const acc = el("span", { class: "p-row-acc" });
+      const nota = el("div", { class: "fila-nota", hidden: true });
+      const fila = el("div", { class: "p-fila", role: "row" }, [nombre, stepper, tel, mail, estado, acc, nota]);
+      const minimo = () => Math.max(1, i.rsvp && i.rsvp.asiste ? i.rsvp.personas : 1);
+      const fijarCupos = v => { const n = Math.max(minimo(), Math.min(20, Math.round(+v) || 1)); i.cupos = n; cuposIn.value = n; if (+v < minimo()) aviso(`${i.nombre || "Este invitado"} ya confirmó ${minimo()} ${minimo() === 1 ? "persona" : "personas"}: no pueden darle menos cupos.`, true); pintarCuadre(); programar(); };
+      menos.addEventListener("click", () => fijarCupos((+cuposIn.value || 1) - 1));
+      mas.addEventListener("click", () => fijarCupos((+cuposIn.value || 1) + 1));
+      cuposIn.addEventListener("change", () => fijarCupos(cuposIn.value));
+      nombre.addEventListener("input", () => { i.nombre = nombre.value; pintarCuadre(); programar(); });
+      tel.addEventListener("input", () => { i.telefono = tel.value; refrescarFila(i); programar(); });
+      mail.addEventListener("input", () => { i.correo = mail.value; refrescarFila(i); programar(); });
+      refs.set(i, { fila, nombre, cuposIn, menos, mas, tel, mail, estado, acc, nota });
+      return fila;
+    }
+    function refrescarFila(i) {
+      const r = refs.get(i); if (!r) return;
+      const lock = bloqueada(i);
+      r.fila.classList.toggle("locked", lock);
+      [r.nombre, r.cuposIn, r.tel, r.mail, r.menos, r.mas].forEach(x => { x.disabled = lock; });
+      r.tel.hidden = lock && !r.tel.value.trim(); r.mail.hidden = lock && !r.mail.value.trim();
+      const [cls, txt] = estadoTxt(i);
+      r.estado.className = `est ${cls}`;
+      r.estado.innerHTML = (lock ? svg("i-lock") : "") + `<span>${txt}</span>`;
+      r.acc.textContent = "";
+      const listo = i.guardado && (i.nombre || "").trim() && !timer && !enCurso;
+      const tieneWa = waNum(i.telefono), tieneMail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(i.correo || "");
+      if ((i.nombre || "").trim()) {
+        if (tieneWa) {
+          const a = el("a", { class: "chip-wa" + (listo && !pasado() ? "" : " off"), href: `https://wa.me/${waNum(i.telefono)}?text=${encodeURIComponent(textoWa({ ...i, enlace: enlaceDe(i) }))}`, target: "_blank", rel: "noopener",
+            title: i.enviado_at ? "Reenviar por WhatsApp" : "Enviar por WhatsApp", "aria-label": `${i.enviado_at ? "Reenviar" : "Enviar"} a ${i.nombre} por WhatsApp`, html: svg("i-wa") });
+          a.addEventListener("click", ev => {
+            if (pasado()) { ev.preventDefault(); aviso(cqMsg.textContent, true); return; }
+            if (!listo) { ev.preventDefault(); aviso("Un segundo: estamos guardando la lista. Intenten de nuevo.", true); return; }
+            if (P.estado !== "lista") { ev.preventDefault(); aviso("Su invitación todavía se está diseñando. En unos minutos pueden enviarla.", true); return; }
+            api("/love/api/enviar", { canal: "whatsapp", ids: [i.id] }).then(() => { if (!i.enviado_at) { i.enviado_at = Date.now() / 1000; i.enviado_por = "whatsapp"; } desbloqueados.delete(i.id); pintarCuadre(); }).catch(e => aviso(e.message, true));
+          });
+          r.acc.append(a);
+        }
+        if (tieneMail) r.acc.append(el("button", { class: "chip-mail" + (pasado() ? " off" : ""), type: "button", title: i.enviado_at ? "Reenviar por correo" : "Enviar por correo", "aria-label": `${i.enviado_at ? "Reenviar" : "Enviar"} a ${i.nombre} por correo`, html: svg("i-mail"), onclick: e => enviarCorreo(i, e.currentTarget) }));
+        if (!tieneWa && !tieneMail && !lock) r.acc.append(el("span", { class: "hint mini", text: "Agreguen WhatsApp o correo" }));
+        if (i.guardado) r.acc.append(el("button", { class: "chip-s", type: "button", text: "Enlace", title: "Copiar su enlace personal", onclick: e => copiar(enlaceDe(i), e.currentTarget) }));
+      }
+      if (lock) r.acc.append(el("button", { class: "chip-s ghost", type: "button", text: "Editar", "aria-label": `Editar la invitación de ${i.nombre}`, onclick: () => pedirEdicion(i) }));
+      else r.acc.append(el("button", { class: "rm", type: "button", "aria-label": `Quitar a ${i.nombre || "este invitado"}`, html: svg("i-x"), onclick: () => quitar(i) }));
+    }
+    function pedirEdicion(i) {
+      const r = refs.get(i);
+      r.nota.hidden = false; r.nota.textContent = "";
+      r.nota.append(el("p", { text: `${i.nombre} ya recibió su invitación. Si cambian sus datos o sus cupos, lo verá con el mismo enlace la próxima vez que lo abra.` }),
+        el("div", { class: "p-acc" }, [
+          el("button", { class: "btn sm", type: "button", text: "Editar igual", onclick: () => { desbloqueados.add(i.id); r.nota.hidden = true; refrescarFila(i); r.nombre.focus(); } }),
+          el("button", { class: "link", type: "button", text: "Cancelar", onclick: () => { r.nota.hidden = true; } })]));
+    }
+    function quitar(i) {
+      if (i.rsvp && !confirm(`${i.nombre} ya respondió. Si lo quitan, se borra su respuesta. ¿Quitarlo igual?`)) return;
+      if (i.enviado_at && !confirm(`${i.nombre} ya recibió su invitación y su enlace dejará de funcionar. ¿Quitarlo igual?`)) return;
+      lista.splice(lista.indexOf(i), 1); refs.get(i)?.fila.remove(); refs.delete(i);
+      vacio.hidden = lista.length > 0; pintarCuadre(); programar();
+    }
+    const agregar = (datos = {}, foco = true) => {
+      const i = { nombre: "", cupos: 1, telefono: "", correo: "", ...datos, id: nuevoId() };
+      lista.push(i); cuerpo.append(crearFila(i)); vacio.hidden = true;
+      if (foco) refs.get(i).nombre.focus();
+      return i;
     };
-    const pintarFilas = () => {
-      cuerpo.textContent = "";
-      lista.forEach((i, n) => {
-        const nombre = el("input", { value: i.nombre || "", maxlength: "80", placeholder: "Ej.: Familia Castillo", "aria-label": "Nombre del invitado" });
-        const cupos = el("input", { type: "number", min: "1", max: "20", value: i.cupos || 1, "aria-label": "Cupos" });
-        const tel = el("input", { value: i.telefono || "", inputmode: "tel", placeholder: "6000-0000", "aria-label": "WhatsApp" });
-        const mail = el("input", { type: "email", value: i.correo || "", placeholder: "correo@…", "aria-label": "Correo" });
-        [nombre, cupos, tel, mail].forEach(x => x.addEventListener("input", () => { i.nombre = nombre.value; i.cupos = Math.max(1, Math.min(20, +cupos.value || 1)); i.telefono = tel.value; i.correo = mail.value; sucio(true); }));
-        const acciones = el("span", { class: "p-row-acc" }, [
-          i.id && waNum(i.telefono) ? el("a", { class: "chip-wa", href: `https://wa.me/${waNum(i.telefono)}?text=${encodeURIComponent(textoWa(i))}`, target: "_blank", rel: "noopener", title: "Enviar por WhatsApp", html: '<svg class="ico" aria-hidden="true"><use href="#i-wa"/></svg>', onclick: () => api("/love/api/enviar", { canal: "whatsapp", ids: [i.id] }).then(() => { i.enviado_at = i.enviado_at || Date.now() / 1000; i.enviado_por = i.enviado_por || "whatsapp"; }).catch(() => {}) }) : null,
-          i.id ? el("button", { class: "chip-s", type: "button", text: "Enlace", title: "Copiar su enlace personal", onclick: e => copiar(i.enlace, e.currentTarget) }) : null,
-          el("button", { class: "rm", type: "button", "aria-label": `Quitar a ${i.nombre || "este invitado"}`, html: '<svg class="ico" aria-hidden="true"><use href="#i-x"/></svg>', onclick: () => { if (i.rsvp && !confirm(`${i.nombre} ya respondió. ¿Quitarlo igual?`)) return; lista.splice(n, 1); sucio(true); pintarFilas(); } }),
-        ]);
-        cuerpo.append(el("div", { class: "p-fila", role: "row" }, [nombre, cupos, tel, mail, estado(i), acciones]));
-      });
-      if (!lista.length) cuerpo.append(el("p", { class: "hint", style: "padding:18px", text: "Todavía no hay invitados. Agréguenlos uno por uno o péguenlos desde Excel." }));
-    };
-    tabla.append(cabecera, cuerpo);
-    const guardar = el("button", { class: "btn", type: "button", html: `Guardar lista ${arrow}`, disabled: true });
-    const sucio = s => { guardar.disabled = !s; guardar.dataset.sucio = s ? "1" : ""; };
-    guardar.addEventListener("click", async () => {
-      guardar.disabled = true; guardar.textContent = "Guardando…";
-      try { P = await api("/love/api/invitados", { invitados: lista.filter(i => (i.nombre || "").trim()) }); aviso("Lista guardada."); pintar(); }
-      catch (e) { aviso(e.message, true); guardar.disabled = false; guardar.innerHTML = `Guardar lista ${arrow}`; }
-    });
+    lista.forEach(i => { i.guardado = true; cuerpo.append(crearFila(i)); });
+    vacio.hidden = lista.length > 0;
+    tabla.append(cabecera, cuerpo, vacio);
+
     const pegar = el("textarea", { rows: "4", placeholder: "Peguen aquí desde Excel o escriban una por línea:\nFamilia Castillo, 3, 6000-0000, castillo@correo.com\nMiguel Capuro, 1, , miguel@correo.com" });
-    const sinCorreo = P.invitados.filter(i => !i.correo).length, porEnviar = P.invitados.filter(i => i.correo && !i.enviado_at).length;
+    const porEnviarCorreo = () => lista.filter(i => i.guardado && /@/.test(i.correo || "") && !i.enviado_at).length;
+    const masivo = el("button", { class: "btn", type: "button", html: `Enviar por correo a los que faltan ${arrow}` });
+    masivo.addEventListener("click", async () => {
+      if (pasado()) { aviso(cqMsg.textContent, true); return; }
+      await guardar();
+      const n = porEnviarCorreo();
+      if (!n) { aviso("No hay invitaciones por correo pendientes."); return; }
+      if (!confirm(`¿Enviar ${n} ${n === 1 ? "invitación" : "invitaciones"} por correo ahora?`)) return;
+      masivo.disabled = true; masivo.textContent = "Enviando…";
+      try { const r = await api("/love/api/enviar", {}); aviso(r.configurado ? `Listo: enviamos ${r.enviados} ${r.enviados === 1 ? "invitación" : "invitaciones"}.${r.fallos.length ? ` No salieron: ${r.fallos.join(", ")}.` : ""}` : "El envío por correo todavía no está activo. Usen WhatsApp por ahora.", !r.configurado); P = await api("/love/api/portal"); pintar(); }
+      catch (x) { aviso(x.message, true); masivo.disabled = false; masivo.innerHTML = `Enviar por correo a los que faltan ${arrow}`; }
+    });
     c.append(
-      el("div", { class: "p-acc" }, [el("button", { class: "btn sm", type: "button", text: "+ Agregar invitado", onclick: () => { lista.push({ nombre: "", cupos: 1 }); pintarFilas(); sucio(true); $$(".p-fila:last-child input", cuerpo)[0]?.focus(); } }), guardar,
+      cuadre,
+      el("div", { class: "p-acc barra-inv" }, [el("button", { class: "btn sm", type: "button", text: "+ Agregar invitado", onclick: () => { agregar(); pintarCuadre(); } }), estadoG,
         el("button", { class: "link", type: "button", text: "Descargar en Excel (CSV)", onclick: descargarCSV })]),
+      el("p", { class: "hint", text: "Todo se guarda solo. Pueden cerrar y volver cuando quieran con el enlace de su correo. Al enviar una invitación, su fila queda bloqueada para que no se cambie por error." }),
       tabla,
       el("details", { class: "p-card" }, [el("summary", { text: "Pegar varios desde Excel" }), el("p", { class: "hint", text: "Columnas: nombre, cupos, WhatsApp, correo. Separadas por coma o tabulación." }), pegar,
         el("button", { class: "btn sm", type: "button", text: "Agregar a la lista", onclick: () => {
+          let n = 0;
           pegar.value.split(/\r?\n/).map(l => l.trim()).filter(Boolean).forEach(l => {
             const partes = (l.includes("\t") ? l.split("\t") : l.split(/[;,]/)).map(x => x.trim());
             const correo = partes.find(x => /@/.test(x)) || "";
@@ -159,21 +315,15 @@
             const nombre = resto.shift() || "";
             const cuposTxt = resto.find(x => /^\d{1,2}$/.test(x));
             const telefono = resto.find(x => x !== cuposTxt && digits(x).length >= 7) || "";
-            if (nombre) lista.push({ nombre, cupos: Math.max(1, Math.min(20, parseInt(cuposTxt, 10) || 1)), telefono, correo });
+            if (nombre) { agregar({ nombre, cupos: Math.max(1, Math.min(20, parseInt(cuposTxt, 10) || 1)), telefono, correo }, false); n++; }
           });
-          pegar.value = ""; pintarFilas(); sucio(true);
+          pegar.value = ""; pintarCuadre(); programar(); aviso(n ? `Agregamos ${n} ${n === 1 ? "invitado" : "invitados"}.` : "No encontramos nombres en lo que pegaron.", !n);
         } })]),
-      el("div", { class: "p-card" }, [el("b", { text: "Enviar las invitaciones" }),
-        el("p", { text: `Por correo: les llega a nombre de ustedes, con su enlace personal. ${porEnviar ? `Faltan ${porEnviar} por enviar.` : "No hay correos pendientes."}${sinCorreo ? ` ${sinCorreo} no tienen correo: envíenselas por WhatsApp con el botón verde.` : ""}` }),
-        el("div", { class: "p-acc" }, [el("button", { class: "btn", type: "button", html: `Enviar por correo a los que faltan ${arrow}`, disabled: !porEnviar || P.estado !== "lista", onclick: async e => {
-          if (guardar.dataset.sucio) { aviso("Primero guarden la lista.", true); return; }
-          if (!confirm(`¿Enviar ${porEnviar} invitaciones por correo ahora?`)) return;
-          e.currentTarget.disabled = true; e.currentTarget.textContent = "Enviando…";
-          try { const r = await api("/love/api/enviar", {}); aviso(r.configurado ? `Listo: enviamos ${r.enviados} invitaciones.${r.fallos.length ? ` No salieron: ${r.fallos.join(", ")}.` : ""}` : "El envío por correo todavía no está activo. Usen WhatsApp por ahora."); P = await api("/love/api/portal"); pintar(); }
-          catch (x) { aviso(x.message, true); pintar(); }
-        } })])]),
+      el("div", { class: "p-card" }, [el("b", { text: "Enviar todas por correo" }),
+        el("p", { text: "Les llega a nombre de ustedes, con su enlace personal. Para los que no tienen correo, usen el botón verde de WhatsApp de su fila." }),
+        el("div", { class: "p-acc" }, [masivo])]),
     );
-    pintarFilas();
+    pintarCuadre();
   }
   const textoWa = i => `Hola, ${i.nombre} 💌 ${P.datos.nombre1} y ${P.datos.nombre2} los invitan a su boda${P.datos.fecha ? ` el ${Motor.longDate(P.datos.fecha)}` : ""}. Su invitación es para ${i.cupos} ${i.cupos === 1 ? "persona" : "personas"}. Ábranla y confirmen aquí: ${i.enlace}`;
   function descargarCSV() {

@@ -371,3 +371,6 @@
 .cd-pillars { gap: 1.6cqw; }
 .cd-pillars .u { flex: none; width: 17.5cqw; padding-inline: 0; box-sizing: border-box; }
 .cd-pillars small { letter-spacing: .1em; }
+
+/* Mientras llegan las fuentes del modelo, los nombres no se muestran (evita el salto de letras) */
+.inv.cargando-fuentes .inv-names, .inv.cargando-fuentes .inv-kicker { visibility: hidden; }

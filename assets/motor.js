@@ -71,7 +71,7 @@
   };
   // Los modelos nuevos (remoto: true) guardan su arte en el servidor de Love, no en este repositorio.
   const asset = (m, kind, thumb) => m.remoto && window.LOVE && window.LOVE.api
-    ? `${window.LOVE.api}/love/m/${m.id}/${thumb ? "thumb-" : ""}${kind}.webp`
+    ? `${window.LOVE.api}/love/m/${m.id}/${thumb ? "thumb-" : ""}${kind}.webp${m.v ? `?v=${m.v}` : ""}`
     : `${window.LOVE_BASE || ""}assets/modelos/${m.id}/${thumb ? "thumb-" : ""}${kind}.webp`;
 
   // Ficha mínima cuando todavía no hay diseño de Claude (catálogo y vista previa de la tienda).
@@ -145,7 +145,13 @@
     const tituloCSS = `font-family:${familia(D.tipografia.titulo)};${/Cormorant|Playfair/.test(D.tipografia.titulo) && m.italic ? "font-style:italic;" : ""}`;
     const limpiezas = [];
 
-    const inv = el("div", { class: `inv L-${m.layout}`, style: `--paper:${P.papel};--ink:${P.tinta};--acc:${P.acento};--suave:${P.suave || "transparent"};--titulo:${familia(D.tipografia.titulo)};--cuerpo:${familia(D.tipografia.cuerpo)}` });
+    // Las fuentes del modelo llegan de internet: se piden ya, y los nombres no se muestran hasta tenerlas
+    // (así no aparecen con otra letra y luego "saltan" de lugar).
+    const fuentesModelo = [D.tipografia.titulo, D.tipografia.cuerpo].filter(Boolean);
+    const listoFuentes = (document.fonts && document.fonts.load)
+      ? Promise.race([Promise.all(fuentesModelo.map(f => document.fonts.load(`600 48px '${f}'`).catch(() => {}))), new Promise(r => setTimeout(r, 2000))])
+      : Promise.resolve();
+    const inv = el("div", { class: `inv cargando-fuentes L-${m.layout}`, style: `--paper:${P.papel};--ink:${P.tinta};--acc:${P.acento};--suave:${P.suave || "transparent"};--titulo:${familia(D.tipografia.titulo)};--cuerpo:${familia(D.tipografia.cuerpo)}` });
 
     // Portada
     const hero = el("div", { class: "inv-hero" + (portada ? " has-photo" : "") }, [
@@ -360,7 +366,7 @@
     const conVideo = m.video !== false && !reduced && !o.abierta && Boolean(window.LOVE && window.LOVE.api);
     const video = conVideo ? el("video", { class: "env-video", muted: "", playsinline: "", "webkit-playsinline": "", preload: "auto", poster: asset(m, "sobre"), "aria-hidden": "true" }) : null;
     const apiVideos = (window.LOVE && window.LOVE.api) || "";
-    if (video && apiVideos) { video.muted = true; video.src = `${apiVideos}/love/v/${m.id}.mp4`; video.load(); }
+    if (video && apiVideos) { video.muted = true; video.src = `${apiVideos}/love/v/${m.id}.mp4${m.v ? `?v=${m.v}` : ""}`; video.load(); }
     let videoListo = false;
     if (video) { video.addEventListener("canplaythrough", () => { videoListo = true; }, { once: true }); video.addEventListener("error", () => { videoListo = false; video.remove(); }, { once: true }); }
     const flash = el("div", { class: "env-flash" });
@@ -383,12 +389,12 @@
       // Conexión lenta: se espera un momento al video antes de usar el respaldo
       if (video && video.isConnected && video.readyState < 3) {
         let listo = false;
-        const seguir = () => { if (listo) return; listo = true; secuencia(); };
+        const seguir = () => { if (listo) return; listo = true; listoFuentes.then(secuencia); };
         video.addEventListener("canplay", seguir, { once: true });
         setTimeout(seguir, 1200);
         return;
       }
-      secuencia();
+      listoFuentes.then(secuencia);
     }
     function secuencia() {
       const opt = (delay, duration, extra = {}) => ({ delay, duration, easing: EASE, fill: "forwards", ...extra });
@@ -416,10 +422,12 @@
       vign.animate([{ opacity: 0 }, { opacity: .85, offset: .55 }, { opacity: 0 }], opt(0, T));
       // Los nombres aparecen escritos en la tarjeta cuando ya salió del sobre
       card.animate([{ opacity: 0, transform: "translate(-50%, -44%)", filter: "blur(6px)", letterSpacing: ".08em" }, { opacity: 1, transform: "translate(-50%, -50%)", filter: "blur(0)", letterSpacing: "0em" }], opt(A * .78, 900));
+      // Antes de que aparezca la portada, los nombres de la tarjeta se desvanecen: nunca hay dos juegos de nombres a la vez.
+      card.animate([{ opacity: 1 }, { opacity: 0 }], { delay: A + 250, duration: 420, easing: "ease-in", fill: "forwards", composite: "replace" });
       // Destello cálido que funde el sobre con la portada
       flash.animate([{ opacity: 0 }, { opacity: .9, offset: .55 }, { opacity: 0 }], { delay: A + 500, duration: 1500, easing: "ease-in-out", fill: "forwards" });
       stage.animate([{ opacity: 1 }, { opacity: 0 }], { delay: A + 900, duration: 700, easing: "ease-out", fill: "forwards" });
-      hero.animate([{ opacity: 0, transform: "scale(1.14)" }, { opacity: 1, transform: "scale(1)" }], { delay: A + 800, duration: 2200, easing: EASE, fill: "forwards" });
+      hero.animate([{ opacity: 0, transform: "scale(1.14)" }, { opacity: 1, transform: "scale(1)" }], { delay: A + 700, duration: 2200, easing: EASE, fill: "forwards" });
       setTimeout(() => { const parar = particulas(screen, D.animacion && D.animacion.particulas, P.acento); limpiezas.push(parar); }, A + 700);
       setTimeout(() => { stage.classList.add("done"); if (video) { video.pause(); video.removeAttribute("src"); video.load(); } inv.focus && inv.focus({ preventScroll: true }); if (o.alAbrir) o.alAbrir(); }, A + 1700);
     }
@@ -427,6 +435,7 @@
     stage.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); } });
     hero.style.opacity = "0";
     screen.append(inv, stage);
+    listoFuentes.then(() => inv.classList.remove("cargando-fuentes"));
     if (o.autoAbrir) setTimeout(abrir, reduced ? 0 : 1000);
     if (o.abierta) { abierto = true; stage.classList.add("done"); hero.style.opacity = "1"; }
     timers.set(screen, () => limpiezas.forEach(f => f()));
