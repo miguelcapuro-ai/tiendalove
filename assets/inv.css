@@ -325,3 +325,34 @@
 .cd-elegant b { font-size: 9cqw; }
 .cd-pills { gap: 1.6cqw; }
 .cd-pills .u { flex: 1 1 0; min-width: 0; padding: 2.4cqw 1cqw; }
+
+/* Piso de legibilidad: ninguna letra de la invitación baja de 11 px en teléfonos pequeños */
+.inv-kicker { font-size: max(11px, 3cqw); }
+.inv-cd small { font-size: max(11px, 2.8cqw); }
+.stamp small { font-size: max(11px, 2.6cqw); }
+.cd-rings small { font-size: max(11px, 2.2cqw); }
+.cd-frames small { font-size: max(11px, 2.2cqw); }
+.cd-medallions small { font-size: max(11px, 2.1cqw); }
+.cd-pillars small { font-size: max(11px, 2cqw); }
+.pass-grid small { font-size: max(11px, 2.8cqw); }
+.postmark { font-size: max(11px, 3cqw); }
+.inv-pase small { font-size: max(11px, 2.8cqw); }
+.inv-padres small { font-size: max(11px, 2.7cqw); }
+.inv-sub { font-size: max(11px, 2.8cqw); }
+.cd-medallions small { font-size: max(11px, 2.3cqw); }
+.cd-arches small, .cd-peaks small { font-size: max(11px, 2.1cqw); }
+.cd-elegant small, .cd-pills small, .cd-ticket small { font-size: max(11px, 2.3cqw); }
+
+/* Postal (Playa): la dirección tiene espacio */
+.loc-postcard { grid-template-columns: minmax(0, 1fr) 24cqw; }
+.loc-postcard .addr { overflow-wrap: anywhere; }
+.inv .addr, .inv .place, .inv .act, .inv .inv-texto { overflow-wrap: break-word; }
+/* responsive: textos mínimos legibles y apilado en pantallas estrechas */
+.inv-nota, .pass-top, .stamp span, .inv-tl time { font-size: max(11px, 3.2cqw); }
+.pass-grid b { overflow-wrap: anywhere; }
+@container (max-width: 560px) {
+  .pass-grid { grid-template-columns: 1fr; }
+  .loc-postcard { grid-template-columns: 1fr; }
+}
+.loc-postcard .place { overflow-wrap: anywhere; }
+.inv-intro { max-width: 100%; }
