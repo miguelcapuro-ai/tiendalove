@@ -171,3 +171,6 @@ select.f-mesa { font: inherit; font-size: 14px; padding: 9px 8px; border: 1px so
 .mod-op img { width: 100%; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 10px; background: var(--line); }
 .mod-op.on { border-color: var(--ink); font-weight: 700; }
 .mod-op:hover:not(.on) { border-color: var(--line-strong); }
+@media (max-width: 560px) {
+  .mz-inv { grid-template-columns: 1fr; gap: 6px; }
+}

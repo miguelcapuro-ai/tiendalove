@@ -118,6 +118,15 @@
   const fechaCorta = ts => new Date(ts * 1000).toLocaleDateString("es-PA", { day: "numeric", month: "short" });
   const svg = id => `<svg class="ico" aria-hidden="true"><use href="#${id}"/></svg>`;
   const telBonito = t => { const d = digits(t); return d.length === 8 ? `${d.slice(0, 4)}-${d.slice(4)}` : d.length === 11 && d.startsWith("507") ? `+507 ${d.slice(3, 7)}-${d.slice(7)}` : (t || ""); };
+  // Los contadores de las pestañas se actualizan al guardar, sin recargar.
+  function contadores() {
+    const nav = $("#pTabs"); if (!nav) return;
+    [...nav.querySelectorAll("button")].forEach(b => {
+      if (b.textContent.startsWith("Invitados (")) b.textContent = `Invitados (${P.invitados.length})`;
+      else if (b.textContent.startsWith("Mesas (")) b.textContent = `Mesas (${(P.datos.mesas || []).length})`;
+      else if (b.textContent.startsWith("Confirmaciones (")) b.textContent = `Confirmaciones (${P.totales.personas})`;
+    });
+  }
   function invitados(c) {
     if (!P.plan.listaInvitados) {
       c.append(el("div", { class: "p-card" }, [el("b", { text: "Su plan comparte un solo enlace con todos" }),
@@ -189,7 +198,7 @@
             invitados: conNombre().map(i => ({ id: i.id, nombre: i.nombre, cupos: i.cupos, telefono: i.telefono, correo: i.correo, nota: i.nota, mesa: i.mesa })) });
           const porId = new Map(R.invitados.map(x => [x.id, x]));
           lista.forEach(i => { const x = porId.get(i.id); if (x) { i.enlace = x.enlace; i.enviado_at = x.enviado_at; i.enviado_por = x.enviado_por; i.abierto_at = x.abierto_at; i.rsvp = x.rsvp; i.guardado = true; } });
-          P = { ...R };
+          P = { ...R }; contadores();
           estadoG.className = "autosave ok"; estadoG.textContent = "Todo guardado";
         } catch (e) { estadoG.className = "autosave mal"; estadoG.textContent = "No se pudo guardar"; aviso(e.message, true); }
         enCurso = null;
@@ -405,7 +414,7 @@
       timer = null;
       const body = { mesas: M, renombrar, asignar: [...asignar].map(([id, mesa]) => ({ id, mesa })) };
       renombrar = {}; asignar = new Map();
-      try { P = await api("/love/api/mesas", body); estado.className = "autosave ok"; estado.textContent = "Todo guardado"; }
+      try { P = await api("/love/api/mesas", body); contadores(); estado.className = "autosave ok"; estado.textContent = "Todo guardado"; }
       catch (e) { estado.className = "autosave mal"; estado.textContent = "No se pudo guardar"; aviso(e.message, true); }
     };
     const programar = () => { estado.className = "autosave pend"; estado.textContent = "Guardando…"; clearTimeout(timer); timer = setTimeout(guardar, 700); };
@@ -440,7 +449,7 @@
 
     const grilla = el("div", { class: "mz-grilla" });
     const sinMesa = el("section", { class: "p-card mz-sin" });
-    const opciones = (actual) => [el("option", { value: "", text: "Sin mesa" }), ...M.map(m => { const q = m.c - usados(m.n); return el("option", { value: m.n, text: `${m.n} · ${q >= 0 ? `quedan ${q}` : `pasada por ${-q}`}` }); })].map(o => { if (o.value === (actual || "")) o.selected = true; return o; });
+    const opciones = (actual) => [el("option", { value: "", text: "Sin mesa" }), ...M.map(m => { const q = m.c - usados(m.n); return el("option", { value: m.n, text: `${m.n} (${q >= 0 ? `${q} libres` : `+${-q}`})` }); })].map(o => { if (o.value === (actual || "")) o.selected = true; return o; });
     const mover = (i, nueva) => { i.mesa = nueva; asignar.set(i.id, nueva); programar(); dibujar(); };
     const filaInv = (i) => {
       const sel = el("select", { "aria-label": `Mesa de ${i.nombre}` }, opciones(i.mesa));
