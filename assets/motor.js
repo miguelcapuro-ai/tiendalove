@@ -50,9 +50,9 @@
   let fuentes = false;
   function cargarFuentes() {
     if (fuentes) return; fuentes = true;
-    document.head.append(el("link", { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Pinyon+Script&family=Bodoni+Moda:wght@500&family=Playfair+Display:ital,wght@0,500;1,500&family=Italiana&family=Poiret+One&family=Fraunces:wght@400;600&family=Josefin+Sans:wght@300;400;600&family=Cinzel:wght@500&family=Great+Vibes&display=swap" }));
+    document.head.append(el("link", { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Pinyon+Script&family=Bodoni+Moda:wght@500&family=Playfair+Display:ital,wght@0,500;1,500&family=Italiana&family=Poiret+One&family=Fraunces:wght@400;600&family=Josefin+Sans:wght@300;400;600&family=Cinzel:wght@500&family=Great+Vibes&family=Orbitron:wght@500;700&family=Press+Start+2P&family=Shippori+Mincho:wght@500;700&family=Rajdhani:wght@500;600&display=swap" }));
   }
-  const familia = f => `'${f}', ${/Josefin|Archivo/.test(f) ? "sans-serif" : /Pinyon|Vibes/.test(f) ? "cursive" : "serif"}`;
+  const familia = f => `'${f}', ${/Josefin|Archivo|Orbitron|Rajdhani/.test(f) ? "sans-serif" : /Press Start/.test(f) ? "monospace" : /Pinyon|Vibes/.test(f) ? "cursive" : "serif"}`;
 
   // ---------- Composición propia de cada modelo ----------
   const RECIPES = {
@@ -69,7 +69,10 @@
     selva: { cd: "pills", tl: "cards", loc: "card", dark: true },
     postal: { cd: "ticket", tl: "postcards", loc: "postcard" },
   };
-  const asset = (m, kind, thumb) => `${window.LOVE_BASE || ""}assets/modelos/${m.id}/${thumb ? "thumb-" : ""}${kind}.webp`;
+  // Los modelos nuevos (remoto: true) guardan su arte en el servidor de Love, no en este repositorio.
+  const asset = (m, kind, thumb) => m.remoto && window.LOVE && window.LOVE.api
+    ? `${window.LOVE.api}/love/m/${m.id}/${thumb ? "thumb-" : ""}${kind}.webp`
+    : `${window.LOVE_BASE || ""}assets/modelos/${m.id}/${thumb ? "thumb-" : ""}${kind}.webp`;
 
   // Ficha mínima cuando todavía no hay diseño de Claude (catálogo y vista previa de la tienda).
   function disenoInicial(m) {
@@ -148,7 +151,7 @@
     const hero = el("div", { class: "inv-hero" + (portada ? " has-photo" : "") }, [
       el("img", { class: "inv-hero-bg", src: portada || asset(m, "portada"), alt: "" }),
       el("div", { class: "inv-hero-text", style: `top:${m.heroY * 100}%;color:${portada ? "#fff" : m.heroInk}` }, [
-        el("p", { class: "inv-kicker", text: R.kicker || T.encabezado || "Nuestra boda" }),
+        el("p", { class: "inv-kicker", text: m.kicker || R.kicker || T.encabezado || "Nuestra boda" }),
         el("p", { class: "inv-names", style: tituloCSS }, [n1, el("span", { class: "amp", text: m.layout === "galeria" || m.layout === "deco" ? " & " : "&" }), n2]),
         el("p", { class: "inv-date", text: shortDate(fecha) }),
         frase ? el("p", { class: "inv-phrase", text: `“${frase}”` }) : null,

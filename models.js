@@ -1,4 +1,4 @@
-// Catálogo de los 12 modelos. Cada uno tiene su arte propio (sobre cerrado, sobre abierto y portada,
+// Catálogo de los 16 modelos. Cada uno tiene su arte propio (sobre cerrado, sobre abierto y portada,
 // generados con IA en assets/modelos/<id>/) y su propia composición (layout).
 // cardY: altura (0–1) de la tarjeta dentro de abierto.webp, donde aparecen los nombres al abrir.
 // heroY: altura (0–1) del bloque de texto sobre la portada.
@@ -62,5 +62,25 @@ window.MODELOS = [
     blurb: "Arena, conchas y un mar turquesa al atardecer. Como una postal.",
     cardY: .39, cardInk: "#7a4a3a", heroY: .22, heroInk: "#7a4a3a",
     title: "'Great Vibes', cursive", body: "'Cormorant Garamond', serif",
-    paper: "#fdf3e7", ink: "#6b4334", accent: "#2b9a94" }
+    paper: "#fdf3e7", ink: "#6b4334", accent: "#2b9a94" },
+  { id: "galaxia", remoto: true, name: "Galaxia Lejana", family: "Épico", layout: "noche", kicker: "Más allá de las estrellas",
+    blurb: "Sobre de titanio, sello holográfico y una nebulosa violeta. Su boda, en otra galaxia.",
+    cardY: .37, cardInk: "#1b2a4a", heroY: .42, heroInk: "#e9f3ff",
+    title: "'Orbitron', sans-serif", body: "'Josefin Sans', sans-serif",
+    paper: "#070a14", ink: "#e6eefb", accent: "#d9b45a" },
+  { id: "nivel-final", remoto: true, name: "Nivel Final", family: "Épico", layout: "deco", kicker: "Player 1 + Player 2",
+    blurb: "Sobre negro, sello de corazón pixelado y luces de arcade. Para los que se conocieron jugando.",
+    cardY: .38, cardInk: "#2a0d22", heroY: .42, heroInk: "#ffd6ef",
+    title: "'Press Start 2P', monospace", body: "'Josefin Sans', sans-serif",
+    paper: "#121014", ink: "#f4e9f0", accent: "#ff3ea5" },
+  { id: "hilo-rojo", remoto: true, name: "Hilo Rojo", family: "Anime", layout: "arco", kicker: "Unidos por el hilo rojo",
+    blurb: "Papel washi, un hilo rojo del destino y cerezos al atardecer, como en una película de anime.",
+    cardY: .34, cardInk: "#8a1c1c", heroY: .42, heroInk: "#7a2230",
+    title: "'Shippori Mincho', serif", body: "'Shippori Mincho', serif",
+    paper: "#fdf1ea", ink: "#5a2a2a", accent: "#c8232c" },
+  { id: "mecha", remoto: true, name: "Mecha Unidos", family: "Anime", layout: "selva", kicker: "Secuencia de lanzamiento",
+    blurb: "Sobre de acero, sello hexagonal y un hangar de robots gigantes. Épico y con carácter.",
+    cardY: .37, cardInk: "#1d2b3a", heroY: .42, heroInk: "#f1f5fa",
+    title: "'Rajdhani', sans-serif", body: "'Rajdhani', sans-serif",
+    paper: "#1a2330", ink: "#e8eef5", accent: "#ff7a1a" }
 ];
