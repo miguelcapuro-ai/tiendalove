@@ -348,40 +348,69 @@
     inv.querySelectorAll(".rv").forEach(x => io.observe(x));
     limpiezas.push(() => io.disconnect());
 
-    // ---------- El sobre: una sola animación continua ----------
+    // ---------- El sobre: apertura cinematográfica ----------
+    // Si el modelo tiene video de apertura (apertura.mp4), el sobre se abre de verdad;
+    // si no carga, se usa el fundido entre fotos como respaldo.
     const glow = el("div", { class: "env-glow" });
     const closed = el("img", { class: "env-closed", src: asset(m, "sobre"), alt: "" });
     const opened = el("img", { class: "env-open", src: asset(m, "abierto"), alt: "" });
+    const conVideo = m.video !== false && !reduced && !o.abierta && Boolean(window.LOVE && window.LOVE.api);
+    const video = conVideo ? el("video", { class: "env-video", muted: "", playsinline: "", "webkit-playsinline": "", preload: "auto", poster: asset(m, "sobre"), "aria-hidden": "true" }) : null;
+    const apiVideos = (window.LOVE && window.LOVE.api) || "";
+    if (video && apiVideos) { video.muted = true; video.src = `${apiVideos}/love/v/${m.id}.mp4`; video.load(); }
+    let videoListo = false;
+    if (video) { video.addEventListener("canplaythrough", () => { videoListo = true; }, { once: true }); video.addEventListener("error", () => { videoListo = false; video.remove(); }, { once: true }); }
+    const flash = el("div", { class: "env-flash" });
+    const vign = el("div", { class: "env-vignette" });
     const card = el("div", { class: "env-card", style: `top:${m.cardY * 100}%;color:${m.cardInk};${tituloCSS}` }, [el("span", { class: "c-names", text: `${n1} & ${n2}` }), el("span", { class: "c-date", text: shortDate(fecha) })]);
     const hint = el("p", { class: "env-hint", text: "Toca el sobre para abrir" });
     const para = o.invitado ? el("p", { class: "env-para" }, ["Para", el("b", { text: o.invitado.nombre })]) : null;
-    const stage = el("div", { class: "inv-env", role: "button", tabindex: "0", "aria-label": `Abrir la invitación${o.invitado ? " de " + o.invitado.nombre : ""}` }, [closed, opened, glow, card, para, hint]);
+    const cam = el("div", { class: "env-cam" }, [closed, opened, video, glow, card]);
+    const stage = el("div", { class: "inv-env", role: "button", tabindex: "0", "aria-label": `Abrir la invitación${o.invitado ? " de " + o.invitado.nombre : ""}` }, [cam, vign, flash, para, hint]);
+    // Respiración del sobre mientras espera (anticipación)
+    const respira = reduced ? null : cam.animate([{ transform: "scale(1)" }, { transform: "scale(1.035)" }], { duration: 5200, iterations: Infinity, direction: "alternate", easing: "ease-in-out" });
     let abierto = false;
     function abrir() {
       if (abierto) return; abierto = true;
-      const Dur = reduced ? 300 : Math.min(4200, Math.max(2200, (D.animacion && D.animacion.duracion_ms) || 3000));
-      if (reduced) { stage.classList.add("done"); return; }
+      if (reduced) { stage.classList.add("done"); hero.style.opacity = "1"; if (o.alAbrir) o.alAbrir(); return; }
+      const actual = respira ? getComputedStyle(cam).transform : "none";
+      if (respira) respira.cancel();
       const opt = (delay, duration, extra = {}) => ({ delay, duration, easing: EASE, fill: "forwards", ...extra });
-      // 1. El sello brilla y se suelta
-      glow.animate([{ opacity: 0, transform: "scale(.4)" }, { opacity: .95, transform: "scale(1)", offset: .35 }, { opacity: 0, transform: "scale(2.2)" }], opt(0, Dur * .42));
-      hint.animate([{ opacity: 1 }, { opacity: 0 }], opt(0, 300));
-      if (para) para.animate([{ opacity: 1 }, { opacity: 0, transform: "translateY(-3cqw)" }], opt(0, 500));
-      // 2. Un solo acercamiento lento a lo largo de toda la apertura (sin saltos)
-      [closed, opened].forEach(x => x.animate([{ transform: "scale(1)" }, { transform: "scale(1.1)" }], { duration: Dur, easing: "cubic-bezier(.45,.05,.35,1)", fill: "forwards" }));
-      // 3. El sobre se abre (fundido cruzado con el sobre abierto)
-      opened.animate([{ opacity: 0 }, { opacity: 1 }], opt(Dur * .14, Dur * .34));
-      // 4. La tarjeta con sus nombres sube
-      card.animate([{ opacity: 0, transform: "translate(-50%, -38%)" }, { opacity: 1, transform: "translate(-50%, -50%)" }], opt(Dur * .36, Dur * .3));
-      // 5. La cámara entra a la tarjeta: el sobre se desvanece y la portada aparece
-      stage.animate([{ opacity: 1, transform: "scale(1)", filter: "blur(0px)" }, { opacity: 0, transform: "scale(1.18)", filter: "blur(4px)" }], opt(Dur * .72, Dur * .32));
-      hero.animate([{ opacity: .35, transform: "scale(1.08)" }, { opacity: 1, transform: "scale(1)" }], opt(Dur * .72, Dur * .38));
-      const parar = particulas(screen, D.animacion && D.animacion.particulas, P.acento);
-      limpiezas.push(parar);
-      setTimeout(() => { stage.classList.add("done"); inv.focus && inv.focus({ preventScroll: true }); if (o.alAbrir) o.alAbrir(); }, Dur * 1.05);
+      hint.animate([{ opacity: 1 }, { opacity: 0 }], opt(0, 350));
+      if (para) para.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateY(-4cqw)", filter: "blur(3px)" }], opt(0, 700));
+      // Fase 1 · el sobre se abre (video real o fundido de respaldo). A = cuánto dura.
+      const usarVideo = video && video.isConnected && (videoListo || video.readyState >= 3);
+      const A = usarVideo ? Math.max(2600, (video.duration || 4) * 1000 / 0.92) : 1600;
+      if (usarVideo) {
+        video.playbackRate = 0.92;
+        video.style.opacity = "1";
+        const p = video.play(); if (p && p.catch) p.catch(() => {});
+      } else {
+        glow.animate([{ opacity: 0, transform: "scale(.4)" }, { opacity: .95, transform: "scale(1)", offset: .4 }, { opacity: 0, transform: "scale(2.2)" }], opt(0, A * .9));
+        opened.animate([{ opacity: 0 }, { opacity: 1 }], { delay: A * .15, duration: A * .7, easing: "ease-in-out", fill: "forwards" });
+      }
+      // Una sola cámara que avanza sin detenerse: empuje lento durante la apertura,
+      // y al final se zambulle en la tarjeta (origen en la tarjeta) hasta la portada.
+      cam.style.transformOrigin = `50% ${m.cardY * 100}%`;
+      const T = A + 1500;
+      cam.animate([
+        { transform: actual === "none" ? "scale(1)" : actual, filter: "brightness(1)" },
+        { transform: "scale(1.12)", filter: "brightness(1.02)", offset: A / T * .98, easing: "cubic-bezier(.55,0,.75,.2)" },
+        { transform: "scale(3.2)", filter: "brightness(1.6) blur(2px)" }
+      ], { duration: T, easing: "cubic-bezier(.4,0,.6,1)", fill: "forwards" });
+      vign.animate([{ opacity: 0 }, { opacity: .85, offset: .55 }, { opacity: 0 }], opt(0, T));
+      // Los nombres aparecen escritos en la tarjeta cuando ya salió del sobre
+      card.animate([{ opacity: 0, transform: "translate(-50%, -44%)", filter: "blur(6px)", letterSpacing: ".08em" }, { opacity: 1, transform: "translate(-50%, -50%)", filter: "blur(0)", letterSpacing: "0em" }], opt(A * .78, 900));
+      // Destello cálido que funde el sobre con la portada
+      flash.animate([{ opacity: 0 }, { opacity: .9, offset: .55 }, { opacity: 0 }], { delay: A + 500, duration: 1500, easing: "ease-in-out", fill: "forwards" });
+      stage.animate([{ opacity: 1 }, { opacity: 0 }], { delay: A + 900, duration: 700, easing: "ease-out", fill: "forwards" });
+      hero.animate([{ opacity: 0, transform: "scale(1.14)" }, { opacity: 1, transform: "scale(1)" }], { delay: A + 800, duration: 2200, easing: EASE, fill: "forwards" });
+      setTimeout(() => { const parar = particulas(screen, D.animacion && D.animacion.particulas, P.acento); limpiezas.push(parar); }, A + 700);
+      setTimeout(() => { stage.classList.add("done"); if (video) { video.pause(); video.removeAttribute("src"); video.load(); } inv.focus && inv.focus({ preventScroll: true }); if (o.alAbrir) o.alAbrir(); }, A + 1700);
     }
     stage.addEventListener("click", abrir);
     stage.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); } });
-    hero.style.opacity = ".35";
+    hero.style.opacity = "0";
     screen.append(inv, stage);
     if (o.autoAbrir) setTimeout(abrir, reduced ? 0 : 1000);
     if (o.abierta) { abierto = true; stage.classList.add("done"); hero.style.opacity = "1"; }
