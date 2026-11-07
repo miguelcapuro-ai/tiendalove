@@ -369,14 +369,26 @@
     const stage = el("div", { class: "inv-env", role: "button", tabindex: "0", "aria-label": `Abrir la invitación${o.invitado ? " de " + o.invitado.nombre : ""}` }, [cam, vign, flash, para, hint]);
     // Respiración del sobre mientras espera (anticipación)
     const respira = reduced ? null : cam.animate([{ transform: "scale(1)" }, { transform: "scale(1.035)" }], { duration: 5200, iterations: Infinity, direction: "alternate", easing: "ease-in-out" });
-    let abierto = false;
+    let abierto = false, actualCam = "none";
     function abrir() {
       if (abierto) return; abierto = true;
       if (reduced) { stage.classList.add("done"); hero.style.opacity = "1"; if (o.alAbrir) o.alAbrir(); return; }
-      const actual = respira ? getComputedStyle(cam).transform : "none";
-      if (respira) respira.cancel();
+      actualCam = respira ? getComputedStyle(cam).transform : "none";
+      if (respira) { respira.commitStyles && respira.commitStyles(); respira.cancel(); }
       const opt = (delay, duration, extra = {}) => ({ delay, duration, easing: EASE, fill: "forwards", ...extra });
       hint.animate([{ opacity: 1 }, { opacity: 0 }], opt(0, 350));
+      // Conexión lenta: se espera un momento al video antes de usar el respaldo
+      if (video && video.isConnected && video.readyState < 3) {
+        let listo = false;
+        const seguir = () => { if (listo) return; listo = true; secuencia(); };
+        video.addEventListener("canplay", seguir, { once: true });
+        setTimeout(seguir, 1200);
+        return;
+      }
+      secuencia();
+    }
+    function secuencia() {
+      const opt = (delay, duration, extra = {}) => ({ delay, duration, easing: EASE, fill: "forwards", ...extra });
       if (para) para.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateY(-4cqw)", filter: "blur(3px)" }], opt(0, 700));
       // Fase 1 · el sobre se abre (video real o fundido de respaldo). A = cuánto dura.
       const usarVideo = video && video.isConnected && (videoListo || video.readyState >= 3);
@@ -394,7 +406,7 @@
       cam.style.transformOrigin = `50% ${m.cardY * 100}%`;
       const T = A + 1500;
       cam.animate([
-        { transform: actual === "none" ? "scale(1)" : actual, filter: "brightness(1)" },
+        { transform: actualCam === "none" ? "scale(1)" : actualCam, filter: "brightness(1)" },
         { transform: "scale(1.12)", filter: "brightness(1.02)", offset: A / T * .98, easing: "cubic-bezier(.55,0,.75,.2)" },
         { transform: "scale(3.2)", filter: "brightness(1.6) blur(2px)" }
       ], { duration: T, easing: "cubic-bezier(.4,0,.6,1)", fill: "forwards" });
