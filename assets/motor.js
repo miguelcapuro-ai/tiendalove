@@ -185,7 +185,7 @@
     const cd = el("div", { class: `inv-cd cd-${R.cd}`, role: "timer", "aria-label": "Cuenta atrás" });
     let units = [], line = null;
     if (R.cd === "sentence" || R.cd === "log") { line = el("p", { class: "cd-line" }); cd.append(line); }
-    else units = ["Días", "Horas", "Minutos", "Segundos"].map(l => { const b = el("b"); cd.append(el("div", { class: "u" }, [b, el("small", { text: R.cd === "pillars" ? l.toUpperCase() : l })])); return b; });
+    else units = (R.cd === "pillars" ? ["Días", "Horas", "Min", "Seg"] : ["Días", "Horas", "Minutos", "Segundos"]).map(l => { const b = el("b"); cd.append(el("div", { class: "u" }, [b, el("small", { text: R.cd === "pillars" ? l.toUpperCase() : l })])); return b; });
     const tick = () => {
       const s = Math.max(0, Math.floor((target - Date.now()) / 1000));
       if (s === 0) { cd.textContent = ""; cd.append(el("p", { class: "cd-line", text: Date.now() - target < 86400000 ? "¡Hoy es el gran día!" : "Gracias por haber sido parte de este día." })); clearInterval(iv); return; }

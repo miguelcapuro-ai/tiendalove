@@ -369,5 +369,5 @@
 .orn-img.fade { -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 55%, transparent 100%); mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 55%, transparent 100%); }
 /* Cuenta regresiva en columnas (Art déco y Nivel Final): que quepa «SEGUNDOS» */
 .cd-pillars { gap: 1.6cqw; }
-.cd-pillars .u { flex: none; width: 22cqw; padding-inline: 0; box-sizing: border-box; }
-.cd-pillars small { letter-spacing: 0; }
+.cd-pillars .u { flex: none; width: 17.5cqw; padding-inline: 0; box-sizing: border-box; }
+.cd-pillars small { letter-spacing: .1em; }
