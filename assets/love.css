@@ -184,7 +184,16 @@ button.link { background: none; border: 0; padding: 0 0 2px; font: inherit; font
 .manual-ok .code { font-stretch: 68%; font-weight: 800; font-size: clamp(2.2rem, 7vw, 3rem); letter-spacing: .18em; color: #fff; line-height: 1; }
 .manual-ok ol { margin: 0; padding-left: 1.2em; color: #E7ECF3; display: grid; gap: 6px; }
 .manual-ok .btn { justify-self: start; }
-.pp-box { display: grid; gap: 12px; }
+.pay-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.pay-cod { display: grid; gap: 4px; text-align: right; }
+.pay-cod b { font-stretch: 68%; font-weight: 800; font-size: 1.5rem; letter-spacing: .14em; color: #fff; }
+.pay-intro { margin: 0; }
+.pay-op { display: grid; gap: 12px; padding: 18px; border-radius: 18px; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.04); }
+.pay-op[hidden] { display: none; }
+.pay-op h3 { margin: 0; font-size: 1.05rem; color: #fff; display: flex; align-items: center; gap: 10px; }
+.pay-op .tag { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #0D1B33; background: #E9D7A6; border-radius: 99px; padding: 3px 9px; }
+.pay-op .fine-w:empty { display: none; }
+@media (max-width: 520px) { .pay-cod { text-align: left; } }
 .pay .or { display: flex; align-items: center; gap: 12px; color: #A9B6CB; font-size: .85rem; font-weight: 600; }
 .pay .or::before, .pay .or::after { content: ""; flex: 1; height: 1px; background: rgba(255,255,255,.18); }
 .pay .or span { text-align: center; }

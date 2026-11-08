@@ -35,7 +35,7 @@
     {"id":"clasico","nombre":"Clásico","precio":149,"revisiones":1,"maxFotos":10,"musica":true,"listaInvitados":true,"canales":["correo","whatsapp"],"maxInvitaciones":150,"modelosExclusivos":true,"destacado":true,"mesas":false,"recordatorios":false,"aMedida":false,"cambiarModelo":false,"resumen":"Cada invitado la recibe por WhatsApp o correo, con su nombre y sus cupos.","incluye":["Todo lo del Esencial","Hasta 150 invitaciones","Envío por WhatsApp con un toque","Los modelos exclusivos (Épicos y Anime)","Música y hasta 10 fotos","1 ronda de ajustes"]},
     {"id":"premium","nombre":"Premium","precio":219,"revisiones":1,"maxFotos":20,"musica":true,"listaInvitados":true,"canales":["correo","whatsapp"],"maxInvitaciones":300,"modelosExclusivos":true,"mesas":true,"recordatorios":true,"aMedida":false,"cambiarModelo":true,"resumen":"El panel completo: mesas, recordatorios y cambio de modelo.","incluye":["Todo lo del Clásico","Hasta 300 invitaciones","Mesas: cada invitado ve la suya","Recordatorios automáticos a quienes no responden","Cambien de modelo cuando quieran","Hasta 20 fotos y 2 secciones extra"]},
   ];
-  let PAGO = { yappy: "6665-3528", whatsapp: CFG.whatsapp || "50766653528" };
+  let PAGO = { yappy: "6665-3528", whatsapp: CFG.whatsapp || "50763454868" };
   const planById = id => PLANES.find(p => p.id === id) || PLANES[1];
   // Modelos exclusivos: vienen desde el plan Clásico.
   const ORDEN = { esencial: 0, clasico: 1, premium: 2 };
@@ -520,24 +520,27 @@
     const msg = `Hola, Miguel. Somos ${p.nombres} y ya pagamos nuestra invitación de Mejorativa Love. Pedido ${p.codigo} por ${money(p.monto)}. Aquí va el comprobante de Yappy.`;
     form.textContent = "";
     form.append(el("div", { class: "pay", html: `
-      <span class="label" style="color:#A9B6CB">Su invitación</span>
-      <div class="price">${money(p.monto)}<small>pago único</small></div>
-      <div class="manual-ok">
-        <span class="label" style="color:#A9B6CB">Su código</span>
-        <div class="code">${esc(p.codigo)}</div>
+      <div class="pay-top">
+        <div><span class="label" style="color:#A9B6CB">Su invitación</span><div class="price">${money(p.monto)}<small>pago único</small></div></div>
+        <div class="pay-cod"><span class="label" style="color:#A9B6CB">Su código</span><b>${esc(p.codigo)}</b></div>
+      </div>
+      <p class="pay-intro">Elijan cómo pagar. Con tarjeta o PayPal se confirma solo; con Yappy, apenas veamos su comprobante.</p>
+      <section class="pay-op" id="ppBox" hidden>
+        <h3>Tarjeta o PayPal <span class="tag">Al instante</span></h3>
+        <p class="fine-w">Débito o crédito de cualquier país, o su cuenta PayPal. No tienen que enviarnos nada: al terminar el pago, Claude empieza su invitación y en unos minutos les llega al correo.</p>
+        <div class="pp-slot" id="ppSlot"></div>
+        <p class="fine-w" id="ppMsg" aria-live="polite"></p>
+      </section>
+      <section class="pay-op manual-ok" id="opYappy">
+        <h3>Yappy <span class="tag">Panamá</span></h3>
         <ol>
           <li>Envíen <b>${money(p.monto)}</b> por Yappy al <b>${esc(p.yappy || PAGO.yappy)}</b>.</li>
-          <li>En la descripción del Yappy escriban <b>${esc(p.codigo)}</b>.</li>
+          <li>En la descripción escriban <b>${esc(p.codigo)}</b>.</li>
           <li>Mándennos el comprobante por WhatsApp.</li>
         </ol>
         <a class="btn gold" href="https://wa.me/${digits(PAGO.whatsapp)}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener"><svg class="ico" aria-hidden="true" style="width:20px;height:20px"><use href="#i-wa"/></svg> Enviar comprobante ${arrow}</a>
-        <p class="fine-w">Apenas confirmemos su pago, Claude diseña su invitación y les llega a <b>su correo</b> en minutos, junto con el enlace a su portal. Pueden cerrar esta pantalla: igual les llega.</p>
-      </div>
-      <div class="pp-box" id="ppBox" hidden>
-        <div class="or" role="separator"><span>¿Sin Yappy? Paguen con PayPal o tarjeta</span></div>
-        <div class="pp-slot" id="ppSlot"></div>
-        <p class="fine-w" id="ppMsg">Con PayPal se confirma al instante: Claude empieza su invitación apenas termine el pago.</p>
-      </div>
+        <p class="fine-w">Confirmamos los pagos por Yappy a mano, apenas vemos el comprobante. Desde ahí, su invitación les llega al correo en minutos. Pueden cerrar esta pantalla: igual les llega.</p>
+      </section>
       <div id="payStatus"><div class="wait-box"><span class="spinner"></span><b>Esperando la confirmación de su pago</b></div></div>
       <p class="fine-w">Al pagar aceptan las <a href="aviso/#condiciones" target="_blank" rel="noopener">condiciones</a>. No hay devoluciones.</p>
     ` }), el("button", { class: "link", type: "button", text: "Empezar otro pedido", onclick: () => { if (confirm("¿Empezar un pedido nuevo? Este seguirá esperando su pago.")) { store.del(PENDIENTE); clearInterval(tPoll); irA(1); } } }));
@@ -547,7 +550,7 @@
         const r = await fetch(`${API}/love/api/estado?id=${encodeURIComponent(p.id)}&key=${encodeURIComponent(p.key)}`);
         if (r.status === 404 || r.status === 410) { clearInterval(tPoll); store.del(PENDIENTE); $("#payStatus").innerHTML = '<div class="wait-box"><b>Este pedido ya no existe.</b><p>Si pagaron, escríbannos por WhatsApp con su código.</p></div>'; return; }
         const j = await r.json();
-        if (j.pagado && $("#ppBox")) $("#ppBox").hidden = true;
+        if (j.pagado) ["#ppBox", "#opYappy", ".pay-intro"].forEach(q => { const n = $(q); if (n) n.hidden = true; });
         if (j.listo) {
           clearInterval(tPoll); store.del(PENDIENTE); store.del(STORE);
           $("#payStatus").innerHTML = `<div class="wait-box"><b>¡Su invitación está lista!</b><p>También se la enviamos a su correo.</p><a class="btn gold" href="${esc(p.portal)}">Abrir mi portal ${arrow}</a></div>`;
@@ -577,6 +580,8 @@
     if (!box || !PAGO.paypal || !PAGO.paypal.clientId) return;
     box.hidden = false;
     const aviso = (t, malo) => { msg.textContent = t; msg.classList.toggle("pp-err", !!malo); };
+    // Con PayPal disponible, va primero: es el camino que se confirma solo.
+    const yappy = $("#opYappy"); if (yappy) box.after(yappy);
     const llamar = async (ruta, extra) => {
       const r = await fetch(`${API}/love/api/paypal/${ruta}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: p.id, key: p.key, ...extra }) });
       const j = await r.json().catch(() => ({}));
@@ -593,7 +598,7 @@
         aviso("Confirmando su pago…");
         try {
           const j = await llamar("capturar", { paypal_id: d.orderID });
-          if (j.pagado) { box.hidden = true; $(".manual-ok").hidden = true; $("#payStatus").innerHTML = '<div class="wait-box"><span class="spinner"></span><b>¡Pago confirmado!</b><p>Claude está diseñando su invitación. Toma unos minutos.</p></div>'; revisar(); }
+          if (j.pagado) { box.hidden = true; $("#opYappy").hidden = true; $(".pay-intro").hidden = true; $("#payStatus").innerHTML = '<div class="wait-box"><span class="spinner"></span><b>¡Pago confirmado!</b><p>Claude está diseñando su invitación. Toma unos minutos.</p></div>'; revisar(); }
           else aviso(j.mensaje || "PayPal está revisando su pago. Les avisamos por correo apenas se apruebe.");
         } catch (x) { aviso(x.message, true); }
       },

@@ -2,7 +2,7 @@
 (() => {
   "use strict";
   const API = (window.LOVE.api || "").replace(/\/$/, "");
-  const WA = window.LOVE.whatsapp || "50766653528";
+  const WA = window.LOVE.whatsapp || "50763454868";
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const arrow = '<span class="arr"><svg class="ico" aria-hidden="true"><use href="#i-arrow"/></svg></span>';
@@ -58,9 +58,12 @@
       $("#pLead").textContent = "Su pedido está esperando el pago.";
       $("#pTabs").hidden = true;
       const msg = `Hola, Miguel. Somos ${d.nombre1} y ${d.nombre2}. Pedido ${P.codigo} por $${P.plan.precio}. Aquí va el comprobante de Yappy.`;
-      $("#pCuerpo").innerHTML = `<div class="pay" style="max-width:620px"><div class="price">$${P.plan.precio}<small>plan ${esc(P.plan.nombre)}</small></div><div class="manual-ok"><span class="label" style="color:#A9B6CB">Su código</span><div class="code">${esc(P.codigo)}</div>
+      const pagarPP = `${location.origin}/#pagar=${id}.${encodeURIComponent(key)}`;
+      $("#pCuerpo").innerHTML = `<div class="pay" style="max-width:620px"><div class="price">$${P.plan.precio}<small>plan ${esc(P.plan.nombre)}</small></div>
+        ${pagarPP ? `<section class="pay-op"><h3>Tarjeta o PayPal <span class="tag">Al instante</span></h3><p class="fine-w">Se confirma solo y no tienen que enviarnos nada.</p><a class="btn gold" href="${pagarPP}">Pagar con tarjeta o PayPal ${arrow}</a></section>` : ""}
+        <section class="pay-op manual-ok"><h3>Yappy <span class="tag">Panamá</span></h3><span class="label" style="color:#A9B6CB">Su código</span><div class="code">${esc(P.codigo)}</div>
         <ol><li>Envíen <b>$${P.plan.precio}</b> por Yappy al <b>6665-3528</b> con el código en la descripción.</li><li>Mándennos el comprobante por WhatsApp.</li></ol>
-        <a class="btn gold" href="https://wa.me/${WA}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Enviar comprobante ${arrow}</a></div>
+        <a class="btn gold" href="https://wa.me/${WA}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Enviar comprobante ${arrow}</a></section>
         <div class="wait-box"><span class="spinner"></span><b>Esperando la confirmación</b></div></div>`;
       tPoll = setInterval(refrescar, 15000); return;
     }
