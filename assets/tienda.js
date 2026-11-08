@@ -604,4 +604,11 @@
 
   // Si vuelven con un pago pendiente, se retoma.
   if (store.get(PENDIENTE) && location.hash === "#pago") abrirPedido();
+  // Enlace para pagar desde otro teléfono: #pagar=ID.CLAVE (lo comparte Miguel o los novios).
+  const mPagar = location.hash.match(/^#pagar=([a-z0-9]{20})\.([A-Za-z0-9_-]{20,64})$/);
+  if (mPagar && API) fetch(`${API}/love/api/estado?id=${mPagar[1]}&key=${encodeURIComponent(mPagar[2])}`).then(r => r.json()).then(j => {
+    if (!j || !j.ok || j.pagado || !j.monto) return;
+    store.set(PENDIENTE, { id: mPagar[1], key: mPagar[2], codigo: j.codigo, monto: j.monto, yappy: PAGO.yappy, portal: `${location.origin}/portal/#${mPagar[1]}.${mPagar[2]}`, nombres: j.nombres || "", plan: j.plan || "" });
+    history.replaceState(null, "", "#pago"); abrirPedido();
+  }).catch(() => {});
 })();
