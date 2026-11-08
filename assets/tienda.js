@@ -88,7 +88,7 @@
     ])));
   }
   pintarPlanes();
-  if (API) fetch(API + "/love/api/config").then(r => r.json()).then(c => {
+  const cfgListo = !API ? Promise.resolve() : fetch(API + "/love/api/config").then(r => r.json()).then(c => {
     if (c && c.ok) { PLANES = c.planes.map(p => ({ ...p, incluye: p.incluye })); PAGO = { ...PAGO, ...c.pago }; $$("[data-cfg=revisionExtra]").forEach(n => (n.textContent = c.revisionExtra)); pintarPlanes(); }
   }).catch(() => {});
 
@@ -370,7 +370,7 @@
       ].filter(Boolean);
       form.append(el("dl", { class: "summary" }, filas.flatMap(([k, v, s]) => [el("dt", { text: k }), el("dd", {}, [el("span", { text: v }), el("button", { class: "link", type: "button", text: "Editar", onclick: () => irA(s) })])])),
         el("div", { class: "total" }, [el("span", { text: "Total" }), el("b", { text: `${money(p.precio)} USD` })]),
-        el("p", { class: "hint", text: "Al confirmar, les mostramos cómo pagar con Yappy. Apenas confirmemos su pago, diseñamos su invitación y les llega en minutos al correo y al WhatsApp." }));
+        el("p", { class: "hint", text: "Al confirmar, les mostramos cómo pagar con Yappy, PayPal o tarjeta. Apenas confirmemos su pago, diseñamos su invitación y les llega en minutos al correo y al WhatsApp." }));
     }
     // Guardar lo que escriban
     $$("input[name], select[name], textarea[name]", form).forEach(i => i.addEventListener("input", () => {
@@ -533,6 +533,11 @@
         <a class="btn gold" href="https://wa.me/${digits(PAGO.whatsapp)}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener"><svg class="ico" aria-hidden="true" style="width:20px;height:20px"><use href="#i-wa"/></svg> Enviar comprobante ${arrow}</a>
         <p class="fine-w">Apenas confirmemos su pago, Claude diseña su invitación y les llega a <b>su correo</b> en minutos, junto con el enlace a su portal. Pueden cerrar esta pantalla: igual les llega.</p>
       </div>
+      <div class="pp-box" id="ppBox" hidden>
+        <div class="or" role="separator"><span>¿Sin Yappy? Paguen con PayPal o tarjeta</span></div>
+        <div class="pp-slot" id="ppSlot"></div>
+        <p class="fine-w" id="ppMsg">Con PayPal se confirma al instante: Claude empieza su invitación apenas termine el pago.</p>
+      </div>
       <div id="payStatus"><div class="wait-box"><span class="spinner"></span><b>Esperando la confirmación de su pago</b></div></div>
       <p class="fine-w">Al pagar aceptan las <a href="aviso/#condiciones" target="_blank" rel="noopener">condiciones</a>. No hay devoluciones.</p>
     ` }), el("button", { class: "link", type: "button", text: "Empezar otro pedido", onclick: () => { if (confirm("¿Empezar un pedido nuevo? Este seguirá esperando su pago.")) { store.del(PENDIENTE); clearInterval(tPoll); irA(1); } } }));
@@ -542,6 +547,7 @@
         const r = await fetch(`${API}/love/api/estado?id=${encodeURIComponent(p.id)}&key=${encodeURIComponent(p.key)}`);
         if (r.status === 404 || r.status === 410) { clearInterval(tPoll); store.del(PENDIENTE); $("#payStatus").innerHTML = '<div class="wait-box"><b>Este pedido ya no existe.</b><p>Si pagaron, escríbannos por WhatsApp con su código.</p></div>'; return; }
         const j = await r.json();
+        if (j.pagado && $("#ppBox")) $("#ppBox").hidden = true;
         if (j.listo) {
           clearInterval(tPoll); store.del(PENDIENTE); store.del(STORE);
           $("#payStatus").innerHTML = `<div class="wait-box"><b>¡Su invitación está lista!</b><p>También se la enviamos a su correo.</p><a class="btn gold" href="${esc(p.portal)}">Abrir mi portal ${arrow}</a></div>`;
@@ -551,6 +557,49 @@
       } catch {}
     };
     revisar(); tPoll = setInterval(revisar, 10000);
+    cfgListo.then(() => montarPayPal(p, revisar));
+  }
+
+  // PayPal: el navegador solo aprueba; el servidor crea la orden con el precio del plan y captura el pago.
+  let sdkPayPal = null;
+  function cargarSdkPayPal(clientId) {
+    if (window.paypal) return Promise.resolve();
+    if (!sdkPayPal) sdkPayPal = new Promise((ok, mal) => {
+      const s = document.createElement("script");
+      s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&currency=USD&intent=capture&components=buttons&disable-funding=paylater,venmo&locale=es_PA`;
+      s.onload = ok; s.onerror = () => { sdkPayPal = null; mal(new Error("sdk")); };
+      document.head.append(s);
+    });
+    return sdkPayPal;
+  }
+  async function montarPayPal(p, revisar) {
+    const box = $("#ppBox"), slot = $("#ppSlot"), msg = $("#ppMsg");
+    if (!box || !PAGO.paypal || !PAGO.paypal.clientId) return;
+    box.hidden = false;
+    const aviso = (t, malo) => { msg.textContent = t; msg.classList.toggle("pp-err", !!malo); };
+    const llamar = async (ruta, extra) => {
+      const r = await fetch(`${API}/love/api/paypal/${ruta}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: p.id, key: p.key, ...extra }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) throw new Error(j.mensaje || "No pudimos completar el pago con PayPal. Intenten de nuevo o paguen por Yappy.");
+      return j;
+    };
+    try { await cargarSdkPayPal(PAGO.paypal.clientId); }
+    catch { box.hidden = true; return; }
+    if (!document.body.contains(slot)) return;
+    window.paypal.Buttons({
+      style: { layout: "vertical", color: "gold", shape: "pill", label: "pay", height: 48 },
+      createOrder: async () => { aviso("Abriendo PayPal…"); const j = await llamar("crear"); if (j.pagado) { revisar(); throw new Error("ya pagado"); } return j.paypal_id; },
+      onApprove: async (d) => {
+        aviso("Confirmando su pago…");
+        try {
+          const j = await llamar("capturar", { paypal_id: d.orderID });
+          if (j.pagado) { box.hidden = true; $(".manual-ok").hidden = true; $("#payStatus").innerHTML = '<div class="wait-box"><span class="spinner"></span><b>¡Pago confirmado!</b><p>Claude está diseñando su invitación. Toma unos minutos.</p></div>'; revisar(); }
+          else aviso(j.mensaje || "PayPal está revisando su pago. Les avisamos por correo apenas se apruebe.");
+        } catch (x) { aviso(x.message, true); }
+      },
+      onCancel: () => aviso("Cancelaron el pago en PayPal. Pueden intentarlo de nuevo cuando quieran."),
+      onError: (x) => { if (String(x && x.message) !== "ya pagado") aviso("No pudimos abrir PayPal. Intenten de nuevo o paguen por Yappy.", true); },
+    }).render(slot).catch(() => { box.hidden = true; });
   }
 
   // Si vuelven con un pago pendiente, se retoma.

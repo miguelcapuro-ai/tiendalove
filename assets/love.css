@@ -184,6 +184,12 @@ button.link { background: none; border: 0; padding: 0 0 2px; font: inherit; font
 .manual-ok .code { font-stretch: 68%; font-weight: 800; font-size: clamp(2.2rem, 7vw, 3rem); letter-spacing: .18em; color: #fff; line-height: 1; }
 .manual-ok ol { margin: 0; padding-left: 1.2em; color: #E7ECF3; display: grid; gap: 6px; }
 .manual-ok .btn { justify-self: start; }
+.pp-box { display: grid; gap: 12px; }
+.pay .or { display: flex; align-items: center; gap: 12px; color: #A9B6CB; font-size: .85rem; font-weight: 600; }
+.pay .or::before, .pay .or::after { content: ""; flex: 1; height: 1px; background: rgba(255,255,255,.18); }
+.pay .or span { text-align: center; }
+.pp-slot { background: #fff; border-radius: 18px; padding: 14px 14px 4px; min-height: 64px; }
+.pay .pp-err { color: #FFB4A8; }
 .wait-box { display: grid; gap: 12px; justify-items: center; text-align: center; padding: 14px 0 4px; }
 .wait-box b { color: #fff; font-size: 1.1rem; }
 .spinner { width: 42px; height: 42px; border-radius: 50%; border: 3px solid rgba(255,255,255,.2); border-top-color: var(--gold-bright); animation: spin 1s linear infinite; }
