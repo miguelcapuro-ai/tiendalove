@@ -609,6 +609,9 @@
 
   // Si vuelven con un pago pendiente, se retoma.
   if (store.get(PENDIENTE) && location.hash === "#pago") abrirPedido();
+  // Enlaces directos a un modelo (Pinterest, redes): /#modelo=galaxia abre su vista previa.
+  const mModelo = location.hash.match(/^#modelo=([a-z-]{3,20})$/);
+  if (mModelo && MODELS.some(m => m.id === mModelo[1])) setTimeout(() => abrirVista(mModelo[1]), 300);
   // Enlace para pagar desde otro teléfono: #pagar=ID.CLAVE (lo comparte Miguel o los novios).
   const mPagar = location.hash.match(/^#pagar=([a-z0-9]{20})\.([A-Za-z0-9_-]{20,64})$/);
   if (mPagar && API) fetch(`${API}/love/api/estado?id=${mPagar[1]}&key=${encodeURIComponent(mPagar[2])}`).then(r => r.json()).then(j => {
