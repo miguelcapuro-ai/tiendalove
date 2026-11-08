@@ -20,7 +20,7 @@
     return n;
   };
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const money = n => "$" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
+  const money = n => "US$" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
   const digits = s => String(s || "").replace(/\D/g, "");
   const pad = n => String(n).padStart(2, "0");
   const localISO = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -44,7 +44,9 @@
   const sello = m => (m.plan ? el("span", { class: "excl", text: "Clásico y Premium" }) : null);
 
   // ---------- Datos del pedido ----------
-  const data = Object.assign({ plan: "clasico", modelo: "", hora: "16:00", zona: "America/Panama", acompanantes: "si", cupoGeneral: 2, programa: [], ceremonia: "Ceremonia",
+  // La zona por defecto es la del teléfono de quien compra, si es una de las que atendemos.
+  const zonaLocal = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return ""; } })();
+  const data = Object.assign({ plan: "clasico", modelo: "", hora: "16:00", zona: ["America/Mexico_City", "America/Cancun", "America/Tijuana", "Europe/Madrid", "Atlantic/Canary", "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "America/Puerto_Rico", "America/Santo_Domingo", "America/Costa_Rica", "America/Guatemala", "America/Bogota", "America/Lima"].includes(zonaLocal) ? zonaLocal : "America/Panama", acompanantes: "si", cupoGeneral: 2, programa: [], ceremonia: "Ceremonia",
     preguntarAlergias: true, preguntarCancion: false }, store.get(STORE) || {});
   const save = () => store.set(STORE, data);
   let fotos = []; // { url, b64 }
@@ -162,7 +164,26 @@
 
   // Campos
   // Buscador de lugares (OpenStreetMap, sin costo): escriben el nombre, eligen y se llenan lugar, dirección y el punto exacto del mapa.
-  const BBOX_PA = "-83.1,7.1,-77.1,9.7";
+  // Zonas: hora de la boda y país donde buscar el lugar (caja de búsqueda del buscador).
+  const ZONAS = [
+    ["America/Panama", "Panamá", "-83.1,7.1,-77.1,9.7"],
+    ["America/Mexico_City", "México (centro)", "-118.4,14.5,-86.7,32.8"],
+    ["America/Cancun", "México (Cancún / Quintana Roo)", "-118.4,14.5,-86.7,32.8"],
+    ["America/Tijuana", "México (Tijuana / Baja California)", "-118.4,14.5,-86.7,32.8"],
+    ["Europe/Madrid", "España", "-18.2,27.6,4.4,43.9"],
+    ["Atlantic/Canary", "España (Canarias)", "-18.2,27.6,-13.3,29.5"],
+    ["America/New_York", "EE. UU. (Nueva York, Miami, este)", "-125,24,-66.9,49.5"],
+    ["America/Chicago", "EE. UU. (Texas, Chicago, centro)", "-125,24,-66.9,49.5"],
+    ["America/Denver", "EE. UU. (Denver, Phoenix)", "-125,24,-66.9,49.5"],
+    ["America/Los_Angeles", "EE. UU. (Los Ángeles, oeste)", "-125,24,-66.9,49.5"],
+    ["America/Puerto_Rico", "Puerto Rico", "-67.4,17.8,-65.2,18.6"],
+    ["America/Santo_Domingo", "República Dominicana", "-72.1,17.4,-68.2,20"],
+    ["America/Costa_Rica", "Costa Rica", "-86,8,-82.5,11.3"],
+    ["America/Guatemala", "Guatemala / El Salvador / Honduras", "-92.3,12.9,-83.1,17.9"],
+    ["America/Bogota", "Colombia", "-79.1,-4.3,-66.8,12.6"],
+    ["America/Lima", "Perú / Ecuador", "-81.4,-18.4,-68.6,1.5"],
+  ];
+  const bboxZona = () => (ZONAS.find(z => z[0] === data.zona) || ZONAS[0])[2];
   function buscadorLugar(pref) {
     const ruta = (k) => (pref ? `${pref}.${k}` : k);
     const leer = (k) => (pref ? (data[pref] || {})[k] : data[k]);
@@ -199,7 +220,7 @@
     const buscar = async (v) => {
       if (ctl) ctl.abort(); ctl = new AbortController();
       try {
-        const j = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(v)}&limit=7&bbox=${BBOX_PA}`, { signal: ctl.signal }).then(r => r.json());
+        const j = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(v)}&limit=7&bbox=${bboxZona()}`, { signal: ctl.signal }).then(r => r.json());
         const vistos = new Set();
         res = (j.features || []).filter(f => { const k = (f.properties.name || "") + texto(f.properties); if (vistos.has(k)) return false; vistos.add(k); return true; }).slice(0, 5);
         pintar();
@@ -251,7 +272,7 @@
         campo("Su frase", inp("frase", { maxlength: "120", placeholder: "Ej.: Elegimos el mismo camino" }), "Va en la portada.", true),
         fila(campo("Fecha de la boda", inp("fecha", { type: "date", min: hoy(), max: maxFecha(), required: true }), "", false), campo("Hora", inp("hora", { type: "time", required: true }))),
         el("p", { class: "fecha-clara", id: "fechaClara", "aria-live": "polite" }),
-        campo("País o zona horaria", (() => { const s = el("select", { name: "zona", id: "f-zona" }); [["America/Panama", "Panamá"], ["America/Costa_Rica", "Costa Rica"], ["America/Bogota", "Colombia"], ["America/Mexico_City", "México"], ["America/New_York", "Nueva York / Miami"], ["Europe/Madrid", "España"]].forEach(([v, t]) => s.append(el("option", { value: v, text: t }))); s.value = data.zona; return s; })(), "Para que la cuenta atrás sea exacta."),
+        campo("País de la boda", (() => { const s = el("select", { name: "zona", id: "f-zona" }); ZONAS.map(z => [z[0], z[1]]).forEach(([v, t]) => s.append(el("option", { value: v, text: t }))); s.value = data.zona; return s; })(), "Para la hora exacta y para buscar el lugar en el mapa."),
       );
       fechaClara();
     }
@@ -336,7 +357,7 @@
       const fx = data.factura || {};
       form.append(
         fila(campo("Su correo", inp("correo", { type: "email", maxlength: "200", autocomplete: "email", required: true, placeholder: "correo@ejemplo.com" }), "Ahí les llega su invitación y su portal."),
-          campo("Su WhatsApp", inp("whatsapp", { type: "tel", inputmode: "tel", autocomplete: "tel", required: true, placeholder: "+507 6000-0000" }), "Con código de país si no es de Panamá.")),
+          campo("Su WhatsApp", inp("whatsapp", { type: "tel", inputmode: "tel", autocomplete: "tel", required: true, placeholder: "+52 55 1234 5678" }), "Con código de país: +507, +52, +1, +34…")),
         el("label", { class: "check" }, [el("input", { type: "checkbox", id: "f-quiereFactura", ...(data.quiereFactura ? { checked: true } : {}) }), el("span", { text: "Necesito factura" })]),
         (() => {
           const b = el("div", { class: "sub-block", id: "facBlock" }, [
@@ -471,7 +492,7 @@
     if (n === 7) {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.correo || "")) return falla(f("correo"), "Revisen su correo: ahí les llega su invitación.");
       const d = digits(data.whatsapp);
-      if (d.length < 8 || d.length > 15) return falla(f("whatsapp"), "Revisen su WhatsApp (con código de país si no es de Panamá).");
+      if (d.length < 8 || d.length > 15) return falla(f("whatsapp"), "Revisen su WhatsApp (con código de país: +52, +1, +34…).");
       if (data.quiereFactura) {
         data.factura = { nombre: $("#fx-nombre").value.trim(), ruc: $("#fx-ruc").value.trim(), dv: $("#fx-dv").value.trim(), correo: $("#fx-correo").value.trim() };
         if (!data.factura.nombre) return falla($("#fx-nombre"), "Escriban el nombre o razón social para la factura.");

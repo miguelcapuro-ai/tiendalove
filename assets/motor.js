@@ -8,6 +8,10 @@
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const EASE = "cubic-bezier(.22,1,.36,1)";
   const MESES = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
+  const PAISES = { "America/Panama": "Panamá", "America/Mexico_City": "México", "America/Cancun": "México", "America/Tijuana": "México", "Europe/Madrid": "España", "Atlantic/Canary": "España",
+    "America/New_York": "USA", "America/Chicago": "USA", "America/Denver": "USA", "America/Los_Angeles": "USA", "America/Puerto_Rico": "Puerto Rico", "America/Santo_Domingo": "R. Dominicana",
+    "America/Costa_Rica": "Costa Rica", "America/Guatemala": "Centroamérica", "America/Bogota": "Colombia", "America/Lima": "Perú" };
+  const paisDeZona = z => PAISES[z || "America/Panama"] || "";
   const SAMPLE = { nombre1: "Ana", nombre2: "Luis", frase: "Elegimos el mismo camino", hora: "16:00", zona: "America/Panama",
     lugar: "Hacienda Los Robles", direccion: "Boquete, Chiriquí",
     programa: [{ hora: "16:00", acto: "Ceremonia" }, { hora: "17:30", acto: "Cóctel" }, { hora: "19:00", acto: "Cena" }, { hora: "21:00", acto: "Fiesta" }] };
@@ -165,7 +169,7 @@
         el("p", { class: "inv-date", text: shortDate(fecha) }),
         frase ? el("p", { class: "inv-phrase", text: `“${frase}”` }) : null,
       ]),
-      m.layout === "postal" ? el("div", { class: "stamp", "aria-hidden": "true" }, [el("span", { text: shortDate(fecha) }), el("small", { text: "Panamá" })]) : null,
+      m.layout === "postal" ? el("div", { class: "stamp", "aria-hidden": "true" }, [el("span", { text: shortDate(fecha) }), el("small", { text: paisDeZona(d.zona) })]) : null,
     ]);
 
     const body = el("div", { class: "inv-body" });

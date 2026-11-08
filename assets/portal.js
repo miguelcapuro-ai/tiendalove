@@ -59,7 +59,7 @@
       $("#pTabs").hidden = true;
       const msg = `Hola, Miguel. Somos ${d.nombre1} y ${d.nombre2}. Pedido ${P.codigo} por $${P.plan.precio}. Aquí va el comprobante de Yappy.`;
       const pagarPP = `${location.origin}/#pagar=${id}.${encodeURIComponent(key)}`;
-      $("#pCuerpo").innerHTML = `<div class="pay" style="max-width:620px"><div class="price">$${P.plan.precio}<small>plan ${esc(P.plan.nombre)}</small></div>
+      $("#pCuerpo").innerHTML = `<div class="pay" style="max-width:620px"><div class="price">US$${P.plan.precio}<small>plan ${esc(P.plan.nombre)}</small></div>
         ${pagarPP ? `<section class="pay-op"><h3>Tarjeta o PayPal <span class="tag">Al instante</span></h3><p class="fine-w">Se confirma solo y no tienen que enviarnos nada.</p><a class="btn gold" href="${pagarPP}">Pagar con tarjeta o PayPal ${arrow}</a></section>` : ""}
         <section class="pay-op manual-ok"><h3>Yappy <span class="tag">Panamá</span></h3><span class="label" style="color:#A9B6CB">Su código</span><div class="code">${esc(P.codigo)}</div>
         <ol><li>Envíen <b>$${P.plan.precio}</b> por Yappy al <b>6665-3528</b> con el código en la descripción.</li><li>Mándennos el comprobante por WhatsApp.</li></ol>
