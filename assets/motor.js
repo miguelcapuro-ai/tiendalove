@@ -30,7 +30,7 @@
     return n;
   };
   const modelById = id => MODELS.find(m => m.id === id) || MODELS[0];
-  const initials = (a, b) => ((a || "A")[0] + "&" + (b || "B")[0]).toUpperCase();
+  const initials = (a, b) => (b === "" ? (a || "A")[0] : (a || "A")[0] + "&" + (b || "B")[0]).toUpperCase();
   const digits = s => String(s || "").replace(/\D/g, "");
   const pad = n => String(n).padStart(2, "0");
   const shortDate = f => { if (!f) return ""; const [y, m, d] = f.split("-"); return `${+d} ${MESES[+m - 1]} ${y}`; };
@@ -337,7 +337,7 @@
         const caras = [
           [el("small", { text: "Carta 1 · Guarden la fecha" }), el("b", { style: x.tituloCSS, text: shortDate(x.fecha) }), el("span", { text: fecha })],
           [el("small", { text: "Carta 2 · El lugar" }), el("b", { style: x.tituloCSS, text: x.lugar }), el("span", { text: "Los esperamos" })],
-          [el("div", { class: "ix-holo-foto", style: `background-image:url("${x.foto}")` }), el("b", { style: x.tituloCSS, text: `${x.n1} & ${x.n2}` }), el("small", { text: "Edición única · 1 de 1" })],
+          [el("div", { class: "ix-holo-foto", style: `background-image:url("${x.foto}")` }), el("b", { style: x.tituloCSS, text: x.n2 ? `${x.n1} & ${x.n2}` : x.n1 }), el("small", { text: "Edición única · 1 de 1" })],
         ];
         const cartas = caras.map((cara, i) => el("div", { class: "ix-carta" + (i === 2 ? " holo" : ""), style: `--i:${i}` }, [
           el("div", { class: "ix-carta-in" }, [el("div", { class: "ix-dorso" }, [el("span", { text: "♥" })]), el("div", { class: "ix-cara" }, cara)])]));
@@ -443,7 +443,7 @@
         const placa = el("div", { class: "ix-placa" }, [el("span", { class: "ix-placa-txt", style: x.tituloCSS, text: shortDate(x.fecha) }), el("small", { text: longDate(x.fecha) })]);
         const lienzo = el("canvas", { class: "ix-raspa", "aria-hidden": "true" });
         placa.append(lienzo);
-        const nombres = el("p", { class: "ix-nombres", style: x.tituloCSS, text: `${x.n1} & ${x.n2}` });
+        const nombres = el("p", { class: "ix-nombres", style: x.tituloCSS, text: x.n2 ? `${x.n1} & ${x.n2}` : x.n1 });
         const flecha = el("div", { class: "ix-flecha", "aria-hidden": "true" }, [el("i"), el("i"), el("i")]);
 
         function romper() {
@@ -547,7 +547,14 @@
     const T = D.textos || {};
     const d = Object.assign({}, o.datos || {});
     const muestra = !d.nombre1;
-    const n1 = d.nombre1 || SAMPLE.nombre1, n2 = d.nombre2 || SAMPLE.nombre2;
+    // Quince años: una sola festejada. Save the date: solo fecha y lugar.
+    const quince = d.tipo === "quince", std = Boolean(o.std) || T.encabezado === "Reserven la fecha";
+    const n1 = d.nombre1 || (quince ? "Valeria" : SAMPLE.nombre1), n2 = quince ? "" : (d.nombre2 || SAMPLE.nombre2);
+    if (!(o.diseno && o.diseno.paleta)) {
+      if (quince) Object.assign(T, { encabezado: "Mis XV años", intro: "Quiero compartir con ustedes una noche que soñé por años.", titulo_rsvp: "¿Me acompañan?", cierre: "Los espero con todo el corazón." });
+      if (std) { Object.assign(T, { encabezado: "Reserven la fecha", intro: quince ? "Guarden la fecha: muy pronto les llega la invitación con todos los detalles." : "Nos casamos y queremos que sean parte. Guarden la fecha: muy pronto les llega la invitación con todos los detalles.", cierre: "Pronto, todos los detalles." }); D.secciones = ["cuenta", "lugar"]; }
+    }
+    const pareja = n2 ? `${n1} & ${n2}` : n1;
     const frase = muestra ? SAMPLE.frase : (d.frase || "");
     const fecha = d.fecha || futura();
     const tz = d.zona || "America/Panama";
@@ -572,8 +579,8 @@
     const hero = el("div", { class: "inv-hero" + (portada ? " has-photo" : "") }, [
       el("img", { class: "inv-hero-bg", src: portada || asset(m, "portada"), alt: "" }),
       el("div", { class: "inv-hero-text", style: `top:${m.heroY * 100}%;color:${portada ? "#fff" : m.heroInk}` }, [
-        el("p", { class: "inv-kicker", text: m.kicker || R.kicker || T.encabezado || "Nuestra boda" }),
-        el("p", { class: "inv-names", style: tituloCSS }, [n1, el("span", { class: "amp", text: m.layout === "galeria" || m.layout === "deco" ? " & " : "&" }), n2]),
+        el("p", { class: "inv-kicker", text: (quince || std) ? T.encabezado : (m.kicker || R.kicker || T.encabezado || "Nuestra boda") }),
+        el("p", { class: "inv-names", style: tituloCSS }, n2 ? [n1, el("span", { class: "amp", text: m.layout === "galeria" || m.layout === "deco" ? " & " : "&" }), n2] : [n1]),
         el("p", { class: "inv-date", text: shortDate(fecha) }),
         frase ? el("p", { class: "inv-phrase", text: `“${frase}”` }) : null,
       ]),
@@ -587,7 +594,7 @@
     const ornament = (k = "") => el("img", { class: `orn-img ${R.dark ? "on-dark" : "on-light"}${m.remoto ? " fade" : ""} ${k} rv`, src: asset(m, "ornamento"), alt: "", loading: "lazy" });
 
     // Intro, saludo personal y padres
-    body.append(el("p", { class: "inv-intro rv" }, [T.intro || `${n1} & ${n2} los invitan a celebrar con ellos.`]));
+    body.append(el("p", { class: "inv-intro rv" }, [T.intro || `${pareja} los invitan a celebrar.`]));
     if (o.invitado) {
       body.append(el("div", { class: "inv-pase rv" }, [
         el("small", { text: "Esta invitación es para" }), el("b", { class: "t-titulo", text: o.invitado.nombre }),
@@ -595,7 +602,7 @@
       ]));
     }
     if (d.padres1 || d.padres2) {
-      body.append(el("div", { class: "inv-padres rv" }, [el("small", { text: "Con la bendición de nuestros padres" }),
+      body.append(el("div", { class: "inv-padres rv" }, [el("small", { text: quince ? "Con la bendición de mis padres" : "Con la bendición de nuestros padres" }),
         d.padres1 ? el("p", { text: d.padres1 }) : null, d.padres2 ? el("p", { text: d.padres2 }) : null,
         d.padrinos ? el("p", {}, [el("small", { text: "Y nuestros padrinos" }), d.padrinos]) : null]));
     }
@@ -619,7 +626,7 @@
     limpiezas.push(() => clearInterval(iv));
 
     // Calendario
-    const titulo = `Boda de ${n1} y ${n2}`;
+    const titulo = quince ? `XV años de ${n1}` : `Boda de ${n1} y ${n2}`;
     const fin = new Date(target.getTime() + 6 * 3600000);
     const fmtCal = x => x.toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
     const gcal = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(titulo)}&dates=${fmtCal(target)}/${fmtCal(fin)}&location=${encodeURIComponent(`${lugar}, ${dir}`)}`;
@@ -813,7 +820,7 @@
     if (video) { video.addEventListener("canplaythrough", () => { videoListo = true; }, { once: true }); video.addEventListener("error", () => { videoListo = false; video.remove(); }, { once: true }); }
     const flash = el("div", { class: "env-flash" });
     const vign = el("div", { class: "env-vignette" });
-    const card = el("div", { class: "env-card", style: `top:${m.cardY * 100}%;color:${m.cardInk};${tituloCSS}` }, [el("span", { class: "c-names", text: `${n1} & ${n2}` }), el("span", { class: "c-date", text: shortDate(fecha) })]);
+    const card = el("div", { class: "env-card", style: `top:${m.cardY * 100}%;color:${m.cardInk};${tituloCSS}` }, [el("span", { class: "c-names", text: pareja }), el("span", { class: "c-date", text: shortDate(fecha) })]);
     const hint = el("p", { class: "env-hint", text: IX ? IX.invita : "Toca el sobre para abrir" });
     const para = o.invitado ? el("p", { class: "env-para" }, ["Para", el("b", { text: o.invitado.nombre })]) : null;
     const cam = el("div", { class: "env-cam" }, [closed, opened, video, glow, card]);

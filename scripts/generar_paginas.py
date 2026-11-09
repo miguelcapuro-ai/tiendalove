@@ -9,7 +9,7 @@ import json, os, subprocess, html, datetime
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE = "https://tiendalove.mejorativa.com"
 HOY = datetime.date.today().isoformat()
-V = "ix20261109e"
+V = "ix20261109f"
 PRECIO = {"esencial": 89, "clasico": 149, "premium": 219}
 NOMBRE_PLAN = {"esencial": "Esencial", "clasico": "Clásico", "premium": "Premium"}
 
@@ -159,6 +159,9 @@ def pagina(ruta, titulo, desc, cuerpo, ld, profundidad, extra_head="", imagen_og
 </main>
 <footer><div class="wrap"><span>© 2026 <span translate="no">Mejorativa</span> by Miguel Capuro · Hecho en Panamá</span><nav aria-label="Pie de página">
 <a href="{pre}">Mejorativa Love</a>{''.join(f'<a href="{pre}{p["slug"]}/">Bodas en {e(p["nombre"])}</a>' for p in PAISES)}<a href="{pre}modelos/">Modelos</a><a href="{pre}aviso/">Aviso y condiciones</a><a href="https://mejorativa.com">mejorativa.com</a></nav></div></footer>
+<script>window.LOVE_BASE = "{pre}";</script>
+<script src="{pre}assets/love-config.js?v={V}"></script>
+<script src="{pre}assets/medir.js?v={V}"></script>
 </body>
 </html>
 """

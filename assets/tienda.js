@@ -36,9 +36,23 @@
     {"id":"premium","nombre":"Premium","precio":219,"revisiones":1,"maxFotos":20,"musica":true,"listaInvitados":true,"canales":["correo","whatsapp"],"maxInvitaciones":300,"modelosExclusivos":true,"mesas":true,"recordatorios":true,"aMedida":false,"cambiarModelo":true,"resumen":"El panel completo: mesas, recordatorios y cambio de modelo.","incluye":["Todo lo del Clásico","Hasta 300 invitaciones","Mesas: cada invitado ve la suya","Recordatorios automáticos a quienes no responden","Cambien de modelo cuando quieran","Hasta 20 fotos y 2 secciones extra"]},
   ];
   let PAGO = { yappy: "6665-3528", whatsapp: CFG.whatsapp || "50763454868" };
-  const planById = id => PLANES.find(p => p.id === id) || PLANES[1];
+  // Save the date (producto de entrada), precio de lanzamiento, descuento de planners y eventos activos: los manda el servidor.
+  // Sin config del servidor (o con un servidor anterior) no se ofrece el Save the date.
+  let STD = null;
+  let LANZ = null, REF_DESC = 10, CREDITO = 29, EVENTOS = [{ id: "boda", nombre: "Boda", activo: true }];
+  const planById = id => (id === "std" && STD ? STD : PLANES.find(p => p.id === id) || PLANES[1]);
+  const medir = (e, p) => { try { window.medir && window.medir(e, p); } catch {} };
+  // Lo que paga cada plan hoy: lanzamiento, código del planner y crédito de un Save the date. El servidor confirma el monto final.
+  function precioDe(pl, conDescuentos = true) {
+    const lista = pl.precio; let precio = lista; const notas = [];
+    if (!pl.std && LANZ && LANZ.activo && LANZ.plan === pl.id) { precio = LANZ.precio; notas.push(["Precio de lanzamiento", precio - lista]); }
+    if (conDescuentos && !pl.std && data.referidoOk) { const d = Math.round(precio * (100 - REF_DESC) / 100) - precio; precio += d; notas.push([`Código ${data.referido} (−${REF_DESC}%)`, d]); }
+    if (conDescuentos && !pl.std && data.credito) { const d = -Math.min(precio, CREDITO); precio += d; notas.push(["Crédito de su Save the date", d]); }
+    return { lista, precio, notas };
+  }
+  const precioHtml = (pl, conDescuentos = true) => { const x = precioDe(pl, conDescuentos); return x.precio < x.lista ? `<s>${money(x.lista)}</s> ${money(x.precio)}` : money(x.precio); };
   // Modelos exclusivos: vienen desde el plan Clásico.
-  const ORDEN = { esencial: 0, clasico: 1, premium: 2 };
+  const ORDEN = { std: 0, esencial: 0, clasico: 1, premium: 2 };
   const alcanza = (planId, m) => !m || !m.plan || (ORDEN[planId] ?? 0) >= (ORDEN[m.plan] ?? 0);
   const modeloActual = () => MODELS.find(m => m.id === data.modelo);
   const sello = m => (m.plan ? el("span", { class: "excl", text: "Clásico y Premium" }) : null);
@@ -48,7 +62,10 @@
   const zonaLocal = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return ""; } })();
   const data = Object.assign({ plan: "clasico", modelo: "", hora: "16:00", zona: ["America/Mexico_City", "America/Cancun", "America/Tijuana", "Europe/Madrid", "Atlantic/Canary", "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "America/Puerto_Rico", "America/Santo_Domingo", "America/Costa_Rica", "America/Guatemala", "America/Bogota", "America/Lima"].includes(zonaLocal) ? zonaLocal : "America/Panama", acompanantes: "si", cupoGeneral: 2, programa: [], ceremonia: "Ceremonia",
     preguntarAlergias: true, preguntarCancion: false }, store.get(STORE) || {});
+  if (!data.tipo) data.tipo = "boda";
+  if (!data.referido && window.loveRef && window.loveRef()) data.referido = window.loveRef();
   const save = () => store.set(STORE, data);
+  const esQuince = () => data.tipo === "quince";
   let fotos = []; // { url, b64 }
   let portada = 0;
 
@@ -81,19 +98,59 @@
   // ---------- Planes ----------
   function pintarPlanes() {
     const box = $("#plans"); box.textContent = "";
+    const lz = LANZ && LANZ.activo ? LANZ : null;
+    const banner = $("#lanzBanner");
+    if (banner) { banner.hidden = !lz; if (lz) banner.innerHTML = `<b>Precio de lanzamiento:</b> el plan ${esc(planById(lz.plan).nombre)} a <b>US$${lz.precio}</b> en vez de US$${lz.antes} para las primeras ${lz.cupos} parejas. <span class="lz-quedan">Quedan ${lz.quedan} de ${lz.cupos}.</span>`; }
+    $$("[data-lanz]").forEach(n => { n.hidden = !lz; if (lz) n.textContent = `Clásico a US$${lz.precio} (antes US$${lz.antes}) · quedan ${lz.quedan} de ${lz.cupos} cupos de lanzamiento`; });
     PLANES.forEach(p => box.append(el("article", { class: "plan" + (p.destacado ? " rec" : "") }, [
-      p.destacado ? el("span", { class: "badge", text: "Recomendado" }) : null,
+      p.destacado ? el("span", { class: "badge", text: lz && lz.plan === p.id ? `Lanzamiento · quedan ${lz.quedan}` : "Recomendado" }) : null,
       el("h3", { text: p.nombre }), el("p", { class: "fmt", text: p.resumen }),
-      el("p", { class: "price", html: `<small>USD</small>${p.precio}` }), el("p", { class: "per", text: "Pago único" }),
+      lz && lz.plan === p.id
+        ? el("p", { class: "price", html: `<small>USD</small>${lz.precio} <s class="antes">${lz.antes}</s>` })
+        : el("p", { class: "price", html: `<small>USD</small>${p.precio}` }),
+      el("p", { class: "per", text: lz && lz.plan === p.id ? `Pago único · precio de lanzamiento para las primeras ${lz.cupos} parejas` : "Pago único" }),
       el("ul", {}, p.incluye.map(t => el("li", { html: `<svg aria-hidden="true"><use href="#delta"/></svg>${esc(t)}` }))),
       el("button", { class: "btn", type: "button", html: `Elegir ${esc(p.nombre)} ${arrow}`, onclick: () => { data.plan = p.id; save(); abrirPedido(data.modelo ? 2 : 1); } }),
     ])));
+    const sd = $("#stdCard");
+    if (sd && !STD) sd.textContent = "";
+    if (sd && STD) {
+      sd.textContent = "";
+      sd.append(el("div", { class: "std-txt" }, [el("span", { class: "label", text: "¿Todavía no tienen todos los detalles?" }), el("h3", { text: `${STD.nombre} · US$${STD.precio}` }),
+        el("p", { text: `${STD.resumen} Si después compran la invitación completa, se les descuentan los US$${CREDITO}.` }),
+        el("ul", {}, STD.incluye.slice(0, 4).map(t => el("li", { html: `<svg aria-hidden="true"><use href="#delta"/></svg>${esc(t)}` })))]),
+        el("button", { class: "btn gold", type: "button", html: `Empezar con el Save the date ${arrow}`, onclick: () => { data.plan = "std"; data.credito = null; if (modeloActual() && modeloActual().plan) data.modelo = ""; save(); abrirPedido(data.modelo ? 2 : 1); } }));
+    }
+  }
+  // Reseñas aprobadas (con permiso de la pareja). Si no hay, la sección no aparece.
+  function pintarResenas(rs) {
+    const sec = $("#resenas"), box = $("#resenasLista"); if (!sec || !box) return;
+    sec.hidden = !rs.length; box.textContent = "";
+    rs.forEach(r => box.append(el("figure", { class: "resena" }, [el("p", { class: "estrellas", "aria-label": `${r.estrellas} de 5`, text: "★".repeat(r.estrellas) + "☆".repeat(5 - r.estrellas) }),
+      el("blockquote", { text: r.texto }), el("figcaption", { text: `${r.nombres}${r.tipo_evento === "quince" ? " · XV años" : ""}` })])));
+  }
+  // Código del wedding planner: se valida con el servidor antes de aplicar el descuento.
+  async function revisarReferido(cod) {
+    cod = String(cod || "").trim().toUpperCase();
+    data.referido = cod; data.referidoOk = false; data.referidoNombre = ""; save();
+    if (!cod || !API) return false;
+    try {
+      const r = await fetch(`${API}/love/api/referido?c=${encodeURIComponent(cod)}`); const j = await r.json().catch(() => ({}));
+      if (r.ok && j.ok) { data.referido = j.codigo; data.referidoOk = true; data.referidoNombre = j.nombre; save(); return true; }
+    } catch {}
+    return false;
   }
   pintarPlanes();
   let CLAVE_HUMANO = null;
   const humano = window.Humano ? window.Humano($("#humanoPedido")) : null;
   const cfgListo = !API ? Promise.resolve() : fetch(API + "/love/api/config").then(r => r.json()).then(c => {
-    if (c && c.ok) { PLANES = c.planes.map(p => ({ ...p, incluye: p.incluye })); PAGO = { ...PAGO, ...c.pago }; CLAVE_HUMANO = c.turnstile || null; $$("[data-cfg=revisionExtra]").forEach(n => (n.textContent = c.revisionExtra)); pintarPlanes(); }
+    if (c && c.ok) {
+      PLANES = c.planes.filter(p => !p.std).map(p => ({ ...p, incluye: p.incluye })); PAGO = { ...PAGO, ...c.pago }; CLAVE_HUMANO = c.turnstile || null;
+      if (c.std) STD = c.std; LANZ = c.lanzamiento || null; if (c.referido) REF_DESC = c.referido.descuento; if (c.creditoStd) CREDITO = c.creditoStd;
+      if (Array.isArray(c.eventos)) EVENTOS = c.eventos.filter(e => e.activo);
+      $$("[data-cfg=revisionExtra]").forEach(n => (n.textContent = c.revisionExtra)); pintarPlanes(); pintarResenas(c.resenas || []);
+      if (data.referido && !data.referidoOk) revisarReferido(data.referido);
+    }
   }).catch(() => {});
 
   // ---------- Vista previa de modelo ----------
@@ -101,6 +158,7 @@
   let vistaModelo = null, ultimoFoco = null;
   function abrirVista(id) {
     const m = Motor.modelById(id); vistaModelo = m; ultimoFoco = document.activeElement;
+    medir("ver_modelo", { modelo: id });
     $("#previewTitle").textContent = m.name; $("#previewFamily").textContent = m.family; $("#previewBlurb").textContent = m.blurb;
     modal.hidden = false; document.body.classList.add("locked");
     Motor.construir($("#previewScreen"), { modelo: m.id, datos: datosVista(), fotos: fotos.map(f => f.url), portada, autoAbrir: true, vista: true });
@@ -118,7 +176,7 @@
     data.modelo = vistaModelo.id; save(); cerrarVista();
     if ($("#wizard").hidden) abrirPedido(2); else { pintarPaso(); actualizarVista(true); }
   });
-  const datosVista = () => (data.nombre1 && data.nombre2 ? data : {});
+  const datosVista = () => (data.nombre1 && (data.nombre2 || esQuince()) ? data : { tipo: data.tipo });
 
   // ---------- Pedido por pasos ----------
   const PASOS = [
@@ -133,10 +191,13 @@
   ];
   let paso = 1;
   const wiz = $("#wizard"), form = $("#wForm"), err = $("#wError");
+  // Los campos opcionales que no aplican llegan como null: no se dibujan.
+  { const ap = form.append.bind(form); form.append = (...k) => ap(...k.filter(x => x != null && x !== false)); }
   PASOS.forEach(() => $("#progress").append(el("i")));
 
   function abrirPedido(n = 1) {
     ultimoFoco = document.activeElement;
+    medir("iniciar", { plan: data.plan });
     wiz.hidden = false; document.body.classList.add("locked");
     const pendiente = store.get(PENDIENTE);
     if (pendiente && pendiente.id) { mostrarPago(pendiente); return; }
@@ -146,14 +207,14 @@
   $$("[data-start]").forEach(b => b.addEventListener("click", () => abrirPedido(data.modelo ? 2 : 1)));
   $("#wClose").addEventListener("click", cerrarPedido);
   document.addEventListener("keydown", e => { if (e.key !== "Escape") return; if (!modal.hidden) cerrarVista(); else if (!wiz.hidden) cerrarPedido(); });
-  $("#wBack").addEventListener("click", () => (paso === 1 ? cerrarPedido() : irA(paso - 1)));
+  $("#wBack").addEventListener("click", () => (paso === 1 ? cerrarPedido() : irA(paso === 7 && data.plan === "std" ? 4 : paso - 1)));
   $("#wReplay").addEventListener("click", () => actualizarVista(true));
   $("#wPeek").addEventListener("click", () => { if (!data.modelo) { err.textContent = "Primero elijan un modelo."; return; } abrirVista(data.modelo); });
 
   function irA(n) {
     paso = n; err.textContent = "";
     $("#wCount").textContent = n <= 7 ? `Paso ${n} de 7` : "Resumen";
-    $("#wTitle").textContent = PASOS[n - 1].t; $("#wSub").textContent = PASOS[n - 1].s;
+    $("#wTitle").textContent = n === 2 && esQuince() ? "Empecemos por la quinceañera" : PASOS[n - 1].t; $("#wSub").textContent = PASOS[n - 1].s;
     $$("#progress i").forEach((b, i) => b.classList.toggle("on", i < n));
     $("#wBack").textContent = n === 1 ? "Cancelar" : "Atrás";
     $("#wNext").innerHTML = (n === 8 ? "Confirmar y pagar" : n === 7 ? "Revisar mi pedido" : "Siguiente") + " " + arrow;
@@ -263,7 +324,9 @@
         const card = el("div", { class: "pcard-m", role: "radio", tabindex: "0", "aria-checked": String(data.modelo === m.id), "aria-label": m.plan ? `${m.name} (planes Clásico y Premium)` : m.name }, [art(m), sello(m),
           el("div", { class: "mmeta" }, [el("div", {}, [el("b", { text: m.name }), el("small", { text: m.family })]),
             el("button", { class: "see", type: "button", text: "Ver", "aria-label": `Ver ${m.name} en grande`, onclick: e => { e.stopPropagation(); abrirVista(m.id); } })])]);
-        const elegir = () => { data.modelo = m.id; if (!alcanza(data.plan, m)) data.plan = "clasico"; save(); $$(".pcard-m", box).forEach(c => c.setAttribute("aria-checked", String(c === card))); err.textContent = ""; actualizarVista(true); };
+        const elegir = () => {
+          if (data.plan === "std" && m.plan) { err.textContent = `El Save the date viene con los modelos sin sello. ${m.name} está en la invitación completa (Clásico o Premium).`; return; }
+          data.modelo = m.id; if (!alcanza(data.plan, m)) data.plan = "clasico"; save(); $$(".pcard-m", box).forEach(c => c.setAttribute("aria-checked", String(c === card))); err.textContent = ""; actualizarVista(true); };
         card.addEventListener("click", elegir);
         card.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); elegir(); } });
         box.append(card);
@@ -271,12 +334,17 @@
       form.append(box);
     }
     if (paso === 2) {
+      const tipos = EVENTOS.length > 1 ? el("div", { class: "tipo-pick", role: "radiogroup", "aria-label": "Tipo de evento" }, EVENTOS.map(ev => el("button", { type: "button", role: "radio", class: "chip", "aria-checked": String(data.tipo === ev.id), text: ev.nombre,
+        onclick: () => { data.tipo = ev.id; if (ev.id === "quince") data.nombre2 = ""; save(); pintarPaso(); actualizarVista(false); } }))) : null;
       form.append(
-        fila(campo("Nombre (1)", inp("nombre1", { maxlength: "40", autocomplete: "off", placeholder: "Ej.: Ana", required: true })), campo("Nombre (2)", inp("nombre2", { maxlength: "40", autocomplete: "off", placeholder: "Ej.: Luis", required: true }))),
-        campo("Su frase", inp("frase", { maxlength: "120", placeholder: "Ej.: Elegimos el mismo camino" }), "Va en la portada.", true),
-        fila(campo("Fecha de la boda", inp("fecha", { type: "date", min: hoy(), max: maxFecha(), required: true }), "", false), campo("Hora", inp("hora", { type: "time", required: true }))),
+        tipos,
+        esQuince()
+          ? campo("Nombre de la quinceañera", inp("nombre1", { maxlength: "40", autocomplete: "off", placeholder: "Ej.: Valeria", required: true }))
+          : fila(campo("Nombre (1)", inp("nombre1", { maxlength: "40", autocomplete: "off", placeholder: "Ej.: Ana", required: true })), campo("Nombre (2)", inp("nombre2", { maxlength: "40", autocomplete: "off", placeholder: "Ej.: Luis", required: true }))),
+        campo(esQuince() ? "Su frase" : "Su frase", inp("frase", { maxlength: "120", placeholder: esQuince() ? "Ej.: Una noche para recordar siempre" : "Ej.: Elegimos el mismo camino" }), "Va en la portada.", true),
+        fila(campo(esQuince() ? "Fecha de la fiesta" : "Fecha de la boda", inp("fecha", { type: "date", min: hoy(), max: maxFecha(), required: true }), "", false), campo("Hora", inp("hora", { type: "time", required: true }))),
         el("p", { class: "fecha-clara", id: "fechaClara", "aria-live": "polite" }),
-        campo("País de la boda", (() => { const s = el("select", { name: "zona", id: "f-zona" }); ZONAS.map(z => [z[0], z[1]]).forEach(([v, t]) => s.append(el("option", { value: v, text: t }))); s.value = data.zona; return s; })(), "Para la hora exacta y para buscar el lugar en el mapa."),
+        campo(esQuince() ? "País de la fiesta" : "País de la boda", (() => { const s = el("select", { name: "zona", id: "f-zona" }); ZONAS.map(z => [z[0], z[1]]).forEach(([v, t]) => s.append(el("option", { value: v, text: t }))); s.value = data.zona; return s; })(), "Para la hora exacta y para buscar el lugar en el mapa."),
       );
       fechaClara();
     }
@@ -287,7 +355,8 @@
         const bloqueado = mod && !alcanza(pl.id, mod);
         const c = el("div", { class: "pp" + (pl.destacado ? " rec" : "") + (bloqueado ? " off" : ""), role: "radio", tabindex: bloqueado ? "-1" : "0", "aria-disabled": String(bloqueado), "aria-checked": String(data.plan === pl.id) }, [
           pl.destacado ? el("span", { class: "badge", text: "Recomendado" }) : null,
-          el("div", { class: "pp-h" }, [el("b", { text: pl.nombre }), el("span", { class: "pp-price", html: `${money(pl.precio)}` })]),
+          el("div", { class: "pp-h" }, [el("b", { text: pl.nombre }), el("span", { class: "pp-price", html: precioHtml(pl) })]),
+          LANZ && LANZ.activo && LANZ.plan === pl.id ? el("p", { class: "pp-lz", text: `Precio de lanzamiento · quedan ${LANZ.quedan} de ${LANZ.cupos}` }) : null,
           el("p", { class: "pp-r", text: pl.resumen }),
           bloqueado ? el("p", { class: "pp-off", text: `No incluye el modelo ${mod.name}. Elijan Clásico o Premium, o cambien de modelo en el paso 1.` }) : null,
           el("ul", {}, pl.incluye.map(t => el("li", { text: t }))),
@@ -300,7 +369,20 @@
         c.addEventListener("click", elegir); c.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); elegir(); } });
         box.append(c);
       });
-      form.append(box, el("p", { class: "hint", text: "Corregir datos después (fecha, lugar, horas) es gratis y no gasta su ronda de ajustes." }));
+      // Save the date: opción de entrada (sin lista ni confirmaciones). No aplica si ya vienen con crédito.
+      if (!data.credito && STD) {
+        const mod2 = modeloActual(), bloq = mod2 && mod2.plan;
+        const c = el("div", { class: "pp std" + (bloq ? " off" : ""), role: "radio", tabindex: bloq ? "-1" : "0", "aria-disabled": String(Boolean(bloq)), "aria-checked": String(data.plan === "std") }, [
+          el("div", { class: "pp-h" }, [el("b", { text: `Solo ${STD.nombre}` }), el("span", { class: "pp-price", html: money(STD.precio) })]),
+          el("p", { class: "pp-r", text: `${STD.resumen} Sin lista ni confirmaciones. Si después compran la invitación, se les descuentan los US$${CREDITO}.` }),
+          bloq ? el("p", { class: "pp-off", text: `No incluye el modelo ${mod2.name}. Cambien de modelo en el paso 1.` }) : null]);
+        const elegir = () => { if (bloq) return; data.plan = "std"; save(); err.textContent = ""; $$(".pp", box).forEach(x => x.setAttribute("aria-checked", String(x === c))); actualizarVista(false); };
+        c.addEventListener("click", elegir); c.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); elegir(); } });
+        box.append(c);
+      }
+      if (data.credito) form.append(el("p", { class: "credito-nota", text: `Tienen US$${CREDITO} de crédito de su Save the date: ya está descontado en los precios.` }));
+      form.append(box,
+        el("p", { class: "hint", text: "Corregir datos después (fecha, lugar, horas) es gratis y no gasta su ronda de ajustes." }));
     }
     if (paso === 4) {
       const rec = el("div", { class: "sub-block", id: "recBlock" }, [
@@ -328,7 +410,8 @@
     if (paso === 5) {
       const premium = p.id === "premium";
       form.append(
-        fila(campo("Padres de " + (data.nombre1 || "(1)"), inp("padres1", { maxlength: "120", placeholder: "Ej.: Carlos Pérez y María Gómez" }), "", true), campo("Padres de " + (data.nombre2 || "(2)"), inp("padres2", { maxlength: "120" }), "", true)),
+        esQuince() ? campo("Padres de " + (data.nombre1 || "la quinceañera"), inp("padres1", { maxlength: "120", placeholder: "Ej.: Carlos Pérez y María Gómez" }), "", true)
+          : fila(campo("Padres de " + (data.nombre1 || "(1)"), inp("padres1", { maxlength: "120", placeholder: "Ej.: Carlos Pérez y María Gómez" }), "", true), campo("Padres de " + (data.nombre2 || "(2)"), inp("padres2", { maxlength: "120" }), "", true)),
         campo("Padrinos", inp("padrinos", { maxlength: "200" }), "", true),
         campo("Código de vestimenta", inp("vestimenta", { maxlength: "200", placeholder: "Ej.: Formal. Guayabera blanca para ellos." }), "", true),
         campo("Regalos", area("regalos", { maxlength: "300", placeholder: "Ej.: Su presencia es nuestro mejor regalo. Si desean, lluvia de sobres." }), "", true),
@@ -362,6 +445,12 @@
       form.append(
         fila(campo("Su correo", inp("correo", { type: "email", maxlength: "200", autocomplete: "email", required: true, placeholder: "correo@ejemplo.com" }), "Ahí les llega su invitación y su portal."),
           campo("Su WhatsApp", inp("whatsapp", { type: "tel", inputmode: "tel", autocomplete: "tel", required: true, placeholder: "+52 55 1234 5678" }), "Con código de país: +507, +52, +1, +34…")),
+        p.std ? null : (() => {
+          const i = el("input", { id: "f-referido", maxlength: "30", autocomplete: "off", autocapitalize: "characters", spellcheck: "false", value: data.referido || "", placeholder: "Ej.: ANAEVENTOS" });
+          const m = el("small", { class: "hint ref-msg", "aria-live": "polite", text: data.referidoOk ? `Código de ${data.referidoNombre}: ${REF_DESC}% de descuento aplicado.` : "" });
+          let t; i.addEventListener("input", () => { clearTimeout(t); data.referidoOk = false; m.textContent = ""; t = setTimeout(async () => { if (!i.value.trim()) { data.referido = ""; save(); return; } m.textContent = "Revisando…"; m.textContent = (await revisarReferido(i.value)) ? `Código de ${data.referidoNombre}: ${REF_DESC}% de descuento aplicado.` : "Ese código no existe o ya no está activo."; }, 500); });
+          return el("label", { class: "field" }, [el("span", { html: "¿Los recomendó un wedding planner? <em>(opcional)</em>" }), i, m]);
+        })(),
         el("label", { class: "check" }, [el("input", { type: "checkbox", id: "f-quiereFactura", ...(data.quiereFactura ? { checked: true } : {}) }), el("span", { text: "Necesito factura" })]),
         (() => {
           const b = el("div", { class: "sub-block", id: "facBlock" }, [
@@ -384,8 +473,8 @@
     if (paso === 8) {
       const m = Motor.modelById(data.modelo);
       const filas = [
-        ["Modelo", m.name, 1], ["Ustedes", `${data.nombre1} & ${data.nombre2}${data.frase ? ` · “${data.frase}”` : ""}`, 2],
-        ["Fecha", `${Motor.longDate(data.fecha)} · ${Motor.hora12(data.hora)}`, 2], ["Plan", `${p.nombre} · ${money(p.precio)} · ${p.revisiones === 1 ? "1 ronda de ajustes" : `${p.revisiones} rondas de ajustes`}`, 3],
+        ["Modelo", m.name, 1], [esQuince() ? "Quinceañera" : "Ustedes", `${esQuince() ? data.nombre1 : `${data.nombre1} & ${data.nombre2}`}${data.frase ? ` · “${data.frase}”` : ""}`, 2],
+        ["Fecha", `${Motor.longDate(data.fecha)} · ${Motor.hora12(data.hora)}`, 2], ["Plan", `${p.nombre} · ${money(p.precio)}${p.std ? "" : ` · ${p.revisiones === 1 ? "1 ronda de ajustes" : `${p.revisiones} rondas de ajustes`}`}`, 3],
         [data.ceremonia || "Ceremonia", `${data.lugar}, ${data.direccion}`, 4],
         data.recepcion && data.recepcion.lugar ? ["Recepción", `${data.recepcion.lugar}${data.recepcion.hora ? " · " + Motor.hora12(data.recepcion.hora) : ""}`, 4] : null,
         (data.programa || []).filter(a => a.hora && a.acto).length ? ["Programa", data.programa.filter(a => a.hora && a.acto).map(a => `${Motor.hora12(a.hora)} ${a.acto}`).join(" · "), 4] : null,
@@ -393,9 +482,10 @@
         ["Confirmar antes del", data.fechaLimite ? Motor.longDate(data.fechaLimite) : "Sin fecha límite", 5],
         ["Fotos", fotos.length ? `${fotos.length}` : "Sin fotos", 6],
         ["Contacto", `${data.correo} · ${data.whatsapp}`, 7], ["Factura", data.quiereFactura ? `${data.factura.nombre} · ${data.factura.ruc}` : "No", 7],
-      ].filter(Boolean);
+      ].filter(r => r && !(p.std && [5, 6].includes(r[2])));
       form.append(el("dl", { class: "summary" }, filas.flatMap(([k, v, s]) => [el("dt", { text: k }), el("dd", {}, [el("span", { text: v }), el("button", { class: "link", type: "button", text: "Editar", onclick: () => irA(s) })])])),
-        el("div", { class: "total" }, [el("span", { text: "Total" }), el("b", { text: `${money(p.precio)} USD` })]),
+        ...precioDe(p).notas.map(([t, d]) => el("div", { class: "desc-linea" }, [el("span", { text: t }), el("span", { text: `−${money(-d)}` })])),
+        el("div", { class: "total" }, [el("span", { text: "Total" }), el("b", { text: `${money(precioDe(p).precio)} USD` })]),
         el("p", { class: "hint", text: "Al confirmar, les mostramos cómo pagar con Yappy, PayPal o tarjeta. Apenas confirmemos su pago, diseñamos su invitación y les llega en minutos al correo y al WhatsApp." }));
     }
     // Guardar lo que escriban
@@ -409,7 +499,7 @@
   }
   function fechaClara() {
     const n = $("#fechaClara"); if (!n) return;
-    n.textContent = fechaOk(data.fecha) ? `Su boda: ${Motor.longDate(data.fecha)}` : "";
+    n.textContent = fechaOk(data.fecha) ? `${esQuince() ? "Su fiesta" : "Su boda"}: ${Motor.longDate(data.fecha)}` : "";
   }
   function pintarPrograma() {
     const box = $("#progList"); if (!box) return; box.textContent = "";
@@ -454,7 +544,7 @@
   function programarVista() { clearTimeout(tVista); tVista = setTimeout(() => actualizarVista(false), 450); }
   function actualizarVista(abrirSobre) {
     if (!data.modelo) { $("#wPreview").textContent = ""; $("#wPreview").append(el("p", { class: "empty-prev", text: "Elijan un modelo para verlo aquí." })); return; }
-    Motor.construir($("#wPreview"), { modelo: data.modelo, datos: datosVista(), fotos: fotos.map(f => f.url), portada, vista: true, autoAbrir: abrirSobre && !reduced, abierta: !abrirSobre });
+    Motor.construir($("#wPreview"), { modelo: data.modelo, datos: datosVista(), fotos: fotos.map(f => f.url), portada, vista: true, autoAbrir: abrirSobre && !reduced, abierta: !abrirSobre, std: data.plan === "std" });
   }
 
   // Validación de cada paso (las mismas reglas valen en el servidor)
@@ -463,11 +553,13 @@
   function validar(n) {
     const f = name => form.querySelector(`[name="${name}"]`);
     if (n === 1 && !data.modelo) return falla(null, "Elijan un modelo para seguir.");
+    if (n === 3 && data.plan === "std" && modeloActual() && modeloActual().plan) return falla(null, "El Save the date viene con los modelos sin sello. Cambien de modelo o elijan Clásico o Premium.");
     if (n === 3 && !alcanza(data.plan, modeloActual())) return falla(null, `El modelo ${modeloActual().name} viene en los planes Clásico y Premium.`);
     if (n === 2) {
       if (!(data.nombre1 || "").trim()) return falla(f("nombre1"), "Falta el primer nombre.");
-      if (!(data.nombre2 || "").trim()) return falla(f("nombre2"), "Falta el segundo nombre.");
-      if (!fechaOk(data.fecha)) return falla(f("fecha"), "Elijan la fecha de la boda.");
+      if (!esQuince() && !(data.nombre2 || "").trim()) return falla(f("nombre2"), "Falta el segundo nombre.");
+      if (esQuince()) data.nombre2 = "";
+      if (!fechaOk(data.fecha)) return falla(f("fecha"), esQuince() ? "Elijan la fecha de la fiesta." : "Elijan la fecha de la boda.");
       if (data.fecha < hoy()) return falla(f("fecha"), "La fecha no puede estar en el pasado.");
       if (data.fecha > maxFecha()) return falla(f("fecha"), "La fecha no puede ser a más de 10 años.");
       if (!/^\d\d:\d\d$/.test(data.hora || "")) return falla(f("hora"), "Elijan la hora.");
@@ -509,13 +601,16 @@
       if (!$("#ac-reembolso").checked) return falla($("#ac-reembolso"), "Confirmen que entienden que no hay devoluciones.");
       data.aceptaciones = { aviso: true, fotos: true, sinReembolso: true };
       data.novedades = $("#ac-novedades").checked === true;
+      const ri = $("#f-referido");
+      if (ri && ri.value.trim() && !data.referidoOk) return falla(ri, "Revisen el código del planner o déjenlo vacío.");
+      if (ri && !ri.value.trim()) { data.referido = ""; data.referidoOk = false; }
       save();
     }
     return true;
   }
   form.addEventListener("submit", e => {
     e.preventDefault();
-    if (paso < 8) { if (validar(paso)) irA(paso === 5 && planById(data.plan).id !== "premium" ? 6 : paso + 1); }
+    if (paso < 8) { if (validar(paso)) irA(paso === 4 && data.plan === "std" ? 7 : paso === 5 && planById(data.plan).id !== "premium" ? 6 : paso + 1); }
     else enviarPedido();
   });
 
@@ -525,15 +620,17 @@
     if (!API) { err.textContent = "La tienda todavía no está conectada. Escríbannos por WhatsApp."; return; }
     if (humano && humano.activo() && !humano.token()) { err.textContent = "Un segundo: confirmen abajo que no son un robot y vuelvan a tocar el botón."; return; }
     btn.disabled = true; btn.innerHTML = fotos.length ? "Subiendo sus fotos…" : "Creando su pedido…";
-    const datos = { ...data }; ["plan", "modelo", "correo", "whatsapp", "factura", "aceptaciones", "quiereFactura", "novedades"].forEach(k => delete datos[k]);
+    const datos = { ...data }; ["plan", "modelo", "correo", "whatsapp", "factura", "aceptaciones", "quiereFactura", "novedades", "referido", "referidoOk", "referidoNombre", "credito"].forEach(k => delete datos[k]);
     try {
       const r = await fetch(API + "/love/api/pedido", { method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ plan: data.plan, modelo: data.modelo, correo: data.correo, whatsapp: data.whatsapp, factura: data.quiereFactura ? data.factura : null,
-          aceptaciones: data.aceptaciones, novedades: data.novedades === true, datos, fotos: fotos.map(f => f.b64), portada, turnstile: humano ? humano.token() : null }) });
+          aceptaciones: data.aceptaciones, novedades: data.novedades === true, datos,
+          referido: data.referidoOk && data.plan !== "std" ? data.referido : null, credito: data.plan !== "std" ? data.credito || null : null, fotos: fotos.map(f => f.b64), portada, turnstile: humano ? humano.token() : null }) });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j.ok) throw new Error(j.mensaje || "No pudimos crear su pedido. Revisen su conexión e intenten de nuevo.");
       const pend = { id: j.id, key: j.key, codigo: j.codigo, monto: j.monto, yappy: j.yappy, portal: j.portal, nombres: `${data.nombre1} y ${data.nombre2}`, plan: planById(data.plan).nombre };
       store.set(PENDIENTE, pend);
+      medir("pedido", { valor: j.monto, plan: data.plan, pedido: j.codigo, modelo: data.modelo });
       mostrarPago(pend);
     } catch (x) { err.textContent = x.message; if (humano) humano.reiniciar(); }
     btn.disabled = false; btn.innerHTML = `Confirmar y pagar ${arrow}`;
@@ -600,6 +697,7 @@
         if (r.status === 404 || r.status === 410) { clearInterval(tPoll); store.del(PENDIENTE); $("#payStatus").innerHTML = '<div class="wait-box"><b>Este pedido ya no existe.</b><p>Si pagaron, escríbannos por WhatsApp con su código.</p></div>'; return; }
         const j = await r.json();
         if (j.pagado) ["#ppBox", "#opYappy", ".pay-intro", "#promoBox"].forEach(q => { const n = $(q); if (n) n.hidden = true; });
+        if (j.pagado && j.metodo !== "codigo") medir("compra", { valor: j.monto, pedido: p.codigo, plan: p.plan });
         if (j.listo) {
           clearInterval(tPoll); store.del(PENDIENTE); store.del(STORE);
           $("#payStatus").innerHTML = `<div class="wait-box"><b>¡Su invitación está lista!</b><p>También se la enviamos a su correo.</p><a class="btn gold" href="${esc(p.portal)}">Abrir mi portal ${arrow}</a></div>`;
@@ -663,6 +761,22 @@
   // Enlaces directos a un modelo (Pinterest, redes): /#modelo=galaxia abre su vista previa.
   const mModelo = location.hash.match(/^#modelo=([a-z-]{3,20})$/);
   if (mModelo && MODELS.some(m => m.id === mModelo[1])) setTimeout(() => abrirVista(mModelo[1]), 300);
+  // Desde el portal de un Save the date: /#completa=ID.CLAVE llena el pedido con sus datos y aplica el crédito.
+  const mCompleta = location.hash.match(/^#completa=([a-z0-9]{20})\.([A-Za-z0-9_%-]{20,90})$/);
+  if (mCompleta && API) {
+    const key = decodeURIComponent(mCompleta[2]);
+    fetch(`${API}/love/api/portal?id=${mCompleta[1]}&key=${encodeURIComponent(key)}`).then(r => r.json()).then(p => {
+      if (!p || !p.ok || !p.plan || !p.plan.std || !p.pagado) return;
+      history.replaceState(null, "", location.pathname);
+      if (p.credito && p.credito.usado) { alert("Ese crédito ya se usó en su invitación completa."); return; }
+      const d = p.datos || {};
+      ["tipo", "nombre1", "nombre2", "frase", "fecha", "hora", "zona", "lugar", "direccion", "mapa", "geo"].forEach(k => { if (d[k] != null) data[k] = d[k]; });
+      data.modelo = p.modelo; data.plan = "clasico"; data.credito = { id: mCompleta[1], key };
+      if (p.correo) data.correo = p.correo; if (p.whatsapp) data.whatsapp = "+" + p.whatsapp;
+      save(); store.del(PENDIENTE);
+      cfgListo.then(() => abrirPedido(3));
+    }).catch(() => {});
+  }
   // Enlace para pagar desde otro teléfono: #pagar=ID.CLAVE (lo comparte Miguel o los novios).
   const mPagar = location.hash.match(/^#pagar=([a-z0-9]{20})\.([A-Za-z0-9_-]{20,64})$/);
   if (mPagar && API) fetch(`${API}/love/api/estado?id=${mPagar[1]}&key=${encodeURIComponent(mPagar[2])}`).then(r => r.json()).then(j => {

@@ -19,6 +19,10 @@
   const hoy = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
   const maxF = () => { const d = new Date(); d.setFullYear(d.getFullYear() + 10); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
   const [id, key] = decodeURIComponent(location.hash.slice(1)).split(".");
+  // "Ana y Luis", o solo "Valeria" en unos quince años.
+  const pareja = d => [d.nombre1, d.nombre2].filter(Boolean).join(" y ");
+  const quince = () => P && P.tipo === "quince";
+  const verbo = (plural, singular) => (quince() ? singular : plural);
   let P = null, tab = sessionStorage.getItem("ml-tab") || "invitacion", tPoll = null;
 
   async function api(path, body) {
@@ -31,14 +35,19 @@
   function aviso(t, mal) { const a = $("#pAviso"); a.textContent = t; a.className = "p-aviso" + (mal ? " mal" : ""); a.hidden = !t; if (t) setTimeout(() => { if (a.textContent === t) a.hidden = true; }, 7000); }
 
   // El acceso se recuerda en este dispositivo, para volver con un toque desde la tienda.
-  const recordar = () => { try { localStorage.setItem("ml-boda", JSON.stringify({ h: `${id}.${key}`, nombres: `${P.datos.nombre1} y ${P.datos.nombre2}`, codigo: P.codigo, t: Date.now() })); } catch {} };
+  const recordar = () => { try { localStorage.setItem("ml-boda", JSON.stringify({ h: `${id}.${key}`, nombres: pareja(P.datos), codigo: P.codigo, t: Date.now() })); } catch {} };
   async function cargar() {
     if (!id || !key) {
       let guardada = null; try { guardada = JSON.parse(localStorage.getItem("ml-boda")); } catch {}
       if (guardada && guardada.h) { location.replace(`#${guardada.h}`); setTimeout(() => location.reload(), 30); return; }
       return fallo("Este enlace no está completo", "Ábranlo desde el correo que les enviamos, o entren con su código de pedido.", true);
     }
-    try { P = await api("/love/api/portal"); recordar(); pintar(); seguridad(); }
+    try {
+      P = await api("/love/api/portal"); recordar();
+      if (/[?&]resena=1/.test(location.search)) tab = "invitacion";
+      pintar(); seguridad();
+      if (/[?&]resena=1/.test(location.search)) setTimeout(() => { const r = $("#pResena"); if (r) r.scrollIntoView({ behavior: "smooth", block: "center" }); }, 600);
+    }
     catch (e) { if ([403, 404, 410].includes(e.status)) olvidar(); fallo(e.status === 410 ? "Esta invitación ya cumplió su tiempo" : "No pudimos abrir su portal", e.message, e.status !== 410); }
   }
   // Seguridad: cambiar la llave (la vieja deja de servir) o salir de este dispositivo.
@@ -67,13 +76,13 @@
   function pintar() {
     const d = P.datos;
     $("#pCodigo").textContent = `Pedido ${P.codigo}`;
-    $("#pTitulo").textContent = `Hola, ${d.nombre1} y ${d.nombre2}.`;
+    $("#pTitulo").textContent = `Hola, ${pareja(d)}.`;
     $("#pEtapa").textContent = P.etapa;
     clearInterval(tPoll);
     if (!P.pagado) {
       $("#pLead").textContent = "Su pedido está esperando el pago.";
       $("#pTabs").hidden = true;
-      const msg = `Hola, Miguel. Somos ${d.nombre1} y ${d.nombre2}. Pedido ${P.codigo} por $${P.plan.precio}. Aquí va el comprobante de Yappy.`;
+      const msg = `Hola, Miguel. ${quince() ? "Soy" : "Somos"} ${pareja(d)}. Pedido ${P.codigo} por $${P.plan.precio}. Aquí va el comprobante de Yappy.`;
       const pagarPP = `${location.origin}/#pagar=${id}.${encodeURIComponent(key)}`;
       $("#pCuerpo").innerHTML = `<div class="pay" style="max-width:620px"><div class="price">US$${P.plan.precio}<small>plan ${esc(P.plan.nombre)}</small></div>
         ${pagarPP ? `<section class="pay-op"><h3>Tarjeta o PayPal <span class="tag">Al instante</span></h3><p class="fine-w">Se confirma solo y no tienen que enviarnos nada.</p><a class="btn gold" href="${pagarPP}">Pagar con tarjeta o PayPal ${arrow}</a></section>` : ""}
@@ -91,7 +100,7 @@
     }
     $("#pLead").textContent = P.disenando ? "Estamos aplicando sus cambios. En un par de minutos ven la nueva versión aquí y en su correo." : "Su invitación está lista. Revísenla, carguen a sus invitados y envíenla cuando quieran.";
     if (P.disenando) tPoll = setInterval(refrescar, 8000);
-    const tabs = [["invitacion", "Su invitación"], ["invitados", P.plan.listaInvitados ? `Invitados (${P.invitados.length})` : "Compartir"], ...(P.plan.mesas ? [["mesas", `Mesas (${(P.datos.mesas || []).length})`]] : []), ["respuestas", `Confirmaciones (${P.totales.personas})`], ["datos", "Corregir datos"], ["cambios", P.plan.cambiarModelo ? "Modelo y ajustes" : `Pedir ajustes (${P.revisiones.quedan})`]];
+    const tabs = P.plan.std ? [["invitacion", "Su Save the date"], ["datos", "Corregir datos"]] : [["invitacion", "Su invitación"], ["invitados", P.plan.listaInvitados ? `Invitados (${P.invitados.length})` : "Compartir"], ...(P.plan.mesas ? [["mesas", `Mesas (${(P.datos.mesas || []).length})`]] : []), ["respuestas", `Confirmaciones (${P.totales.personas})`], ["datos", "Corregir datos"], ["cambios", P.plan.cambiarModelo ? "Modelo y ajustes" : `Pedir ajustes (${P.revisiones.quedan})`]];
     if (!tabs.some(([k]) => k === tab)) tab = "invitacion";
     const nav = $("#pTabs"); nav.hidden = false; nav.textContent = "";
     tabs.forEach(([k, t]) => nav.append(el("button", { type: "button", role: "tab", "aria-selected": String(tab === k), text: t, onclick: () => { tab = k; sessionStorage.setItem("ml-tab", k); pintar(); } })));
@@ -118,16 +127,53 @@
         el("a", { class: "btn", href: P.enlaceGeneral + "?vista=1", target: "_blank", rel: "noopener", html: `Abrir en grande ${arrow}` }),
         el("button", { class: "link", type: "button", text: "Abrir el sobre otra vez", onclick: () => dibujar(true) })]),
       el("div", { class: "p-card" }, [el("b", { text: P.plan.listaInvitados ? "Enlace general" : "Su enlace para compartir" }),
-        el("p", { class: "hint", text: P.plan.listaInvitados ? "Sirve para quien no esté en su lista. Para cada invitado usen su enlace personal (pestaña Invitados)." : `Compártanlo con todos. Cada respuesta puede incluir hasta ${P.totales.cupoGeneral} ${P.totales.cupoGeneral === 1 ? "persona" : "personas"}.` }),
+        el("p", { class: "hint", text: P.plan.std ? "Compártanlo con todos sus invitados para que reserven la fecha. La invitación con confirmación llega después." : P.plan.listaInvitados ? "Sirve para quien no esté en su lista. Para cada invitado usen su enlace personal (pestaña Invitados)." : `Compártanlo con todos. Cada respuesta puede incluir hasta ${P.totales.cupoGeneral} ${P.totales.cupoGeneral === 1 ? "persona" : "personas"}.` }),
         el("div", { class: "p-link" }, [el("input", { value: P.enlaceGeneral, readonly: true, "aria-label": "Enlace general" }), el("button", { class: "btn sm", type: "button", text: "Copiar", onclick: e => copiar(P.enlaceGeneral, e.currentTarget) })]),
-        el("a", { class: "link", href: `https://wa.me/?text=${encodeURIComponent(`${P.datos.nombre1} y ${P.datos.nombre2} los invitan a su boda 💌 Abran su invitación aquí: ${P.enlaceGeneral}`)}`, target: "_blank", rel: "noopener", text: "Compartir por WhatsApp" })]),
-      totales(),
+        el("a", { class: "link", href: `https://wa.me/?text=${encodeURIComponent(`${pareja(P.datos)} ${verbo("los invitan a su boda", "los invita a sus quince años")} 💌 Abran su invitación aquí: ${P.enlaceGeneral}`)}`, target: "_blank", rel: "noopener", text: "Compartir por WhatsApp" })]),
+      P.plan.std ? tarjetaCredito() : totales(),
+      P.plan.std || !P.pagado ? null : tarjetaResena(),
     ]));
     c.append(box);
     const dibujar = abrir => Motor.construir(scr, { arte: P.arte || null, modelo: P.modelo, diseno: P.diseno, datos: P.datos, fotos: P.fotos.map(u => API + u), portada: P.portada, vista: true, autoAbrir: abrir, cupoGeneral: P.totales.cupoGeneral });
     dibujar(true);
   }
   function copiar(t, btn) { navigator.clipboard?.writeText(t).then(() => { const o = btn.textContent; btn.textContent = "Copiado"; setTimeout(() => (btn.textContent = o), 1600); }); }
+
+  // Save the date: pasar a la invitación completa con el crédito de lo que ya pagaron.
+  function tarjetaCredito() {
+    const cr = P.credito || {};
+    if (cr.usado) return el("div", { class: "p-card" }, [el("b", { text: "Su crédito ya se usó" }), el("p", { class: "hint", text: "Lo descontamos de su invitación completa. Búsquenla en su correo." })]);
+    return el("div", { class: "p-card credito" }, [
+      el("b", { text: `Tienen US$${cr.monto || 29} de crédito` }),
+      el("p", { text: "Cuando quieran la invitación completa (lista de invitados con cupos, confirmaciones y envío a cada uno), se les descuenta lo que pagaron por este Save the date. Sus datos ya van llenos." }),
+      el("a", { class: "btn gold", href: `../#completa=${id}.${encodeURIComponent(key)}`, html: `Quiero la invitación completa ${arrow}` })]);
+  }
+
+  // Reseña: cuéntennos cómo les fue. Solo se publica con su permiso y después de que Miguel la revise.
+  function tarjetaResena() {
+    const caja = el("div", { class: "p-card resena", id: "pResena" });
+    if (P.resena) {
+      caja.append(el("b", { text: "Gracias por su opinión" }), el("p", { class: "estrellas", text: "★".repeat(P.resena.estrellas) + "☆".repeat(5 - P.resena.estrellas) }), el("p", { class: "hint", text: `«${P.resena.texto}»` }));
+      return caja;
+    }
+    let estrellas = 0;
+    const st = el("div", { class: "estrellas-pick", role: "radiogroup", "aria-label": "Calificación" });
+    const pintarSt = () => [...st.children].forEach((b, i) => { b.textContent = i < estrellas ? "★" : "☆"; b.setAttribute("aria-checked", String(i + 1 === estrellas)); });
+    for (let i = 1; i <= 5; i++) st.append(el("button", { type: "button", role: "radio", "aria-label": `${i} ${i === 1 ? "estrella" : "estrellas"}`, text: "☆", onclick: () => { estrellas = i; pintarSt(); } }));
+    const t = el("textarea", { rows: "3", maxlength: "600", placeholder: "¿Qué les dijeron sus invitados? ¿Qué podemos mejorar?", "aria-label": "Su opinión" });
+    const ok = el("input", { type: "checkbox", checked: true });
+    const msg = el("p", { class: "hint", "aria-live": "polite" });
+    const btn = el("button", { class: "btn sm", type: "button", text: "Enviar mi opinión", onclick: async () => {
+      if (!estrellas) { msg.textContent = "Elijan de 1 a 5 estrellas."; return; }
+      if (t.value.trim().length < 10) { msg.textContent = "Cuéntennos un poco más (al menos una frase)."; t.focus(); return; }
+      btn.disabled = true; msg.textContent = "Enviando…";
+      try { await api("/love/api/resena", { estrellas, texto: t.value.trim(), permiso: ok.checked }); P.resena = { estrellas, texto: t.value.trim() }; caja.replaceWith(tarjetaResena()); }
+      catch (e) { msg.textContent = e.message; btn.disabled = false; }
+    } });
+    caja.append(el("b", { text: "¿Cómo les fue con su invitación?" }), el("p", { class: "hint", text: "Toma un minuto y nos ayuda muchísimo." }), st, t,
+      el("label", { class: "check" }, [ok, el("span", { text: "Pueden publicarla en la tienda con nuestros nombres (solo los nombres)." })]), btn, msg);
+    return caja;
+  }
 
   // ---------- Invitados ----------
   // Cuadre de cupos, guardado automático, envío por fila y filas bloqueadas una vez enviadas.
@@ -513,7 +559,7 @@
     dibujar();
   }
 
-  const textoWa = i => `Hola, ${i.nombre} 💌 ${P.datos.nombre1} y ${P.datos.nombre2} los invitan a su boda${P.datos.fecha ? ` el ${Motor.longDate(P.datos.fecha)}` : ""}. Su invitación es para ${i.cupos} ${i.cupos === 1 ? "persona" : "personas"}. Ábranla y confirmen aquí: ${i.enlace}`;
+  const textoWa = i => `Hola, ${i.nombre} 💌 ${pareja(P.datos)} ${verbo("los invitan a su boda", "los invita a sus quince años")}${P.datos.fecha ? ` el ${Motor.longDate(P.datos.fecha)}` : ""}. Su invitación es para ${i.cupos} ${i.cupos === 1 ? "persona" : "personas"}. Ábranla y confirmen aquí: ${i.enlace}`;
   function descargarCSV() {
     const filas = [["Invitado", "Cupos", "WhatsApp", "Correo", "Respuesta", "Personas", "Nombres", "Alergias", "Mensaje", "Enlace"]];
     P.invitados.forEach(i => filas.push([i.nombre, i.cupos, i.telefono, i.correo, i.rsvp ? (i.rsvp.asiste ? "Sí" : "No") : "Pendiente", i.rsvp ? i.rsvp.personas : "", i.rsvp?.nombres || "", i.rsvp?.alergias || "", i.rsvp?.mensaje || "", i.enlace]));
@@ -547,14 +593,14 @@
     const row = (...k) => el("div", { class: "row2" }, k);
     f.append(
       el("p", { class: "hint", text: "Corregir datos es gratis y no gasta la ronda de ajustes. Sus invitados ven los cambios al instante, con el mismo enlace." }),
-      row(campo("Nombre (1)", "nombre1", { maxlength: "40" }), campo("Nombre (2)", "nombre2", { maxlength: "40" })),
+      quince() ? campo("Nombre de la quinceañera", "nombre1", { maxlength: "40" }) : row(campo("Nombre (1)", "nombre1", { maxlength: "40" }), campo("Nombre (2)", "nombre2", { maxlength: "40" })),
       campo("Su frase", "frase", { maxlength: "120" }),
       row(campo("Fecha", "fecha", { type: "date", min: hoy(), max: maxF() }), campo("Hora", "hora", { type: "time" })),
       row(campo("Lugar", "lugar", { maxlength: "80" }), campo("Dirección", "direccion", { maxlength: "160" })),
       campo("Enlace de Google Maps", "mapa", { type: "url" }),
       row(campo("Recepción (lugar)", "recepcion.lugar", { maxlength: "80" }), campo("Recepción (hora)", "recepcion.hora", { type: "time" })),
       row(campo("Recepción (dirección)", "recepcion.direccion", { maxlength: "160" }), campo("Recepción (mapa)", "recepcion.mapa", { type: "url" })),
-      row(campo("Padres de " + d.nombre1, "padres1", { maxlength: "120" }), campo("Padres de " + d.nombre2, "padres2", { maxlength: "120" })),
+      quince() ? campo("Padres de " + d.nombre1, "padres1", { maxlength: "120" }) : row(campo("Padres de " + d.nombre1, "padres1", { maxlength: "120" }), campo("Padres de " + d.nombre2, "padres2", { maxlength: "120" })),
       campo("Código de vestimenta", "vestimenta", { maxlength: "200" }),
       campo("Regalos", "regalos", { area: true, maxlength: "300" }),
       row(campo("Yappy para regalos", "regalosYappy", { maxlength: "30" }), campo("Confirmar antes del", "fechaLimite", { type: "date", min: hoy(), max: maxF() })),

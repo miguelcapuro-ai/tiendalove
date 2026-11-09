@@ -275,3 +275,65 @@ button.link { background: none; border: 0; padding: 0 0 2px; font: inherit; font
 .humano { display: flex; justify-content: flex-end; margin-top: 12px; }
 .humano[hidden] { display: none; }
 .check.opcional span i { font-style: normal; opacity: .7; }
+
+/* ---- Portal de novios en la portada ---- */
+.portal-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: clamp(32px, 5vw, 72px); align-items: center; }
+.portal-ben { list-style: none; margin: 30px 0 34px; padding: 0; display: grid; gap: 18px; }
+.portal-ben li { display: grid; gap: 4px; padding-left: 22px; border-left: 2px solid var(--gold-bright); }
+.portal-ben b { color: var(--ink); font-size: 1.05rem; }
+.portal-ben span { color: var(--muted); }
+.portal-vid { margin: 0; border-radius: 28px; overflow: hidden; background: #EFE8DC; box-shadow: 0 30px 70px rgba(11,31,58,.14); aspect-ratio: 3 / 4; }
+.portal-vid video { width: 100%; height: 100%; object-fit: cover; display: block; }
+@media (max-width: 860px) { .portal-grid { grid-template-columns: 1fr; } .portal-vid { max-width: 460px; justify-self: center; width: 100%; } }
+
+/* ---- Hacerla ustedes vs. Mejorativa Love ---- */
+.cmp { margin-top: clamp(28px, 4vw, 44px); border-radius: 22px; overflow: hidden; background: #fff; border: 1px solid var(--line); }
+.cmp-r { display: grid; grid-template-columns: minmax(130px, .8fr) 1fr 1.15fr; gap: 0; border-top: 1px solid var(--line); }
+.cmp-r:first-child { border-top: 0; }
+.cmp-r > * { padding: 16px 20px; }
+.cmp-r b { color: var(--ink); }
+.cmp-r span:nth-child(2) { color: var(--muted); }
+.cmp-r span:nth-child(3) { color: var(--ink); font-weight: 600; background: #FBF7EF; }
+.cmp-h > * { font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; color: var(--muted); padding-top: 14px; padding-bottom: 14px; }
+.cmp-h span:nth-child(3) { color: var(--gold); }
+.cmp-pie { margin: 22px 0 0; font-size: 1.05rem; }
+@media (max-width: 640px) {
+  .cmp-r { grid-template-columns: 1fr 1fr; }
+  .cmp-r b { grid-column: 1 / -1; padding-bottom: 0; }
+  .cmp-h > :first-child { display: none; }
+  .cmp-r > * { padding: 12px 14px; font-size: .92rem; }
+}
+
+/* ---- Lanzamiento, Save the date y precios con descuento ---- */
+.lz-banner { margin: 22px 0 0; padding: 14px 18px; border-radius: 14px; background: #FBF3E2; border: 1px solid rgba(138,104,41,.3); color: var(--ink); }
+.lz-banner .lz-quedan { font-weight: 700; color: var(--gold); white-space: nowrap; }
+.lz-hero { margin: 6px 0 0; font-weight: 700; color: var(--gold); font-size: .95rem; }
+.plan .price .antes, .pp-price s { font-size: .45em; font-weight: 600; color: var(--muted); text-decoration-thickness: 2px; margin-left: 6px; }
+.pp-price s { font-size: .85em; margin: 0 4px 0 0; }
+.pp-lz { margin: 4px 0 0; font-size: .82rem; font-weight: 700; color: var(--gold); }
+.std-card { margin-top: 22px; display: flex; gap: 24px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 26px 28px; border-radius: 24px; background: var(--ink); color: #fff; }
+.std-card:empty { display: none; }
+.std-card .label { color: var(--gold-bright); }
+.std-card h3 { margin: 8px 0 6px; font-size: 1.5rem; color: #fff; }
+.std-card p { margin: 0; color: #C3CCDA; max-width: 60ch; }
+.std-card ul { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; color: #E6EBF3; font-size: .92rem; }
+.std-card li { display: flex; gap: 8px; align-items: center; }
+.std-card li svg { width: 14px; height: 13px; color: var(--gold-bright); }
+.pp.std { border-style: dashed; }
+.credito-nota { margin: 0 0 12px; padding: 10px 14px; border-radius: 12px; background: #E9F6EE; color: #1d7a46; font-weight: 600; }
+.desc-linea { display: flex; justify-content: space-between; color: #1d7a46; font-weight: 600; padding: 4px 0; }
+.tipo-pick { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.tipo-pick .chip[aria-checked="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.ref-msg { min-height: 1.2em; }
+
+/* ---- Reseñas ---- */
+.resenas { margin-top: clamp(26px, 4vw, 40px); display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.resena { margin: 0; padding: 24px; border-radius: 20px; background: var(--surface); display: grid; gap: 10px; align-content: start; }
+.resena .estrellas { margin: 0; color: var(--gold-bright); letter-spacing: .12em; font-size: 1.1rem; }
+.resena blockquote { margin: 0; font-size: 1.02rem; color: var(--ink); }
+.resena figcaption { color: var(--muted); font-weight: 600; font-size: .9rem; }
+
+/* ---- Aviso de medición ---- */
+.medir-aviso { position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 90; max-width: 560px; margin: 0 auto; background: #fff; color: var(--text); border-radius: 18px; padding: 16px 18px; box-shadow: 0 20px 50px rgba(11,31,58,.25); display: grid; gap: 10px; font-size: .92rem; }
+.medir-aviso p { margin: 0; }
+.medir-aviso div { display: flex; gap: 14px; align-items: center; }
