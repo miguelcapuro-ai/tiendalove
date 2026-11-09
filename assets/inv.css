@@ -422,25 +422,27 @@
 .ix-flecha i:nth-child(2) { animation-delay: .2s; } .ix-flecha i:nth-child(3) { animation-delay: .4s; }
 @keyframes ixSube { 0% { opacity: 0; translate: 0 3cqw; } 40% { opacity: 1; } 100% { opacity: 0; translate: 0 -3cqw; } }
 /* Línea para rasgar el sobre */
-.ix-linea { position: absolute; height: 0; border-top: 2px dashed rgba(255,255,255,.95); filter: drop-shadow(0 0 4px #c46fff); }
-.ix-linea::before { content: "✂"; position: absolute; left: -4.5cqw; top: -3.2cqw; font-size: 5cqw; color: #fff; text-shadow: 0 0 6px #b77ad6; animation: ixTijera 1.4s ease-in-out infinite; }
+.ix-linea { position: absolute; height: 0; border-top: 3px dashed #fff; filter: drop-shadow(0 0 2px #8a3fc0) drop-shadow(0 0 6px #c46fff); animation: ixLinea 1.2s ease-in-out infinite; }
+@keyframes ixLinea { 50% { opacity: .55; } }
+.ix-linea::before { content: "✂"; position: absolute; left: -4.5cqw; top: -3.2cqw; font-size: 5cqw; color: #fff; text-shadow: 0 0 3px #6b2a99, 0 0 8px #b77ad6; animation: ixTijera 1.4s ease-in-out infinite; }
 @keyframes ixTijera { 50% { translate: 3cqw 0; } }
 .ix-linea span { position: absolute; left: 0; top: -2px; height: 3px; width: 0; background: linear-gradient(90deg, #fff, #ffd1f2, #c9f3ff, #fff); box-shadow: 0 0 10px #fff, 0 0 18px #e7d1ff; }
 .ix-trozo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2; }
 /* Cartas */
-.ix-mazo { position: absolute; left: 50%; top: 44%; width: 52cqw; aspect-ratio: 5 / 7; transform: translate(-50%,-50%); perspective: 900px; }
+.ix-mazo { position: absolute; left: 50%; top: 24%; width: 40cqw; aspect-ratio: 5 / 7.3; transform: translate(-50%,-50%); perspective: 900px; }
 .ix-carta { position: absolute; inset: 0; z-index: calc(5 - var(--i)); rotate: calc(var(--i) * 3.5deg); translate: calc(var(--i) * 1.5cqw) calc(var(--i) * -1cqw); cursor: pointer; transition: transform .2s; transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); }
 .ix-carta-in { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .7s cubic-bezier(.22,1,.36,1); }
-.ix-carta.vista { rotate: 0deg; translate: 0 0; }
+.ix-carta { transition: transform .2s, translate .7s cubic-bezier(.22,1,.36,1), scale .7s cubic-bezier(.22,1,.36,1), rotate .5s; }
+.ix-carta.vista { rotate: 0deg; translate: 0 62%; scale: 1.42; }
 .ix-carta.vista .ix-carta-in { transform: rotateY(180deg); }
 .ix-dorso, .ix-cara { position: absolute; inset: 0; border-radius: 3.4cqw; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden; box-shadow: 0 10px 30px -10px rgba(60,20,90,.6); }
-.ix-dorso { display: grid; place-items: center; border: 1.6cqw solid #fff; background: conic-gradient(from 30deg, #f6c7e6, #c9b8ff, #b8ecff, #fff1b8, #f6c7e6); }
-.ix-dorso span { width: 18cqw; height: 18cqw; border-radius: 50%; display: grid; place-items: center; background: #fff; color: #b77ad6; font-size: 10cqw; box-shadow: 0 0 0 1.2cqw rgba(255,255,255,.5); }
-.ix-cara { transform: rotateY(180deg); background: #fffaff; border: 1.6cqw solid #fff; display: grid; align-content: center; justify-items: center; gap: 2.4cqw; padding: 6cqw 4cqw; color: #3b2a4a; text-align: center; }
-.ix-cara small { font: 600 2.6cqw 'Josefin Sans', sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #9a6bc0; }
-.ix-cara b { font-size: 8.4cqw; line-height: 1.05; font-weight: 500; }
-.ix-cara span { font-size: 4cqw; font-style: italic; }
-.ix-carta.holo .ix-cara { padding: 3cqw 3cqw 4cqw; align-content: start; background: linear-gradient(135deg, #fff6fd, #f1ecff); }
+.ix-dorso { display: grid; place-items: center; border: 1.2cqw solid #fff; background: conic-gradient(from 30deg, #f6c7e6, #c9b8ff, #b8ecff, #fff1b8, #f6c7e6); }
+.ix-dorso span { width: 14cqw; height: 14cqw; border-radius: 50%; display: grid; place-items: center; background: #fff; color: #b77ad6; font-size: 8cqw; box-shadow: 0 0 0 1.2cqw rgba(255,255,255,.5); }
+.ix-cara { transform: rotateY(180deg); background: #fffaff; border: 1.2cqw solid #fff; display: grid; align-content: center; justify-items: center; gap: 1.8cqw; padding: 4cqw 3cqw; color: #3b2a4a; text-align: center; }
+.ix-cara small { font: 600 2cqw 'Josefin Sans', sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #9a6bc0; }
+.ix-cara b { font-size: 6.4cqw; line-height: 1.05; font-weight: 500; }
+.ix-cara span { font-size: 3cqw; font-style: italic; }
+.ix-carta.holo .ix-cara { padding: 2.2cqw 2.2cqw 3cqw; align-content: start; background: linear-gradient(135deg, #fff6fd, #f1ecff); }
 .ix-holo-foto { width: 100%; aspect-ratio: 4 / 4.2; border-radius: 2cqw; background-size: cover; background-position: 50% 30%; box-shadow: inset 0 0 0 1px rgba(183,122,214,.4); }
 .ix-carta.holo .ix-cara::after { content: ""; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: color-dodge; opacity: .55;
   background: radial-gradient(circle at var(--hx, 50%) var(--hy, 30%), rgba(255,255,255,.9), transparent 38%),

@@ -354,7 +354,10 @@
           k.destello((a.x + b.x) / 2, a.y, "#ffffff", 90); k.chispas((a.x + b.x) / 2, a.y, ["#fff", "#ffd1f2", "#c9f3ff", "#e7d1ff", "#fff3b0"], 40, 1.6);
           fijar(x.opened, [{ opacity: 0 }, { opacity: 1 }], { duration: 600 });
           // Salen las cartas del sobre
+          // El mazo tapa justo la carta en blanco que sale del sobre en el arte (x 30–70 %, y 7–40 %).
           const mazo = el("div", { class: "ix-mazo" }, cartas);
+          const ubicarMazo = () => { const c0 = x.punto(.5, .235), c1 = x.punto(.7, .235); Object.assign(mazo.style, { left: c0.x + "px", top: c0.y + "px", width: (c1.x - c0.x) * 2 + "px" }); };
+          ubicarMazo(); k.ubicar = ubicarMazo;
           k.capa.append(mazo);
           cartas.forEach((c, i) => c.animate([{ transform: "translateY(60%) scale(.5)", opacity: 0 }, { transform: "none", opacity: 1 }], { delay: 450 + i * 120, duration: 700, easing: EASE, fill: "backwards" }));
           cartas.forEach(c => c.addEventListener("click", e => { e.stopPropagation(); voltear(); }));
