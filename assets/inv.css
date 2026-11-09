@@ -390,6 +390,11 @@
 .inv-extra[open] summary { opacity: .6; }
 
 /* ---------- Aperturas interactivas (Cofre, Caja, Cartas, Ritual) ---------- */
+.ix-on { user-select: none; -webkit-user-select: none; }
+.ix-on img { -webkit-user-drag: none; user-select: none; }
+.ix-on .env-hint { left: 7%; right: 7%; bottom: 6%; padding: 2.2cqw 4cqw; border-radius: 99px; background: rgba(22,10,34,.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  font: 600 3.9cqw 'Josefin Sans', sans-serif; letter-spacing: .02em; line-height: 1.3; animation: none; z-index: 4; }
+.ix-on .env-hint:empty { display: none; }
 .ix { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
 .ix > * { pointer-events: auto; }
 .ix .ix-chispa, .ix .ix-destello, .ix .ix-trozo, .ix .ix-flecha, .ix .ix-linea, .ix .ix-combo, .ix .ix-nombres { pointer-events: none; }

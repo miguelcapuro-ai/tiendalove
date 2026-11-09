@@ -147,7 +147,8 @@
     const saltar = el("button", { class: "ix-saltar", type: "button", text: "Saltar ›", "aria-label": "Saltar y abrir la invitación" });
     capa.append(pasos, saltar);
     x.stage.append(capa);
-    x.stage.style.touchAction = "none";
+    x.stage.style.touchAction = "none"; x.stage.classList.add("ix-on");
+    x.stage.querySelectorAll("img").forEach(i => (i.draggable = false));
     const timers = [];
     const luego = (f, ms) => { const t = setTimeout(f, ms); timers.push(t); return t; };
     const k = {
@@ -193,7 +194,7 @@
   // Arrastre vertical u horizontal con progreso 0–1 (ratón, dedo o lápiz).
   function arrastre(zona, eje, distancia, alMover, alSoltar) {
     let ini = null;
-    const abajo = e => { ini = { x: e.clientX, y: e.clientY }; try { zona.setPointerCapture(e.pointerId); } catch (_) {} };
+    const abajo = e => { if (e.pointerType === "mouse") e.preventDefault(); ini = { x: e.clientX, y: e.clientY }; try { zona.setPointerCapture(e.pointerId); } catch (_) {} };
     const mueve = e => { if (!ini) return; const d = eje === "y" ? ini.y - e.clientY : Math.abs(e.clientX - ini.x); alMover(limitar(d / distancia(), 0, 1), e); };
     const suelta = e => { if (!ini) return; const d = eje === "y" ? ini.y - e.clientY : Math.abs(e.clientX - ini.x); ini = null; alSoltar(limitar(d / distancia(), 0, 1), e); };
     zona.addEventListener("pointerdown", abajo); zona.addEventListener("pointermove", mueve);
@@ -207,7 +208,7 @@
     const svg = document.createElementNS(ns, "svg"); svg.setAttribute("viewBox", "-50 -50 100 100"); svg.setAttribute("class", "ix-grietas");
     const gs = grupos.map(lineas => {
       const g = document.createElementNS(ns, "g"); g.style.opacity = "0";
-      lineas.forEach(d => { const p = document.createElementNS(ns, "path"); p.setAttribute("d", d); p.setAttribute("stroke", color); p.setAttribute("fill", "none"); p.setAttribute("stroke-width", "1.6"); p.setAttribute("stroke-linecap", "round"); g.append(p); });
+      lineas.forEach(d => { const p = document.createElementNS(ns, "path"); p.setAttribute("d", d); p.setAttribute("stroke", color); p.setAttribute("fill", "none"); p.setAttribute("stroke-width", "2.4"); p.setAttribute("stroke-linecap", "round"); g.append(p); });
       svg.append(g); return g;
     });
     return { svg, mostrar: i => { if (gs[i]) gs[i].animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, fill: "forwards" }); } };
@@ -227,7 +228,7 @@
       jugar(x) {
         const k = kit(x, 2);
         let golpes = 0, fase = 0, quitarArrastre = null, toquesSinDeslizar = 0;
-        const p = () => x.punto(.5, .47);
+        const p = () => x.punto(.5, .49);
         const hot = el("button", { class: "ix-hot", type: "button", "aria-label": "Golpear el candado" });
         const g = grietas(GRIETAS, "#fff4cf");
         hot.append(g.svg);
@@ -345,7 +346,7 @@
           const a = A(), b = B();
           // El trozo de arriba del sobre sale volando
           const W = x.stage.clientWidth, H = x.stage.clientHeight, q0 = x.punto(.19, .17), q1 = x.punto(.78, .235);
-          const trozo = x.closed.cloneNode(); trozo.className = "ix-trozo";
+          const trozo = x.closed.cloneNode(); trozo.className = "ix-trozo"; trozo.draggable = false;
           trozo.style.clipPath = `inset(${q0.y / H * 100}% ${100 - q1.x / W * 100}% ${100 - q1.y / H * 100}% ${q0.x / W * 100}%)`;
           k.capa.prepend(trozo);
           trozo.animate([{ transform: "none", opacity: 1 }, { transform: "translate(18%,-22%) rotate(16deg)", opacity: 0 }], { duration: 900, easing: "cubic-bezier(.3,.6,.4,1)", fill: "forwards" }).onfinish = () => trozo.remove();
