@@ -48,6 +48,7 @@
     <form id="fEntrar" novalidate>
       <label for="codigo"><span>Código del pedido</span><input id="codigo" name="codigo" required maxlength="10" autocomplete="off" autocapitalize="characters" placeholder="ML2GKUX6" inputmode="text"></label>
       <label for="correo"><span>Correo del pedido</span><input id="correo" name="correo" type="email" required autocomplete="email" placeholder="ustedes@correo.com"></label>
+      <div class="humano" id="humano"></div>
       <button class="btn" type="submit" id="bEntrar">Enviarme el enlace</button>
       <p class="msg" id="msg" role="status" aria-live="polite"></p>
     </form>
@@ -55,7 +56,8 @@
   </div>
 </main>
 <footer><div class="wrap"><span>© 2026 <span translate="no">Mejorativa</span> by Miguel Capuro · Panamá</span><nav><a href="../">Mejorativa Love</a><a href="../aviso/">Aviso y condiciones</a></nav></div></footer>
-<script src="../assets/love-config.js?v=ix20261109b"></script>
+<script src="../assets/love-config.js?v=ix20261109c"></script>
+<script src="../assets/humano.js?v=ix20261109c"></script>
 <script>
 (() => {
   const API = (window.LOVE && window.LOVE.api) || "";
@@ -63,19 +65,23 @@
   if (g && g.h) { document.getElementById("rapido").hidden = false; document.getElementById("rapNombres").textContent = g.nombres || "su boda"; document.getElementById("rapIr").href = `../portal/#${g.h}`; }
   const f = document.getElementById("fEntrar"), msg = document.getElementById("msg"), b = document.getElementById("bEntrar");
   const codigo = document.getElementById("codigo");
+  const humano = window.Humano ? window.Humano(document.getElementById("humano")) : null;
+  if (API && humano) fetch(API + "/love/api/config").then(r => r.json()).then(c => humano.preparar(c && c.turnstile)).catch(() => {});
   codigo.addEventListener("input", () => { codigo.value = codigo.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8); });
   f.addEventListener("submit", async (e) => {
     e.preventDefault(); msg.className = "msg"; msg.textContent = "";
     const c = codigo.value.trim(), m = document.getElementById("correo").value.trim();
     if (!/^ML[A-Z0-9]{6}$/.test(c)) { msg.className = "msg mal"; msg.textContent = "El código empieza con ML y tiene 8 caracteres."; codigo.focus(); return; }
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)) { msg.className = "msg mal"; msg.textContent = "Revisen su correo."; return; }
+    if (humano && humano.activo() && !humano.token()) { msg.className = "msg mal"; msg.textContent = "Un segundo: confirmen que no son un robot y vuelvan a tocar el botón."; return; }
     b.disabled = true; b.textContent = "Enviando…";
     try {
-      const r = await fetch(API + "/love/api/acceso", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ codigo: c, correo: m }) });
+      const r = await fetch(API + "/love/api/acceso", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ codigo: c, correo: m, turnstile: humano ? humano.token() : null }) });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.mensaje || "No pudimos enviar el enlace. Intenten de nuevo.");
       msg.className = "msg ok"; msg.textContent = j.mensaje;
     } catch (err) { msg.className = "msg mal"; msg.textContent = err.message; }
+    if (humano) humano.reiniciar();
     b.disabled = false; b.textContent = "Enviarme el enlace";
   });
 })();

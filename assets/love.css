@@ -270,3 +270,7 @@ button.link { background: none; border: 0; padding: 0 0 2px; font: inherit; font
 .promo summary{cursor:pointer;text-decoration:underline;text-underline-offset:3px;width:max-content;max-width:100%;opacity:.85}
 .promo-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .promo-row input{flex:1 1 200px;font:inherit;padding:12px 14px;border:1px solid #C9D2DE;border-radius:12px;text-transform:uppercase;letter-spacing:.06em}
+
+/* Captcha anti-robots: solo ocupa espacio cuando Cloudflare pide confirmar. */
+.humano { display: flex; justify-content: flex-end; margin-top: 12px; }
+.humano[hidden] { display: none; }

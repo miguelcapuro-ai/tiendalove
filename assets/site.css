@@ -751,3 +751,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:214748
   .swipe-hint{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:.72rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
   .flag .swipe-hint{color:#A9B6CB}
 }
+
+/* Captcha anti-robots: solo ocupa espacio cuando Cloudflare pide confirmar. */
+.humano { display: flex; justify-content: flex-end; margin-top: 12px; }
+.humano[hidden] { display: none; }

@@ -90,8 +90,10 @@
     ])));
   }
   pintarPlanes();
+  let CLAVE_HUMANO = null;
+  const humano = window.Humano ? window.Humano($("#humanoPedido")) : null;
   const cfgListo = !API ? Promise.resolve() : fetch(API + "/love/api/config").then(r => r.json()).then(c => {
-    if (c && c.ok) { PLANES = c.planes.map(p => ({ ...p, incluye: p.incluye })); PAGO = { ...PAGO, ...c.pago }; $$("[data-cfg=revisionExtra]").forEach(n => (n.textContent = c.revisionExtra)); pintarPlanes(); }
+    if (c && c.ok) { PLANES = c.planes.map(p => ({ ...p, incluye: p.incluye })); PAGO = { ...PAGO, ...c.pago }; CLAVE_HUMANO = c.turnstile || null; $$("[data-cfg=revisionExtra]").forEach(n => (n.textContent = c.revisionExtra)); pintarPlanes(); }
   }).catch(() => {});
 
   // ---------- Vista previa de modelo ----------
@@ -157,6 +159,8 @@
     $("#wNext").innerHTML = (n === 8 ? "Confirmar y pagar" : n === 7 ? "Revisar mi pedido" : "Siguiente") + " " + arrow;
     $("#wNav").hidden = false; $(".w-side").hidden = false; wiz.classList.remove("pagando");
     pintarPaso();
+    const caja = $("#humanoPedido"); caja.hidden = n !== 8;
+    if (n === 8 && humano) cfgListo.then(() => humano.preparar(CLAVE_HUMANO));
     wiz.scrollTop = 0; $(".w-main").scrollTop = 0;
     $("#wTitle").focus({ preventScroll: true });
     actualizarVista(n <= 2);
@@ -517,25 +521,26 @@
   async function enviarPedido() {
     const btn = $("#wNext"); err.textContent = "";
     if (!API) { err.textContent = "La tienda todavía no está conectada. Escríbannos por WhatsApp."; return; }
+    if (humano && humano.activo() && !humano.token()) { err.textContent = "Un segundo: confirmen abajo que no son un robot y vuelvan a tocar el botón."; return; }
     btn.disabled = true; btn.innerHTML = fotos.length ? "Subiendo sus fotos…" : "Creando su pedido…";
     const datos = { ...data }; ["plan", "modelo", "correo", "whatsapp", "factura", "aceptaciones", "quiereFactura"].forEach(k => delete datos[k]);
     try {
       const r = await fetch(API + "/love/api/pedido", { method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ plan: data.plan, modelo: data.modelo, correo: data.correo, whatsapp: data.whatsapp, factura: data.quiereFactura ? data.factura : null,
-          aceptaciones: data.aceptaciones, datos, fotos: fotos.map(f => f.b64), portada }) });
+          aceptaciones: data.aceptaciones, datos, fotos: fotos.map(f => f.b64), portada, turnstile: humano ? humano.token() : null }) });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j.ok) throw new Error(j.mensaje || "No pudimos crear su pedido. Revisen su conexión e intenten de nuevo.");
       const pend = { id: j.id, key: j.key, codigo: j.codigo, monto: j.monto, yappy: j.yappy, portal: j.portal, nombres: `${data.nombre1} y ${data.nombre2}`, plan: planById(data.plan).nombre };
       store.set(PENDIENTE, pend);
       mostrarPago(pend);
-    } catch (x) { err.textContent = x.message; }
+    } catch (x) { err.textContent = x.message; if (humano) humano.reiniciar(); }
     btn.disabled = false; btn.innerHTML = `Confirmar y pagar ${arrow}`;
   }
 
   let tPoll = null;
   function mostrarPago(p) {
     wiz.classList.add("pagando");
-    $("#wNav").hidden = true; $(".w-side").hidden = true; err.textContent = "";
+    $("#wNav").hidden = true; $(".w-side").hidden = true; $("#humanoPedido").hidden = true; err.textContent = "";
     $("#wCount").textContent = `Pedido ${p.codigo}`; $("#wTitle").textContent = "Último paso: el pago."; $("#wSub").textContent = `Plan ${p.plan} para ${p.nombres}.`;
     $$("#progress i").forEach(b => b.classList.add("on"));
     const msg = `Hola, Miguel. Somos ${p.nombres} y ya pagamos nuestra invitación de Mejorativa Love. Pedido ${p.codigo} por ${money(p.monto)}. Aquí va el comprobante de Yappy.`;
