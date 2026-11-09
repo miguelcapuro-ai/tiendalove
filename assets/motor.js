@@ -125,6 +125,409 @@
     return () => { vivo = false; c.remove(); };
   }
 
+  // ---------- Aperturas interactivas (modelos con «apertura») ----------
+  // El invitado hace una o más acciones sencillas para abrir su invitación. Cada juego recibe el
+  // escenario (sobre, imágenes, nombres) y llama a fin() al terminar; el motor sigue con la portada.
+  // Siempre hay «Saltar» y el teclado (Enter) avanza un paso, para que nadie se quede atascado.
+
+  // Punto (fracciones 0–1 del arte de 720×1280) a píxeles del escenario, con object-fit: cover.
+  function puntoArte(stage, fx, fy) {
+    const W = stage.clientWidth, H = stage.clientHeight, k = Math.max(W / 720, H / 1280);
+    return { x: W / 2 + (fx - .5) * 720 * k, y: H / 2 + (fy - .5) * 1280 * k, k };
+  }
+  const vibrar = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
+  const limitar = (v, a, b) => Math.max(a, Math.min(b, v));
+  // Anima y deja el estado final escrito en el estilo (así los arrastres posteriores no quedan tapados).
+  const fijar = (n, kf, op) => { const a = n.animate(kf, { fill: "forwards", ...op }); a.onfinish = () => { try { a.commitStyles(); } catch (e) {} a.cancel(); }; return a; };
+
+  // Kit común: capa, indicador de pasos, chispas, temblor y «Saltar».
+  function kit(x, total) {
+    const capa = el("div", { class: "ix" });
+    const pasos = el("div", { class: "ix-pasos", "aria-hidden": "true" }, Array.from({ length: total }, () => el("i")));
+    const saltar = el("button", { class: "ix-saltar", type: "button", text: "Saltar ›", "aria-label": "Saltar y abrir la invitación" });
+    capa.append(pasos, saltar);
+    x.stage.append(capa);
+    x.stage.style.touchAction = "none";
+    const timers = [];
+    const luego = (f, ms) => { const t = setTimeout(f, ms); timers.push(t); return t; };
+    const k = {
+      capa, luego,
+      paso(i, texto) {
+        [...pasos.children].forEach((d, j) => d.className = j < i ? "ok" : j === i ? "on" : "");
+        x.hint.textContent = texto; x.hint.animate([{ opacity: 0, transform: "translateY(2cqw)" }, { opacity: 1, transform: "none" }], { duration: 450, easing: EASE });
+      },
+      chispas(px, py, colores, n = 18, fuerza = 1) {
+        for (let i = 0; i < n; i++) {
+          const a = Math.random() * 6.283, d = (30 + Math.random() * 90) * fuerza, s = 4 + Math.random() * 7;
+          const c = el("span", { class: "ix-chispa", style: `left:${px}px;top:${py}px;width:${s}px;height:${s}px;background:${colores[i % colores.length]};border-radius:${Math.random() < .5 ? "50%" : "2px"}` });
+          capa.append(c);
+          c.animate([{ transform: "translate(-50%,-50%) scale(1)", opacity: 1 }, { transform: `translate(calc(-50% + ${Math.cos(a) * d}px), calc(-50% + ${Math.sin(a) * d + 40 * fuerza}px)) rotate(${Math.random() * 540}deg) scale(.3)`, opacity: 0 }],
+            { duration: 700 + Math.random() * 700, easing: "cubic-bezier(.15,.7,.3,1)", fill: "forwards" }).onfinish = () => c.remove();
+        }
+      },
+      temblor(fuerza = 1) {
+        const f = 1.4 * fuerza;
+        x.stage.animate([{ transform: "none" }, { transform: `translate(${-f}cqw,${f * .4}cqw) rotate(${-f * .4}deg)` }, { transform: `translate(${f}cqw,${-f * .4}cqw) rotate(${f * .4}deg)` },
+          { transform: `translate(${-f * .5}cqw,0)` }, { transform: "none" }], { duration: 320, easing: "ease-out" });
+      },
+      destello(px, py, color = "#fff", tam = 60) {
+        const d = el("span", { class: "ix-destello", style: `left:${px}px;top:${py}px;width:${tam}cqw;height:${tam}cqw;background:radial-gradient(circle, ${color} 0%, ${color}00 65%)` });
+        capa.append(d);
+        d.animate([{ opacity: 0, transform: "translate(-50%,-50%) scale(.3)" }, { opacity: 1, offset: .25 }, { opacity: 0, transform: "translate(-50%,-50%) scale(1.6)" }], { duration: 900, easing: "ease-out", fill: "forwards" }).onfinish = () => d.remove();
+      },
+      cerrar(op) {
+        timers.forEach(clearTimeout);
+        x.hint.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: "forwards" });
+        pasos.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: "forwards" });
+        saltar.remove();
+        x.fin(op);
+      },
+      parar() { timers.forEach(clearTimeout); ro && ro.disconnect(); },
+    };
+    const ro = window.ResizeObserver ? new ResizeObserver(() => k.ubicar && k.ubicar()) : null;
+    ro && ro.observe(x.stage);
+    saltar.addEventListener("click", e => { e.stopPropagation(); k.saltar && k.saltar(); });
+    return k;
+  }
+
+  // Arrastre vertical u horizontal con progreso 0–1 (ratón, dedo o lápiz).
+  function arrastre(zona, eje, distancia, alMover, alSoltar) {
+    let ini = null;
+    const abajo = e => { ini = { x: e.clientX, y: e.clientY }; try { zona.setPointerCapture(e.pointerId); } catch (_) {} };
+    const mueve = e => { if (!ini) return; const d = eje === "y" ? ini.y - e.clientY : Math.abs(e.clientX - ini.x); alMover(limitar(d / distancia(), 0, 1), e); };
+    const suelta = e => { if (!ini) return; const d = eje === "y" ? ini.y - e.clientY : Math.abs(e.clientX - ini.x); ini = null; alSoltar(limitar(d / distancia(), 0, 1), e); };
+    zona.addEventListener("pointerdown", abajo); zona.addEventListener("pointermove", mueve);
+    zona.addEventListener("pointerup", suelta); zona.addEventListener("pointercancel", suelta);
+    return () => { zona.removeEventListener("pointerdown", abajo); zona.removeEventListener("pointermove", mueve); zona.removeEventListener("pointerup", suelta); zona.removeEventListener("pointercancel", suelta); };
+  }
+
+  // Grietas dibujadas en SVG; se revelan por grupos (un grupo por golpe).
+  function grietas(grupos, color) {
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg"); svg.setAttribute("viewBox", "-50 -50 100 100"); svg.setAttribute("class", "ix-grietas");
+    const gs = grupos.map(lineas => {
+      const g = document.createElementNS(ns, "g"); g.style.opacity = "0";
+      lineas.forEach(d => { const p = document.createElementNS(ns, "path"); p.setAttribute("d", d); p.setAttribute("stroke", color); p.setAttribute("fill", "none"); p.setAttribute("stroke-width", "1.6"); p.setAttribute("stroke-linecap", "round"); g.append(p); });
+      svg.append(g); return g;
+    });
+    return { svg, mostrar: i => { if (gs[i]) gs[i].animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, fill: "forwards" }); } };
+  }
+  const GRIETAS = [
+    ["M0 0 L-9 -12 L-14 -15", "M0 0 L10 -6 L18 -4"],
+    ["M0 0 L-4 13 L-10 20", "M0 0 L13 9 L16 18", "M-9 -12 L-20 -8"],
+    ["M0 0 L-16 2 L-24 9", "M0 0 L4 -16 L9 -24", "M10 -6 L22 -14", "M-4 13 L4 22"],
+  ];
+  const ORO = ["#ffe6a0", "#f3c757", "#fff6d6", "#e0a83a"];
+  const CONFETI = ["#3fe0f5", "#ff4fd8", "#ffd23f", "#8a5bff", "#ffffff", "#5cff9d"];
+
+  const INTERACCIONES = {
+    // 1) Cofre: romper el candado a toques y deslizar hacia arriba para abrir.
+    cofre: {
+      invita: "Toca el candado 3 veces para romperlo",
+      jugar(x) {
+        const k = kit(x, 2);
+        let golpes = 0, fase = 0, quitarArrastre = null, toquesSinDeslizar = 0;
+        const p = () => x.punto(.5, .47);
+        const hot = el("button", { class: "ix-hot", type: "button", "aria-label": "Golpear el candado" });
+        const g = grietas(GRIETAS, "#fff4cf");
+        hot.append(g.svg);
+        const ubicar = () => { const q = p(); hot.style.left = q.x + "px"; hot.style.top = q.y + "px"; };
+        k.ubicar = ubicar; ubicar(); k.capa.append(hot);
+        const flecha = el("div", { class: "ix-flecha", "aria-hidden": "true" }, [el("i"), el("i"), el("i")]);
+        k.paso(0, "Toca el candado 3 veces para romperlo");
+        function golpe() {
+          if (fase !== 0) return;
+          golpes++; vibrar(golpes < 3 ? 25 : [40, 30, 80]);
+          const q = p(); g.mostrar(golpes - 1); k.temblor(golpes * .5); k.chispas(q.x, q.y, ORO, 10 + golpes * 6, .7 + golpes * .2);
+          hot.animate([{ transform: "translate(-50%,-50%) scale(1)" }, { transform: "translate(-50%,-50%) scale(.86)" }, { transform: "translate(-50%,-50%) scale(1)" }], { duration: 220 });
+          x.closed.animate([{ filter: "brightness(1)" }, { filter: `brightness(${1.15 + golpes * .1})` }, { filter: "brightness(1)" }], { duration: 350 });
+          if (golpes >= 3) romper();
+        }
+        function romper() {
+          fase = 1; const q = p();
+          k.destello(q.x, q.y, "#ffe9a8", 70); k.chispas(q.x, q.y, ORO, 40, 1.6);
+          hot.animate([{ opacity: 1, transform: "translate(-50%,-50%) scale(1)" }, { opacity: 0, transform: "translate(-50%,-30%) scale(1.3) rotate(18deg)" }], { duration: 600, easing: "ease-in", fill: "forwards" }).onfinish = () => hot.remove();
+          k.luego(() => { k.paso(1, "Ahora desliza hacia arriba para abrir el cofre"); k.capa.append(flecha); quitarArrastre = arrastre(x.stage, "y", () => x.stage.clientHeight * .22, mover, soltar); }, 650);
+        }
+        function mover(t) {
+          x.opened.style.opacity = String(t * .75);
+          x.glow.style.opacity = String(t); x.glow.style.transform = `scale(${.4 + t * .8})`;
+          flecha.style.opacity = String(1 - t);
+        }
+        function soltar(t) {
+          if (fase !== 1) return;
+          if (t >= .6) return abrirCofre();
+          if (t < .05 && ++toquesSinDeslizar >= 2) return abrirCofre(); // quien solo toca, también entra
+          fijar(x.opened, [{ opacity: x.opened.style.opacity || 0 }, { opacity: 0 }], { duration: 300 });
+          x.glow.style.opacity = "0"; flecha.style.opacity = "1";
+        }
+        function abrirCofre() {
+          fase = 2; quitarArrastre && quitarArrastre(); flecha.remove(); vibrar([30, 40, 90]);
+          const q = p(); k.destello(q.x, q.y - 80, "#fff1c4", 110); k.chispas(q.x, q.y - 40, ORO, 50, 2);
+          x.opened.getAnimations().forEach(a => a.cancel());
+          fijar(x.opened, [{ opacity: x.opened.style.opacity || 0 }, { opacity: 1 }], { duration: 500 });
+          x.glow.animate([{ opacity: 1, transform: "scale(1.2)" }, { opacity: 0, transform: "scale(2.4)" }], { duration: 1000, fill: "forwards" });
+          k.luego(() => k.cerrar({ yaAbierto: true }), 500);
+        }
+        hot.addEventListener("click", e => { e.stopPropagation(); golpe(); });
+        k.saltar = () => { fase = 2; quitarArrastre && quitarArrastre(); k.cerrar({ yaAbierto: false }); };
+        return { avanzar: () => (fase === 0 ? golpe() : fase === 1 ? abrirCofre() : null), parar: () => { k.parar(); quitarArrastre && quitarArrastre(); } };
+      },
+    },
+
+    // 2) Caja: tres toques; cada uno la hace saltar y agrieta el cristal. Al tercero, explota en confeti.
+    caja: {
+      invita: "Toca la caja 3 veces",
+      jugar(x) {
+        const k = kit(x, 1);
+        let golpes = 0, listo = false;
+        const p = () => x.punto(.5, .43);
+        const hot = el("button", { class: "ix-hot ix-hot-caja", type: "button", "aria-label": "Tocar la caja" });
+        const g = grietas(GRIETAS, "#e9fbff");
+        hot.append(g.svg);
+        const combo = el("b", { class: "ix-combo", "aria-hidden": "true" });
+        const ubicar = () => { const q = p(); hot.style.left = q.x + "px"; hot.style.top = q.y + "px"; combo.style.left = q.x + "px"; combo.style.top = (q.y - q.k * 330) + "px"; };
+        k.ubicar = ubicar; ubicar(); k.capa.append(hot, combo);
+        k.paso(0, "Toca la caja 3 veces");
+        function golpe() {
+          if (listo) return;
+          golpes++; vibrar(golpes < 3 ? 30 : [50, 30, 120]);
+          const q = p(); g.mostrar(golpes - 1); k.chispas(q.x, q.y, CONFETI, 12 + golpes * 8, .8 + golpes * .3); k.temblor(golpes * .6);
+          x.cam.animate([{ transform: "translateY(0) scale(1,1)" }, { transform: "translateY(1.5%) scale(1.06,.92)", offset: .2 }, { transform: "translateY(-6%) scale(.96,1.06)", offset: .55 }, { transform: "translateY(0) scale(1,1)" }],
+            { duration: 520, easing: "cubic-bezier(.3,1.4,.5,1)", composite: "add" });
+          x.closed.animate([{ filter: "brightness(1) hue-rotate(0deg)" }, { filter: `brightness(${1.2 + golpes * .15}) hue-rotate(${golpes * 25}deg)` }, { filter: "brightness(1)" }], { duration: 500 });
+          combo.textContent = golpes < 3 ? `×${golpes}` : "¡BOOM!";
+          combo.animate([{ opacity: 0, transform: "translate(-50%,0) scale(.4)" }, { opacity: 1, transform: "translate(-50%,-30%) scale(1.15)", offset: .35 }, { opacity: 0, transform: "translate(-50%,-90%) scale(1)" }], { duration: 900, easing: "ease-out", fill: "forwards" });
+          if (golpes < 3) k.paso(0, golpes === 1 ? "¡Otra vez! Faltan 2" : "¡Una más!");
+          else explotar();
+        }
+        function explotar() {
+          listo = true; const q = p(); hot.remove();
+          k.destello(q.x, q.y, "#ffffff", 140);
+          k.chispas(q.x, q.y, CONFETI, 70, 2.6); k.luego(() => k.chispas(q.x, q.y - 30, CONFETI, 40, 2), 180);
+          fijar(x.opened, [{ opacity: 0 }, { opacity: 1 }], { duration: 350 });
+          k.luego(() => k.cerrar({ yaAbierto: true }), 650);
+        }
+        hot.addEventListener("click", e => { e.stopPropagation(); golpe(); });
+        k.saltar = () => { listo = true; k.cerrar({ yaAbierto: false }); };
+        return { avanzar: golpe, parar: k.parar };
+      },
+    },
+
+    // 3) Cartas: rasgar el sobre con el dedo y voltear tres cartas; la última es la de los novios (holográfica).
+    cartas: {
+      invita: "Desliza el dedo por la línea para rasgar el sobre",
+      jugar(x) {
+        const k = kit(x, 3);
+        let fase = 0, quitar = null, actual = 0;
+        // El sobre ocupa de 19% a 78% del ancho del arte; la línea para rasgar va arriba (21%).
+        const A = () => x.punto(.19, .215), B = () => x.punto(.78, .215);
+        const linea = el("div", { class: "ix-linea", "aria-hidden": "true" }, [el("span")]);
+        const ubicar = () => { const a = A(), b = B(); Object.assign(linea.style, { left: a.x + "px", top: a.y + "px", width: (b.x - a.x) + "px" }); };
+        k.ubicar = ubicar; ubicar(); k.capa.append(linea);
+        const relleno = linea.firstChild;
+        k.paso(0, "Desliza el dedo por la línea para rasgar el sobre");
+        quitar = arrastre(x.stage, "x", () => B().x - A().x, (t, e) => {
+          relleno.style.width = t * 100 + "%";
+          if (Math.random() < .35) { const r = x.stage.getBoundingClientRect(); k.chispas(e.clientX - r.left, A().y, ["#fff", "#ffd1f2", "#c9f3ff", "#e7d1ff"], 3, .4); }
+        }, t => { if (fase === 0) { if (t >= .7) rasgar(); else fijar(relleno, [{ width: relleno.style.width }, { width: "0%" }], { duration: 250 }); } });
+        // Las tres cartas
+        const fecha = longDate(x.fecha);
+        const caras = [
+          [el("small", { text: "Carta 1 · Guarden la fecha" }), el("b", { style: x.tituloCSS, text: shortDate(x.fecha) }), el("span", { text: fecha })],
+          [el("small", { text: "Carta 2 · El lugar" }), el("b", { style: x.tituloCSS, text: x.lugar }), el("span", { text: "Los esperamos" })],
+          [el("div", { class: "ix-holo-foto", style: `background-image:url("${x.foto}")` }), el("b", { style: x.tituloCSS, text: `${x.n1} & ${x.n2}` }), el("small", { text: "Edición única · 1 de 1" })],
+        ];
+        const cartas = caras.map((cara, i) => el("div", { class: "ix-carta" + (i === 2 ? " holo" : ""), style: `--i:${i}` }, [
+          el("div", { class: "ix-carta-in" }, [el("div", { class: "ix-dorso" }, [el("span", { text: "♥" })]), el("div", { class: "ix-cara" }, cara)])]));
+        function rasgar() {
+          fase = 1; quitar && quitar(); vibrar([20, 20, 60]);
+          const a = A(), b = B();
+          // El trozo de arriba del sobre sale volando
+          const W = x.stage.clientWidth, H = x.stage.clientHeight, q0 = x.punto(.19, .17), q1 = x.punto(.78, .235);
+          const trozo = x.closed.cloneNode(); trozo.className = "ix-trozo";
+          trozo.style.clipPath = `inset(${q0.y / H * 100}% ${100 - q1.x / W * 100}% ${100 - q1.y / H * 100}% ${q0.x / W * 100}%)`;
+          k.capa.prepend(trozo);
+          trozo.animate([{ transform: "none", opacity: 1 }, { transform: "translate(18%,-22%) rotate(16deg)", opacity: 0 }], { duration: 900, easing: "cubic-bezier(.3,.6,.4,1)", fill: "forwards" }).onfinish = () => trozo.remove();
+          linea.remove();
+          k.destello((a.x + b.x) / 2, a.y, "#ffffff", 90); k.chispas((a.x + b.x) / 2, a.y, ["#fff", "#ffd1f2", "#c9f3ff", "#e7d1ff", "#fff3b0"], 40, 1.6);
+          fijar(x.opened, [{ opacity: 0 }, { opacity: 1 }], { duration: 600 });
+          // Salen las cartas del sobre
+          const mazo = el("div", { class: "ix-mazo" }, cartas);
+          k.capa.append(mazo);
+          cartas.forEach((c, i) => c.animate([{ transform: "translateY(60%) scale(.5)", opacity: 0 }, { transform: "none", opacity: 1 }], { delay: 450 + i * 120, duration: 700, easing: EASE, fill: "backwards" }));
+          cartas.forEach(c => c.addEventListener("click", e => { e.stopPropagation(); voltear(); }));
+          k.luego(() => { fase = 2; k.paso(1, "Toca la carta para voltearla · 1 de 3"); }, 900);
+        }
+        function voltear() {
+          if (fase !== 2) return;
+          if (actual >= cartas.length) return entrar();
+          if (actual > 0) {
+            // Aparta la carta ya vista y sigue con la siguiente
+            const c = cartas[actual - 1]; c.classList.add("fuera");
+            c.animate([{ transform: getComputedStyle(c).transform }, { transform: `translate(${actual % 2 ? "-" : ""}75%, 10%) rotate(${actual % 2 ? -14 : 14}deg) scale(.55)`, opacity: .0 }], { duration: 550, easing: EASE, fill: "forwards" });
+          }
+          const c = cartas[actual];
+          c.classList.add("vista"); c.style.zIndex = 10 + actual; vibrar(20);
+          const r = c.getBoundingClientRect(), s = x.stage.getBoundingClientRect();
+          k.chispas(r.left - s.left + r.width / 2, r.top - s.top + r.height / 2, actual === 2 ? ["#fff", "#ffd1f2", "#c9f3ff", "#fff3b0", "#e7d1ff"] : ["#fff", "#e7d1ff"], actual === 2 ? 40 : 14, actual === 2 ? 1.8 : .8);
+          actual++;
+          if (actual === 3) { k.paso(2, "¡Su carta! Inclina el teléfono y tócala para entrar"); holo(c); }
+          else k.paso(1, `Toca para ver la siguiente · ${actual + 1} de 3`);
+        }
+        function holo(c) {
+          const brillo = e => {
+            const r = c.getBoundingClientRect();
+            const px = e.gamma != null ? limitar((e.gamma + 30) / 60, 0, 1) : limitar((e.clientX - r.left) / r.width, 0, 1);
+            const py = e.beta != null ? limitar((e.beta - 20) / 50, 0, 1) : limitar((e.clientY - r.top) / r.height, 0, 1);
+            c.style.setProperty("--hx", px * 100 + "%"); c.style.setProperty("--hy", py * 100 + "%");
+            c.style.setProperty("--rx", ((py - .5) * -16) + "deg"); c.style.setProperty("--ry", ((px - .5) * 18) + "deg");
+          };
+          x.stage.addEventListener("pointermove", brillo);
+          window.addEventListener("deviceorientation", brillo);
+          k.limpiar = () => { x.stage.removeEventListener("pointermove", brillo); window.removeEventListener("deviceorientation", brillo); };
+        }
+        function entrar() {
+          fase = 3; k.limpiar && k.limpiar(); vibrar([30, 30, 90]);
+          const c = cartas[2];
+          c.animate([{ transform: getComputedStyle(c).transform, opacity: 1 }, { transform: "translateY(-4%) scale(2.6)", opacity: 0 }], { duration: 900, easing: "cubic-bezier(.5,0,.7,.4)", fill: "forwards" });
+          k.capa.querySelectorAll(".ix-carta").forEach(o => o !== c && o.animate([{ opacity: getComputedStyle(o).opacity }, { opacity: 0 }], { duration: 300, fill: "forwards" }));
+          k.luego(() => k.cerrar({ yaAbierto: true, sinTarjeta: true }), 350);
+        }
+        k.saltar = () => { fase = 3; quitar && quitar(); k.limpiar && k.limpiar(); k.capa.querySelectorAll(".ix-mazo").forEach(n => n.remove()); k.cerrar({ yaAbierto: true, sinTarjeta: true }); };
+        return { avanzar: () => (fase === 0 ? rasgar() : fase === 2 ? voltear() : null), parar: () => { k.parar(); quitar && quitar(); k.limpiar && k.limpiar(); } };
+      },
+    },
+
+    // 4) El Ritual: mantener presionado el sello, deslizar la foto hacia arriba y raspar la fecha.
+    ritual: {
+      invita: "Mantén presionado el sello para romperlo",
+      jugar(x) {
+        const k = kit(x, 3);
+        let fase = 0, carga = 0, presionando = false, raf = 0, quitar = null;
+        const p = () => x.punto(.5, .5);
+        const R = 15.9;
+        const anillo = el("button", { class: "ix-anillo", type: "button", "aria-label": "Mantener presionado el sello" });
+        anillo.innerHTML = `<svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="${R}" class="base"/><circle cx="18" cy="18" r="${R}" class="carga" stroke-dasharray="${2 * Math.PI * R}" stroke-dashoffset="${2 * Math.PI * R}"/></svg>`;
+        const arco = anillo.querySelector(".carga");
+        const ubicar = () => { const q = p(); anillo.style.left = q.x + "px"; anillo.style.top = q.y + "px"; };
+        k.ubicar = ubicar; ubicar(); k.capa.append(anillo);
+        k.paso(0, "Mantén presionado el sello para romperlo");
+        const DUR = 1300;
+        let t0 = 0;
+        function bucle(t) {
+          if (fase !== 0) return;
+          const dt = t - (t0 || t); t0 = t;
+          carga = limitar(carga + (presionando ? dt / DUR : -dt / 500), 0, 1);
+          arco.setAttribute("stroke-dashoffset", String(2 * Math.PI * R * (1 - carga)));
+          const f = carga * 1.1;
+          x.cam.style.translate = presionando ? `${(Math.random() - .5) * f}cqw ${(Math.random() - .5) * f}cqw` : "";
+          anillo.style.setProperty("--brillo", carga);
+          if (presionando && Math.random() < carga * .5) { const q = p(); k.chispas(q.x, q.y, ["#c9a646", "#ffe6a0", "#b3202a"], 2, .5); }
+          if (carga >= 1) return romper();
+          raf = requestAnimationFrame(bucle);
+        }
+        const empezar = e => { e.preventDefault(); e.stopPropagation(); presionando = true; vibrar(15); };
+        const soltar = () => { presionando = false; };
+        anillo.addEventListener("pointerdown", empezar);
+        ["pointerup", "pointerleave", "pointercancel"].forEach(ev => anillo.addEventListener(ev, soltar));
+        anillo.addEventListener("contextmenu", e => e.preventDefault());
+        raf = requestAnimationFrame(bucle);
+
+        // La foto de los novios, lista para salir del sobre
+        const foto = el("div", { class: "ix-foto" }, [el("div", { class: "ix-foto-img", style: `background-image:url("${x.foto}")` })]);
+        const placa = el("div", { class: "ix-placa" }, [el("span", { class: "ix-placa-txt", style: x.tituloCSS, text: shortDate(x.fecha) }), el("small", { text: longDate(x.fecha) })]);
+        const lienzo = el("canvas", { class: "ix-raspa", "aria-hidden": "true" });
+        placa.append(lienzo);
+        const nombres = el("p", { class: "ix-nombres", style: x.tituloCSS, text: `${x.n1} & ${x.n2}` });
+        const flecha = el("div", { class: "ix-flecha", "aria-hidden": "true" }, [el("i"), el("i"), el("i")]);
+
+        function romper() {
+          fase = 1; cancelAnimationFrame(raf); x.cam.style.translate = ""; vibrar([40, 30, 120]);
+          const q = p(); k.destello(q.x, q.y, "#ffd9a0", 80); k.chispas(q.x, q.y, ["#b3202a", "#7d1219", "#c9a646", "#ffe6a0"], 46, 1.8); k.temblor(1.2);
+          anillo.animate([{ opacity: 1 }, { opacity: 0, transform: "translate(-50%,-50%) scale(1.5)" }], { duration: 500, fill: "forwards" }).onfinish = () => anillo.remove();
+          fijar(x.opened, [{ opacity: 0 }, { opacity: 1 }], { duration: 700 });
+          k.luego(() => {
+            // La foto aparece justo donde quedó la tarjeta dentro del sobre
+            const c = x.punto(.5, .38);
+            Object.assign(foto.style, { left: c.x + "px", top: c.y + "px", width: 360 * c.k + "px" });
+            k.capa.append(foto, flecha);
+            fijar(foto, [{ opacity: 0, transform: "translate(-50%,-50%) scale(.9)" }, { opacity: 1, transform: "translate(-50%,-50%) scale(1)" }], { duration: 600, easing: EASE });
+            fase = 2; k.paso(1, "Desliza hacia arriba para sacar la foto");
+            quitar = arrastre(x.stage, "y", () => x.stage.clientHeight * .2, t => {
+              foto.style.transform = `translate(-50%, calc(-50% - ${t * 12}cqw)) scale(${1 + t * .25})`; flecha.style.opacity = String(1 - t);
+            }, t => { if (t >= .5) elevar(); else { foto.style.transition = "transform .3s"; foto.style.transform = "translate(-50%,-50%)"; flecha.style.opacity = "1"; setTimeout(() => (foto.style.transition = ""), 320); } });
+          }, 650);
+        }
+        function elevar() {
+          if (fase !== 2) return;
+          fase = 3; quitar && quitar(); flecha.remove(); vibrar(30);
+          const H = x.stage.clientHeight;
+          k.capa.classList.add("velo");
+          foto.style.transition = ""; const top = parseFloat(foto.style.top);
+          fijar(foto, [{ transform: getComputedStyle(foto).transform, top: top + "px" }, { transform: "translate(-50%,-50%) scale(1.45) rotate(-2deg)", top: H * .36 + "px" }], { duration: 900, easing: EASE });
+          k.luego(() => {
+            placa.style.top = H * .68 + "px"; k.capa.append(placa);
+            placa.animate([{ opacity: 0, transform: "translate(-50%,20%)" }, { opacity: 1, transform: "translate(-50%,0)" }], { duration: 500, easing: EASE, fill: "forwards" });
+            prepararRaspa(); fase = 4; k.paso(2, "Raspa con el dedo para descubrir la fecha");
+          }, 800);
+        }
+        function prepararRaspa() {
+          const r = placa.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+          lienzo.width = r.width * dpr; lienzo.height = r.height * dpr;
+          const c = lienzo.getContext("2d"); c.scale(dpr, dpr);
+          const g = c.createLinearGradient(0, 0, r.width, r.height);
+          g.addColorStop(0, "#8c6a22"); g.addColorStop(.3, "#f3d27a"); g.addColorStop(.55, "#b8913a"); g.addColorStop(.8, "#f7e2a1"); g.addColorStop(1, "#9a7428");
+          c.fillStyle = g; c.fillRect(0, 0, r.width, r.height);
+          for (let i = 0; i < 260; i++) { c.fillStyle = `rgba(255,255,255,${Math.random() * .25})`; c.fillRect(Math.random() * r.width, Math.random() * r.height, 1.2, 1.2); }
+          c.fillStyle = "rgba(60,40,10,.75)"; c.font = `600 ${r.height * .26}px 'Cormorant Garamond', serif`; c.textAlign = "center"; c.textBaseline = "middle";
+          c.fillText("✦  Raspa aquí  ✦", r.width / 2, r.height / 2);
+          c.globalCompositeOperation = "destination-out";
+          let pinta = false, n = 0, ultimo = null;
+          const raspar = e => {
+            if (!pinta || fase !== 4) return;
+            const b = lienzo.getBoundingClientRect(), px = e.clientX - b.left, py = e.clientY - b.top;
+            c.lineWidth = b.height * .42; c.lineCap = "round";
+            c.beginPath(); c.moveTo(ultimo ? ultimo.x : px, ultimo ? ultimo.y : py); c.lineTo(px, py); c.stroke(); ultimo = { x: px, y: py };
+            if (Math.random() < .3) { const s = x.stage.getBoundingClientRect(); k.chispas(e.clientX - s.left, e.clientY - s.top, ["#f3d27a", "#fff1c4"], 2, .35); }
+            if (++n % 8 === 0 && limpio() > .5) descubrir();
+          };
+          const limpio = () => {
+            const d = c.getImageData(0, 0, lienzo.width, lienzo.height).data; let v = 0, t = 0;
+            for (let i = 3; i < d.length; i += 64) { t++; if (d[i] < 40) v++; }
+            return v / t;
+          };
+          lienzo.addEventListener("pointerdown", e => { e.stopPropagation(); pinta = true; ultimo = null; try { lienzo.setPointerCapture(e.pointerId); } catch (_) {} raspar(e); });
+          lienzo.addEventListener("pointermove", raspar);
+          ["pointerup", "pointercancel"].forEach(ev => lienzo.addEventListener(ev, () => { pinta = false; ultimo = null; }));
+          lienzo.addEventListener("click", e => e.stopPropagation());
+        }
+        function descubrir() {
+          if (fase !== 4) return;
+          fase = 5; vibrar([30, 40, 100]);
+          lienzo.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: "forwards" });
+          const r = placa.getBoundingClientRect(), s = x.stage.getBoundingClientRect();
+          k.chispas(r.left - s.left + r.width / 2, r.top - s.top + r.height / 2, ["#f3d27a", "#fff1c4", "#ffffff"], 36, 1.4);
+          // Ahora sí: los nombres de los novios
+          nombres.style.top = x.stage.clientHeight * .12 + "px"; k.capa.append(nombres);
+          nombres.animate([{ opacity: 0, filter: "blur(8px)", letterSpacing: ".2em", transform: "translate(-50%,10%)" }, { opacity: 1, filter: "blur(0)", letterSpacing: "0", transform: "translate(-50%,0)" }], { delay: 300, duration: 1300, easing: EASE, fill: "forwards" });
+          k.paso(3, "");
+          k.luego(() => {
+            [foto, placa, nombres].forEach(n2 => n2.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 700, delay: 300, fill: "forwards" }));
+            foto.animate([{ transform: getComputedStyle(foto).transform }, { transform: "translate(-50%,-50%) scale(2.2)" }], { duration: 1000, easing: "cubic-bezier(.5,0,.7,.4)", fill: "forwards" });
+            k.capa.classList.remove("velo");
+            k.cerrar({ yaAbierto: true, sinTarjeta: true });
+          }, 2600);
+        }
+        k.saltar = () => { fase = 9; cancelAnimationFrame(raf); quitar && quitar(); x.cam.style.translate = ""; [anillo, foto, placa, nombres, flecha].forEach(n2 => n2.remove()); k.capa.classList.remove("velo"); k.cerrar({ yaAbierto: true, sinTarjeta: true }); };
+        return {
+          avanzar: () => { if (fase === 0) { carga = 1; presionando = true; } else if (fase === 2) elevar(); else if (fase === 4) descubrir(); },
+          parar: () => { k.parar(); cancelAnimationFrame(raf); quitar && quitar(); },
+        };
+      },
+    },
+  };
+
   // ---------- Construcción ----------
   const timers = new WeakMap();
   function construir(screen, o) {
@@ -383,7 +786,8 @@
     const glow = el("div", { class: "env-glow" });
     const closed = el("img", { class: "env-closed", src: asset(m, "sobre"), alt: "" });
     const opened = el("img", { class: "env-open", src: asset(m, "abierto"), alt: "" });
-    const conVideo = m.video !== false && !reduced && !o.abierta && Boolean(window.LOVE && window.LOVE.api);
+    const IX = m.apertura && !reduced && !o.abierta && INTERACCIONES[m.apertura] ? INTERACCIONES[m.apertura] : null;
+    const conVideo = !IX && m.video !== false && !reduced && !o.abierta && Boolean(window.LOVE && window.LOVE.api);
     const video = conVideo ? el("video", { class: "env-video", muted: "", playsinline: "", "webkit-playsinline": "", preload: "auto", poster: asset(m, "sobre"), "aria-hidden": "true" }) : null;
     const apiVideos = (window.LOVE && window.LOVE.api) || "";
     if (video && apiVideos) { video.muted = true; video.src = m.arte ? `${apiVideos}${m.arte.video}` : `${apiVideos}/love/v/${m.id}.mp4${m.v ? `?v=${m.v}` : ""}`; video.load(); }
@@ -392,14 +796,23 @@
     const flash = el("div", { class: "env-flash" });
     const vign = el("div", { class: "env-vignette" });
     const card = el("div", { class: "env-card", style: `top:${m.cardY * 100}%;color:${m.cardInk};${tituloCSS}` }, [el("span", { class: "c-names", text: `${n1} & ${n2}` }), el("span", { class: "c-date", text: shortDate(fecha) })]);
-    const hint = el("p", { class: "env-hint", text: "Toca el sobre para abrir" });
+    const hint = el("p", { class: "env-hint", text: IX ? IX.invita : "Toca el sobre para abrir" });
     const para = o.invitado ? el("p", { class: "env-para" }, ["Para", el("b", { text: o.invitado.nombre })]) : null;
     const cam = el("div", { class: "env-cam" }, [closed, opened, video, glow, card]);
     const stage = el("div", { class: "inv-env", role: "button", tabindex: "0", "aria-label": `Abrir la invitación${o.invitado ? " de " + o.invitado.nombre : ""}` }, [cam, vign, flash, para, hint]);
     // Respiración del sobre mientras espera (anticipación)
     const respira = reduced ? null : cam.animate([{ transform: "scale(1)" }, { transform: "scale(1.035)" }], { duration: 5200, iterations: Infinity, direction: "alternate", easing: "ease-in-out" });
-    let abierto = false, actualCam = "none";
+    let abierto = false, actualCam = "none", juego = null;
     function abrir() {
+      // Apertura interactiva: el primer toque (o la vista previa) empieza el juego; el juego llama a secuencia al terminar.
+      if (IX) {
+        if (juego) return;
+        juego = IX.jugar({ stage, cam, closed, opened, glow, hint, m, n1, n2, fecha, lugar, tituloCSS, acento: P.acento, invitado: o.invitado,
+          foto: portada || asset(m, "foto"), punto: (fx, fy) => puntoArte(stage, fx, fy),
+          fin: (op = {}) => { if (abierto) return; abierto = true; if (respira) { try { respira.commitStyles(); } catch (e) {} respira.cancel(); actualCam = getComputedStyle(cam).transform; } listoFuentes.then(() => secuencia(op)); } });
+        limpiezas.push(() => juego && juego.parar && juego.parar());
+        return;
+      }
       if (abierto) return; abierto = true;
       if (reduced) { stage.classList.add("done"); hero.style.opacity = "1"; if (o.alAbrir) o.alAbrir(); return; }
       actualCam = respira ? getComputedStyle(cam).transform : "none";
@@ -416,8 +829,27 @@
       }
       listoFuentes.then(secuencia);
     }
-    function secuencia() {
+    function secuencia(op = {}) {
       const opt = (delay, duration, extra = {}) => ({ delay, duration, easing: EASE, fill: "forwards", ...extra });
+      if (op.yaAbierto) {
+        // El juego ya abrió el objeto: se pasa directo a la tarjeta (o a la portada) sin repetir la apertura.
+        const A = op.sinTarjeta ? 500 : 1500;
+        if (op.sinTarjeta) card.style.display = "none";
+        opened.style.opacity = "1";
+        cam.style.transformOrigin = `50% ${m.cardY * 100}%`;
+        const T = A + 1500;
+        cam.animate([{ transform: actualCam === "none" ? "scale(1)" : actualCam, filter: "brightness(1)" }, { transform: "scale(1.08)", offset: A / T * .98 }, { transform: "scale(3.2)", filter: "brightness(1.6) blur(2px)" }], { duration: T, easing: "cubic-bezier(.4,0,.6,1)", fill: "forwards" });
+        if (!op.sinTarjeta) {
+          card.animate([{ opacity: 0, transform: "translate(-50%, -44%)", filter: "blur(6px)", letterSpacing: ".08em" }, { opacity: 1, transform: "translate(-50%, -50%)", filter: "blur(0)", letterSpacing: "0em" }], opt(100, 900));
+          card.animate([{ opacity: 1 }, { opacity: 0 }], { delay: A + 250, duration: 420, easing: "ease-in", fill: "forwards", composite: "replace" });
+        }
+        flash.animate([{ opacity: 0 }, { opacity: .9, offset: .55 }, { opacity: 0 }], { delay: A + 300, duration: 1500, easing: "ease-in-out", fill: "forwards" });
+        stage.animate([{ opacity: 1 }, { opacity: 0 }], { delay: A + 800, duration: 700, easing: "ease-out", fill: "forwards" });
+        hero.animate([{ opacity: 0, transform: "scale(1.14)" }, { opacity: 1, transform: "scale(1)" }], { delay: A + 600, duration: 2200, easing: EASE, fill: "forwards" });
+        setTimeout(() => { const parar = particulas(screen, D.animacion && D.animacion.particulas !== "ninguna" ? D.animacion.particulas : "destellos", P.acento); limpiezas.push(parar); }, A + 600);
+        setTimeout(() => { stage.classList.add("done"); inv.focus && inv.focus({ preventScroll: true }); if (o.alAbrir) o.alAbrir(); }, A + 1600);
+        return;
+      }
       if (para) para.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateY(-4cqw)", filter: "blur(3px)" }], opt(0, 700));
       // Fase 1 · el sobre se abre (video real o fundido de respaldo). A = cuánto dura.
       const usarVideo = video && video.isConnected && (videoListo || video.readyState >= 3);
@@ -451,11 +883,12 @@
       setTimeout(() => { const parar = particulas(screen, D.animacion && D.animacion.particulas, P.acento); limpiezas.push(parar); }, A + 700);
       setTimeout(() => { stage.classList.add("done"); if (video) { video.pause(); video.removeAttribute("src"); video.load(); } inv.focus && inv.focus({ preventScroll: true }); if (o.alAbrir) o.alAbrir(); }, A + 1700);
     }
-    stage.addEventListener("click", abrir);
-    stage.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); } });
+    stage.addEventListener("click", () => { if (!IX || !juego) abrir(); });
+    stage.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (IX && juego) juego.avanzar(); else abrir(); } });
     hero.style.opacity = "0";
     screen.append(inv, stage);
     listoFuentes.then(() => inv.classList.remove("cargando-fuentes"));
+    if (IX) requestAnimationFrame(() => abrir()); // el juego empieza solo: el primer toque ya cuenta
     if (o.autoAbrir) setTimeout(abrir, reduced ? 0 : 1000);
     if (o.abierta) { abierto = true; stage.classList.add("done"); hero.style.opacity = "1"; }
     timers.set(screen, () => limpiezas.forEach(f => f()));
