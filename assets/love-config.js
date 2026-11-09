@@ -4,6 +4,6 @@
 window.LOVE = {
   api: "https://mejorativa-cv-api.miguelcapuro.workers.dev",
   whatsapp: "50763454868",
-  metaPixel: "",
+  metaPixel: "1454856588705415",
   pinterestTag: ""
 };
