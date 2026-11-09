@@ -398,7 +398,7 @@
 .ix { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
 .ix > * { pointer-events: auto; }
 .ix .ix-chispa, .ix .ix-destello, .ix .ix-trozo, .ix .ix-flecha, .ix .ix-linea, .ix .ix-combo, .ix .ix-nombres { pointer-events: none; }
-.ix-pasos { position: absolute; top: 5%; left: 50%; transform: translateX(-50%); display: flex; gap: 2cqw; }
+.ix-pasos { position: absolute; bottom: calc(7% + 14cqw); left: 50%; transform: translateX(-50%); display: flex; gap: 2cqw; }
 .ix-pasos i { width: 2.4cqw; height: 2.4cqw; border-radius: 50%; border: 1px solid rgba(255,255,255,.85); background: transparent; box-shadow: 0 0 6px rgba(0,0,0,.4); transition: background .3s, transform .3s; }
 .ix-pasos i.on { background: rgba(255,255,255,.95); transform: scale(1.25); }
 .ix-pasos i.ok { background: #e0b44a; border-color: #e0b44a; }
@@ -469,3 +469,5 @@
 .ix-raspa { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 2cqw; cursor: crosshair; touch-action: none; }
 .ix-nombres { position: absolute; left: 50%; margin: 0; transform: translateX(-50%); white-space: nowrap; font-size: 12cqw; color: #f3e6d8; opacity: 0; text-shadow: 0 0 18px rgba(255,200,120,.45), 0 2px 10px rgba(0,0,0,.6); }
 @media (prefers-reduced-motion: reduce) { .ix-hot::before, .ix-hot::after, .ix-flecha i, .ix-linea::before, .ix-anillo .base { animation: none; } }
+/* En computadora, la invitación interactiva se ve en columna vertical (el arte es vertical y los juegos dependen de él). */
+@media (min-aspect-ratio: 4/5) { .inv-page .screen.ix-vertical { width: min(100vw, calc(100dvh * 9 / 16)); margin: 0 auto; box-shadow: 0 0 80px rgba(0,0,0,.5); } }

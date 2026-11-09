@@ -538,6 +538,7 @@
     cargarFuentes();
     if (timers.has(screen)) timers.get(screen)();
     screen.textContent = "";
+    screen.classList.toggle("ix-vertical", Boolean(modelById(o.modelo).apertura));
     const base = modelById(o.modelo);
     // Diseño a medida (Premium): el arte propio del pedido reemplaza el del modelo; el diseño y el texto siguen igual.
     const m = o.arte && o.arte.sobre ? { ...base, arte: o.arte, remoto: false, v: undefined, cardY: o.arte.cardY || base.cardY, cardInk: o.arte.cardInk || base.cardInk, video: Boolean(o.arte.video) } : base;
