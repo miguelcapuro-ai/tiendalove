@@ -562,16 +562,34 @@
         <a class="btn gold" href="https://wa.me/${digits(PAGO.whatsapp)}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener"><svg class="ico" aria-hidden="true" style="width:20px;height:20px"><use href="#i-wa"/></svg> Enviar comprobante ${arrow}</a>
         <p class="fine-w">Confirmamos los pagos por Yappy a mano, apenas vemos el comprobante. Desde ahí, su invitación les llega al correo en minutos. Pueden cerrar esta pantalla: igual les llega.</p>
       </section>
+      <details class="promo" id="promoBox"><summary>¿Tienen un código de regalo?</summary>
+        <div class="promo-row"><input id="promoIn" maxlength="40" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Código de regalo" placeholder="Escriban su código"><button class="btn gold" type="button" id="promoBtn">Usar código</button></div>
+        <p class="fine-w" id="promoMsg" aria-live="polite"></p>
+      </details>
       <div id="payStatus"><div class="wait-box"><span class="spinner"></span><b>Esperando la confirmación de su pago</b></div></div>
       <p class="fine-w">Al pagar aceptan las <a href="aviso/#condiciones" target="_blank" rel="noopener">condiciones</a>. No hay devoluciones.</p>
     ` }), el("button", { class: "link", type: "button", text: "Empezar otro pedido", onclick: () => { if (confirm("¿Empezar un pedido nuevo? Este seguirá esperando su pago.")) { store.del(PENDIENTE); clearInterval(tPoll); irA(1); } } }));
+    // Código de regalo: el pedido queda pagado sin cobro y Claude empieza a diseñar.
+    $("#promoBtn").addEventListener("click", async () => {
+      const cod = ($("#promoIn").value || "").trim(), m = $("#promoMsg"), btn = $("#promoBtn");
+      if (!cod) { m.textContent = "Escriban su código."; $("#promoIn").focus(); return; }
+      btn.disabled = true; m.textContent = "Revisando su código…";
+      try {
+        const r = await fetch(API + "/love/api/codigo", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: p.id, key: p.key, codigo: cod }) });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.ok) throw new Error(j.mensaje || "No pudimos usar el código. Intenten de nuevo.");
+        ["#ppBox", "#opYappy", ".pay-intro", "#promoBox"].forEach(q => { const n = $(q); if (n) n.hidden = true; });
+        $("#payStatus").innerHTML = '<div class="wait-box"><span class="spinner"></span><b>¡Código aplicado!</b><p>Claude está diseñando su invitación. Toma unos minutos.</p></div>';
+        revisar();
+      } catch (x) { m.textContent = x.message; btn.disabled = false; }
+    });
     clearInterval(tPoll);
     const revisar = async () => {
       try {
         const r = await fetch(`${API}/love/api/estado?id=${encodeURIComponent(p.id)}&key=${encodeURIComponent(p.key)}`);
         if (r.status === 404 || r.status === 410) { clearInterval(tPoll); store.del(PENDIENTE); $("#payStatus").innerHTML = '<div class="wait-box"><b>Este pedido ya no existe.</b><p>Si pagaron, escríbannos por WhatsApp con su código.</p></div>'; return; }
         const j = await r.json();
-        if (j.pagado) ["#ppBox", "#opYappy", ".pay-intro"].forEach(q => { const n = $(q); if (n) n.hidden = true; });
+        if (j.pagado) ["#ppBox", "#opYappy", ".pay-intro", "#promoBox"].forEach(q => { const n = $(q); if (n) n.hidden = true; });
         if (j.listo) {
           clearInterval(tPoll); store.del(PENDIENTE); store.del(STORE);
           $("#payStatus").innerHTML = `<div class="wait-box"><b>¡Su invitación está lista!</b><p>También se la enviamos a su correo.</p><a class="btn gold" href="${esc(p.portal)}">Abrir mi portal ${arrow}</a></div>`;
