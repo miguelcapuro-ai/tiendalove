@@ -655,6 +655,8 @@
 
   // Si vuelven con un pago pendiente, se retoma.
   if (store.get(PENDIENTE) && location.hash === "#pago") abrirPedido();
+  // Desde las páginas por país y por modelo: /#crear abre el pedido.
+  if (location.hash === "#crear") setTimeout(() => { history.replaceState(null, "", location.pathname); abrirPedido(1); }, 300);
   // Enlaces directos a un modelo (Pinterest, redes): /#modelo=galaxia abre su vista previa.
   const mModelo = location.hash.match(/^#modelo=([a-z-]{3,20})$/);
   if (mModelo && MODELS.some(m => m.id === mModelo[1])) setTimeout(() => abrirVista(mModelo[1]), 300);

@@ -1,0 +1,13 @@
+/* Páginas por país y por modelo (generadas con scripts/generar_paginas.py) */
+.landing .lead{font-size:clamp(1.1rem,2vw,1.3rem);max-width:60ch;margin-top:14px;color:var(--text)}
+.landing .cta-row{display:flex;gap:10px;flex-wrap:wrap;margin:24px 0 8px}
+.landing .body h3{margin-top:10px;font-size:1.05rem}
+.landing .label a{color:inherit}
+.landing .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin:6px 0}
+.landing .mcard{display:grid;gap:4px;text-decoration:none;color:inherit}
+.landing .mcard img,.landing .mcard .ph{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:14px;background:#EEF1F5}
+.landing .mcard .ph{display:grid;place-items:center;font-size:2.4rem;color:#9AA6B6}
+.landing .mcard small{color:var(--muted)}
+.landing .mcard:hover b{text-decoration:underline}
+.landing .fotos{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,320px));gap:14px;margin-top:24px}
+.landing .fotos img{width:100%;height:auto;border-radius:16px;box-shadow:0 10px 30px rgba(11,31,58,.12)}

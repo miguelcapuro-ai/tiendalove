@@ -19,6 +19,11 @@
 
 ## Páginas
 - [Tienda y pedidos](https://tiendalove.mejorativa.com/): modelos, planes, preguntas frecuentes y formulario de pedido.
+- [Catálogo de los 21 modelos](https://tiendalove.mejorativa.com/modelos/): cada modelo tiene su propia página con fotos, precio y plan.
+- [Invitaciones de boda digitales en México](https://tiendalove.mejorativa.com/mexico/)
+- [Invitaciones de boda digitales en español en Estados Unidos](https://tiendalove.mejorativa.com/estados-unidos/)
+- [Invitaciones de boda online en España](https://tiendalove.mejorativa.com/espana/)
+- [Invitaciones de boda digitales en Panamá](https://tiendalove.mejorativa.com/panama/)
 - [Aviso de uso de información y condiciones](https://tiendalove.mejorativa.com/aviso/)
 - [Mejorativa](https://mejorativa.com/): marca de desarrollo profesional en comunicación, negociación y presentaciones.
 
