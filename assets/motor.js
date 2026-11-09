@@ -83,9 +83,9 @@
   function disenoInicial(m) {
     const f = s => s.replace(/'/g, "").split(",")[0].trim();
     return { modelo: m.id, paleta: { papel: m.paper, tinta: m.ink, acento: m.accent, suave: "" }, tipografia: { titulo: f(m.title), cuerpo: f(m.body) },
-      textos: { encabezado: m.layout === "galeria" ? "Nos casamos" : "Nuestra boda", intro: "Queremos compartir con ustedes el día más importante de nuestra historia.",
+      textos: { encabezado: m.layout === "galeria" ? "Nos casamos" : "Nuestra boda", intro: "Nos casamos y queremos que estén ahí, cerca de nosotros.",
         titulo_cuenta: "Falta poco", titulo_programa: "El programa", titulo_lugar: "Dónde", titulo_rsvp: "¿Nos acompañan?",
-        mensaje_rsvp: "Confirmen su asistencia para guardarles su lugar.", boton_rsvp: "Confirmar asistencia", cierre: "Los esperamos con todo el corazón." },
+        mensaje_rsvp: "Confirmen su asistencia para guardarles su lugar.", boton_rsvp: "Confirmar asistencia", cierre: "Los esperamos. Va a ser una fiesta de las que se cuentan." },
       preguntas: [], secciones: ["cuenta", "programa", "fotos", "lugar", "rsvp"], animacion: { duracion_ms: 3000, particulas: "ninguna" } };
   }
 
@@ -551,8 +551,8 @@
     const quince = d.tipo === "quince", std = Boolean(o.std) || T.encabezado === "Reserven la fecha";
     const n1 = d.nombre1 || (quince ? "Valeria" : SAMPLE.nombre1), n2 = quince ? "" : (d.nombre2 || SAMPLE.nombre2);
     if (!(o.diseno && o.diseno.paleta)) {
-      if (quince) Object.assign(T, { encabezado: "Mis XV años", intro: "Quiero compartir con ustedes una noche que soñé por años.", titulo_rsvp: "¿Me acompañan?", cierre: "Los espero con todo el corazón." });
-      if (std) { Object.assign(T, { encabezado: "Reserven la fecha", intro: quince ? "Guarden la fecha: muy pronto les llega la invitación con todos los detalles." : "Nos casamos y queremos que sean parte. Guarden la fecha: muy pronto les llega la invitación con todos los detalles.", cierre: "Pronto, todos los detalles." }); D.secciones = ["cuenta", "lugar"]; }
+      if (quince) Object.assign(T, { encabezado: "Mis XV años", intro: "Cumplo quince años y quiero celebrarlo con ustedes.", titulo_rsvp: "¿Me acompañan?", cierre: "Los espero esa noche. Vengan con ganas de bailar." });
+      if (std) { Object.assign(T, { encabezado: "Reserven la fecha", intro: quince ? "Cumplo quince años. Guarden la fecha: la invitación con todos los detalles llega pronto." : "Nos casamos. Guarden la fecha: la invitación con todos los detalles llega pronto.", cierre: "Pronto, todos los detalles." }); D.secciones = ["cuenta", "lugar"]; }
     }
     const pareja = n2 ? `${n1} & ${n2}` : n1;
     const frase = muestra ? SAMPLE.frase : (d.frase || "");
