@@ -545,6 +545,8 @@
     $("#wNav").hidden = true; $(".w-side").hidden = true; $("#humanoPedido").hidden = true; err.textContent = "";
     $("#wCount").textContent = `Pedido ${p.codigo}`; $("#wTitle").textContent = "Último paso: el pago."; $("#wSub").textContent = `Plan ${p.plan} para ${p.nombres}.`;
     $$("#progress i").forEach(b => b.classList.add("on"));
+    // Yappy solo para quien entra desde Panamá (país que detecta Cloudflare). Afuera, solo tarjeta o PayPal.
+    const soloPayPal = !!(PAGO.paypal && PAGO.paypal.clientId && PAGO.pais && PAGO.pais !== "PA");
     const msg = `Hola, Miguel. Somos ${p.nombres} y ya pagamos nuestra invitación de Mejorativa Love. Pedido ${p.codigo} por ${money(p.monto)}. Aquí va el comprobante de Yappy.`;
     form.textContent = "";
     form.append(el("div", { class: "pay", html: `
@@ -576,6 +578,7 @@
       <div id="payStatus"><div class="wait-box"><span class="spinner"></span><b>Esperando la confirmación de su pago</b></div></div>
       <p class="fine-w">Al pagar aceptan las <a href="aviso/#condiciones" target="_blank" rel="noopener">condiciones</a>. No hay devoluciones.</p>
     ` }), el("button", { class: "link", type: "button", text: "Empezar otro pedido", onclick: () => { if (confirm("¿Empezar un pedido nuevo? Este seguirá esperando su pago.")) { store.del(PENDIENTE); clearInterval(tPoll); irA(1); } } }));
+    if (soloPayPal) { const y = $("#opYappy"); if (y) y.remove(); const intro = $(".pay-intro"); if (intro) intro.textContent = "Paguen con tarjeta de débito o crédito, o con PayPal. Se confirma solo y Claude empieza su invitación de inmediato."; }
     // Código de regalo: el pedido queda pagado sin cobro y Claude empieza a diseñar.
     $("#promoBtn").addEventListener("click", async () => {
       const cod = ($("#promoIn").value || "").trim(), m = $("#promoMsg"), btn = $("#promoBtn");
