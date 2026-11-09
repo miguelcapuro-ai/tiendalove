@@ -39,7 +39,7 @@
       return fallo("Este enlace no está completo", "Ábranlo desde el correo que les enviamos, o entren con su código de pedido.", true);
     }
     try { P = await api("/love/api/portal"); recordar(); pintar(); seguridad(); }
-    catch (e) { fallo(e.status === 410 ? "Esta invitación ya cumplió su tiempo" : "No pudimos abrir su portal", e.message, e.status !== 410); }
+    catch (e) { if ([403, 404, 410].includes(e.status)) olvidar(); fallo(e.status === 410 ? "Esta invitación ya cumplió su tiempo" : "No pudimos abrir su portal", e.message, e.status !== 410); }
   }
   // Seguridad: cambiar la llave (la vieja deja de servir) o salir de este dispositivo.
   function olvidar() { try { localStorage.removeItem("ml-boda"); sessionStorage.removeItem("ml-tab"); } catch {} }
