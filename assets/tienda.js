@@ -377,6 +377,7 @@
         el("label", { class: "check" }, [el("input", { type: "checkbox", id: "ac-aviso" }), el("span", { text: "Leí y acepto el aviso de uso de información." })]),
         el("label", { class: "check" }, [el("input", { type: "checkbox", id: "ac-fotos" }), el("span", { text: "Tengo permiso para usar las fotos que subí." })]),
         el("label", { class: "check" }, [el("input", { type: "checkbox", id: "ac-reembolso" }), el("span", { text: "Entiendo que no hay devoluciones." })]),
+        el("label", { class: "check opcional" }, [el("input", { type: "checkbox", id: "ac-novedades", checked: data.novedades === true }), el("span", { html: "<i>(Opcional)</i> Quiero recibir por correo novedades, talleres y ofertas de Mejorativa. Puedo darme de baja cuando quiera." })]),
       );
       $("#f-quiereFactura", form).addEventListener("change", e => { data.quiereFactura = e.target.checked; $("#facBlock", form).hidden = !e.target.checked; save(); });
     }
@@ -507,6 +508,7 @@
       if (!$("#ac-fotos").checked) return falla($("#ac-fotos"), "Confirmen que tienen permiso para usar las fotos.");
       if (!$("#ac-reembolso").checked) return falla($("#ac-reembolso"), "Confirmen que entienden que no hay devoluciones.");
       data.aceptaciones = { aviso: true, fotos: true, sinReembolso: true };
+      data.novedades = $("#ac-novedades").checked === true;
       save();
     }
     return true;
@@ -523,11 +525,11 @@
     if (!API) { err.textContent = "La tienda todavía no está conectada. Escríbannos por WhatsApp."; return; }
     if (humano && humano.activo() && !humano.token()) { err.textContent = "Un segundo: confirmen abajo que no son un robot y vuelvan a tocar el botón."; return; }
     btn.disabled = true; btn.innerHTML = fotos.length ? "Subiendo sus fotos…" : "Creando su pedido…";
-    const datos = { ...data }; ["plan", "modelo", "correo", "whatsapp", "factura", "aceptaciones", "quiereFactura"].forEach(k => delete datos[k]);
+    const datos = { ...data }; ["plan", "modelo", "correo", "whatsapp", "factura", "aceptaciones", "quiereFactura", "novedades"].forEach(k => delete datos[k]);
     try {
       const r = await fetch(API + "/love/api/pedido", { method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ plan: data.plan, modelo: data.modelo, correo: data.correo, whatsapp: data.whatsapp, factura: data.quiereFactura ? data.factura : null,
-          aceptaciones: data.aceptaciones, datos, fotos: fotos.map(f => f.b64), portada, turnstile: humano ? humano.token() : null }) });
+          aceptaciones: data.aceptaciones, novedades: data.novedades === true, datos, fotos: fotos.map(f => f.b64), portada, turnstile: humano ? humano.token() : null }) });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j.ok) throw new Error(j.mensaje || "No pudimos crear su pedido. Revisen su conexión e intenten de nuevo.");
       const pend = { id: j.id, key: j.key, codigo: j.codigo, monto: j.monto, yappy: j.yappy, portal: j.portal, nombres: `${data.nombre1} y ${data.nombre2}`, plan: planById(data.plan).nombre };

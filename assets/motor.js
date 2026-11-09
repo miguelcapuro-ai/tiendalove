@@ -718,6 +718,16 @@
           d.preguntarAlergias !== false ? el("label", {}, ["Alergias o comida especial", alergias]) : null,
           d.preguntarCancion ? el("label", {}, ["Una canción para la fiesta", cancion]) : null,
         ];
+        // Novedades de Mejorativa: solo si el invitado lo pide y escribe su propio correo. Nunca marcada de fábrica.
+        const correoNov = el("input", { type: "email", name: "correo_novedades", maxlength: "200", autocomplete: "email", placeholder: "su@correo.com" });
+        const cajaCorreo = el("label", { hidden: true }, ["Su correo", correoNov]);
+        const quiere = el("input", { type: "checkbox" });
+        quiere.onchange = () => { cajaCorreo.hidden = !quiere.checked; if (quiere.checked) correoNov.focus(); };
+        const novedades = o.vista ? null : el("div", { class: "inv-nov" }, [el("label", { class: "inv-check" }, [quiere, el("span", { text: "(Opcional) Quiero recibir novedades y ofertas de Mejorativa, la marca que hizo esta invitación." })]), cajaCorreo]);
+        // Captcha: solo en la invitación general (sin enlace personal) y si el servidor lo tiene activo.
+        const cajaHumano = el("div", { class: "inv-humano" });
+        const humano = !o.invitado && o.turnstile && window.Humano ? window.Humano(cajaHumano) : null;
+        if (humano) humano.preparar(o.turnstile);
         const extras = el("details", { class: "inv-extra" }, [el("summary", { text: "Agregar un detalle (opcional)" }), el("div", { style: "display:grid;gap:3.6cqw;margin-top:3.6cqw" }, [...camposSi, el("label", {}, ["Mensaje para los novios", mensaje])])]);
         const enviar = el("button", { class: "inv-btn", type: "submit" });
         const sync = () => {
@@ -734,23 +744,26 @@
         no.onclick = () => { asiste = false; no.setAttribute("aria-pressed", "true"); si.setAttribute("aria-pressed", "false"); sync(); };
         const f = el("form", { class: "inv-rsvp-form", novalidate: true }, [
           nombre ? el("label", {}, ["Su nombre", nombre]) : null,
-          el("div", { class: "inv-sino" }, [si, no]), cupos, extras, err, enviar]);
+          el("div", { class: "inv-sino" }, [si, no]), cupos, extras, novedades, humano ? cajaHumano : null, err, enviar]);
         sync();
         f.addEventListener("submit", async e => {
           e.preventDefault(); err.textContent = "";
           if (asiste === null) { err.textContent = "Toquen «Sí» o «No»."; return; }
           if (nombre && !nombre.value.trim()) { err.textContent = "Escriban su nombre."; nombre.focus(); return; }
           if (o.vista || !o.api) { err.textContent = "Así confirmarán sus invitados. En la vista previa no se guarda."; return; }
+          if (quiere.checked && !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(correoNov.value.trim())) { err.textContent = "Escriban su correo para recibir novedades, o desmarquen la casilla."; correoNov.focus(); return; }
+          if (humano && humano.activo() && !humano.token()) { err.textContent = "Un segundo: confirmen que no son un robot y vuelvan a tocar el botón."; return; }
           const txt = enviar.textContent; enviar.disabled = true; enviar.textContent = "Enviando…";
           try {
             const body = { s: o.slug, g: o.invitado ? o.invitado.id : undefined, asiste, personas: asiste ? personas : 0, nombre: nombre ? nombre.value : undefined,
-              nombres: nombres.value, alergias: alergias.value, mensaje: [mensaje.value, cancion.value ? `Canción: ${cancion.value}` : ""].filter(Boolean).join(" · ") };
+              nombres: nombres.value, alergias: alergias.value, mensaje: [mensaje.value, cancion.value ? `Canción: ${cancion.value}` : ""].filter(Boolean).join(" · "),
+              novedades: quiere.checked, correo_novedades: quiere.checked ? correoNov.value.trim() : undefined, turnstile: humano ? humano.token() : undefined };
             const r = await fetch(o.api + "/love/api/rsvp", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
             const j = await r.json().catch(() => ({}));
             if (!r.ok || !j.ok) throw new Error(j.mensaje || "No se pudo guardar. Intenten de nuevo.");
             if (o.invitado) o.invitado.rsvp = { asiste: asiste ? 1 : 0, personas: asiste ? personas : 0, nombres: nombres.value };
             mostrarOk(j.mensaje, asiste);
-          } catch (x) { err.textContent = x.message; enviar.disabled = false; enviar.textContent = txt; }
+          } catch (x) { err.textContent = x.message; enviar.disabled = false; enviar.textContent = txt; if (humano) humano.reiniciar(); }
         });
         return f;
       }

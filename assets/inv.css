@@ -471,3 +471,9 @@
 @media (prefers-reduced-motion: reduce) { .ix-hot::before, .ix-hot::after, .ix-flecha i, .ix-linea::before, .ix-anillo .base { animation: none; } }
 /* En computadora, la invitación interactiva se ve en columna vertical (el arte es vertical y los juegos dependen de él). */
 @media (min-aspect-ratio: 4/5) { .inv-page .screen.ix-vertical { width: min(100vw, calc(100dvh * 9 / 16)); margin: 0 auto; box-shadow: 0 0 80px rgba(0,0,0,.5); } }
+
+/* Novedades opcionales y captcha en la confirmación */
+.inv-nov { display: grid; gap: 2.4cqw; margin-top: 3.6cqw; text-align: left; }
+.inv-check { display: flex; gap: 2.4cqw; align-items: flex-start; font-size: 3cqw; line-height: 1.4; opacity: .85; }
+.inv-check input { width: auto; margin-top: .6cqw; flex: none; }
+.inv-humano { display: flex; justify-content: center; margin-top: 3cqw; }

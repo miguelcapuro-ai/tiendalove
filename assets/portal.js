@@ -38,8 +38,24 @@
       if (guardada && guardada.h) { location.replace(`#${guardada.h}`); setTimeout(() => location.reload(), 30); return; }
       return fallo("Este enlace no está completo", "Ábranlo desde el correo que les enviamos, o entren con su código de pedido.", true);
     }
-    try { P = await api("/love/api/portal"); recordar(); pintar(); }
+    try { P = await api("/love/api/portal"); recordar(); pintar(); seguridad(); }
     catch (e) { fallo(e.status === 410 ? "Esta invitación ya cumplió su tiempo" : "No pudimos abrir su portal", e.message, e.status !== 410); }
+  }
+  // Seguridad: cambiar la llave (la vieja deja de servir) o salir de este dispositivo.
+  function olvidar() { try { localStorage.removeItem("ml-boda"); sessionStorage.removeItem("ml-tab"); } catch {} }
+  function seguridad() {
+    const caja = $("#pSeguro"); if (!caja) return; caja.hidden = false;
+    $("#pSalir").onclick = () => { olvidar(); history.replaceState(null, "", location.pathname); location.replace("../"); };
+    $("#pCambiar").onclick = async (ev) => {
+      if (!confirm("El enlace actual dejará de funcionar en todos los dispositivos, también en este. El nuevo les llega a su correo. ¿Cambiarlo?")) return;
+      const b = ev.currentTarget; b.disabled = true;
+      try {
+        const j = await api("/love/api/cambiar-enlace", {});
+        olvidar(); history.replaceState(null, "", location.pathname);
+        $("#pCuerpo").textContent = ""; $("#pTabs").hidden = true; caja.hidden = true;
+        $("#pTitulo").textContent = "Enlace cambiado"; $("#pLead").textContent = j.mensaje;
+      } catch (e) { aviso(e.message, true); b.disabled = false; }
+    };
   }
   // Si abren otro enlace de portal en la misma pestaña (otro correo, otra boda), se recarga con esos datos.
   addEventListener("hashchange", () => location.reload());

@@ -174,3 +174,10 @@ select.f-mesa { font: inherit; font-size: 14px; padding: 9px 8px; border: 1px so
 @media (max-width: 560px) {
   .mz-inv { grid-template-columns: 1fr; gap: 6px; }
 }
+
+/* Seguridad del portal */
+.p-seguro { margin-top: 40px; padding: 18px 20px; border: 1px solid rgba(27,42,65,.14); border-radius: 14px; display: grid; gap: 10px; font-size: 15px; }
+.p-seguro b { display: flex; gap: 8px; align-items: center; }
+.p-seguro .ico { width: 18px; height: 18px; }
+.p-seguro .acc { display: flex; flex-wrap: wrap; gap: 10px; }
+.p-seguro button { font: inherit; padding: 8px 14px; border-radius: 999px; border: 1px solid currentColor; background: none; cursor: pointer; }
