@@ -388,3 +388,86 @@
 .inv-extra summary { cursor: pointer; text-align: center; opacity: .8; text-decoration: underline; text-underline-offset: .3em; list-style: none; padding: 1cqw 0; }
 .inv-extra summary::-webkit-details-marker { display: none; }
 .inv-extra[open] summary { opacity: .6; }
+
+/* ---------- Aperturas interactivas (Cofre, Caja, Cartas, Ritual) ---------- */
+.ix-on { user-select: none; -webkit-user-select: none; }
+.ix-on img { -webkit-user-drag: none; user-select: none; }
+.ix-on .env-hint { left: 7%; right: 7%; bottom: 6%; padding: 2.2cqw 4cqw; border-radius: 99px; background: rgba(22,10,34,.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  font: 600 3.9cqw 'Josefin Sans', sans-serif; letter-spacing: .02em; line-height: 1.3; animation: none; z-index: 4; }
+.ix-on .env-hint:empty { display: none; }
+.ix { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
+.ix > * { pointer-events: auto; }
+.ix .ix-chispa, .ix .ix-destello, .ix .ix-trozo, .ix .ix-flecha, .ix .ix-linea, .ix .ix-combo, .ix .ix-nombres { pointer-events: none; }
+.ix-pasos { position: absolute; bottom: calc(7% + 14cqw); left: 50%; transform: translateX(-50%); display: flex; gap: 2cqw; }
+.ix-pasos i { width: 2.4cqw; height: 2.4cqw; border-radius: 50%; border: 1px solid rgba(255,255,255,.85); background: transparent; box-shadow: 0 0 6px rgba(0,0,0,.4); transition: background .3s, transform .3s; }
+.ix-pasos i.on { background: rgba(255,255,255,.95); transform: scale(1.25); }
+.ix-pasos i.ok { background: #e0b44a; border-color: #e0b44a; }
+.ix-saltar { position: absolute; top: 3.6%; right: 4%; padding: 1.4cqw 3cqw; border-radius: 99px; border: 1px solid rgba(255,255,255,.4); background: rgba(0,0,0,.28);
+  color: #fff; font: 600 3cqw 'Josefin Sans', sans-serif; letter-spacing: .06em; backdrop-filter: blur(4px); cursor: pointer; opacity: .8; }
+.ix-chispa { position: absolute; z-index: 5; box-shadow: 0 0 6px currentColor; }
+.ix-destello { position: absolute; z-index: 4; border-radius: 50%; mix-blend-mode: screen; transform: translate(-50%,-50%); }
+/* Punto que se toca (candado y caja) */
+.ix-hot { position: absolute; width: 30cqw; height: 30cqw; transform: translate(-50%,-50%); border-radius: 50%; border: 0; background: transparent; cursor: pointer; padding: 0; -webkit-tap-highlight-color: transparent; }
+.ix-hot::before, .ix-hot::after { content: ""; position: absolute; inset: 18%; border-radius: 50%; border: 2px solid rgba(255,236,170,.9); animation: ixPulso 1.6s ease-out infinite; }
+.ix-hot::after { animation-delay: .8s; }
+.ix-hot-caja { width: 56cqw; height: 56cqw; }
+.ix-hot-caja::before, .ix-hot-caja::after { inset: 22%; border-color: rgba(120,240,255,.9); }
+@keyframes ixPulso { from { transform: scale(.7); opacity: .9; } to { transform: scale(1.35); opacity: 0; } }
+.ix-grietas { position: absolute; inset: 22%; width: 56%; height: 56%; overflow: visible; filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px rgba(255,220,120,.9)); }
+.ix-combo { position: absolute; transform: translate(-50%,0); font: 800 11cqw 'Josefin Sans', sans-serif; color: #fff; opacity: 0; white-space: nowrap;
+  text-shadow: 0 0 12px #3fe0f5, 0 0 24px #ff4fd8, 0 3px 0 #5a1fa8; }
+/* Flecha de deslizar */
+.ix-flecha { position: absolute; left: 50%; bottom: 15%; transform: translateX(-50%); display: grid; justify-items: center; gap: .4cqw; }
+.ix-flecha i { width: 6cqw; height: 6cqw; border-left: 3px solid #fff; border-top: 3px solid #fff; transform: rotate(45deg); opacity: 0; filter: drop-shadow(0 0 4px rgba(0,0,0,.6)); animation: ixSube 1.5s ease-in-out infinite; }
+.ix-flecha i:nth-child(2) { animation-delay: .2s; } .ix-flecha i:nth-child(3) { animation-delay: .4s; }
+@keyframes ixSube { 0% { opacity: 0; translate: 0 3cqw; } 40% { opacity: 1; } 100% { opacity: 0; translate: 0 -3cqw; } }
+/* Línea para rasgar el sobre */
+.ix-linea { position: absolute; height: 0; border-top: 3px dashed #fff; filter: drop-shadow(0 0 2px #8a3fc0) drop-shadow(0 0 6px #c46fff); animation: ixLinea 1.2s ease-in-out infinite; }
+@keyframes ixLinea { 50% { opacity: .55; } }
+.ix-linea::before { content: "✂"; position: absolute; left: -4.5cqw; top: -3.2cqw; font-size: 5cqw; color: #fff; text-shadow: 0 0 3px #6b2a99, 0 0 8px #b77ad6; animation: ixTijera 1.4s ease-in-out infinite; }
+@keyframes ixTijera { 50% { translate: 3cqw 0; } }
+.ix-linea span { position: absolute; left: 0; top: -2px; height: 3px; width: 0; background: linear-gradient(90deg, #fff, #ffd1f2, #c9f3ff, #fff); box-shadow: 0 0 10px #fff, 0 0 18px #e7d1ff; }
+.ix-trozo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2; }
+/* Cartas */
+.ix-mazo { position: absolute; left: 50%; top: 24%; width: 40cqw; aspect-ratio: 5 / 7.3; transform: translate(-50%,-50%); perspective: 900px; }
+.ix-carta { position: absolute; inset: 0; z-index: calc(5 - var(--i)); rotate: calc(var(--i) * 3.5deg); translate: calc(var(--i) * 1.5cqw) calc(var(--i) * -1cqw); cursor: pointer; transition: transform .2s; transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); }
+.ix-carta-in { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .7s cubic-bezier(.22,1,.36,1); }
+.ix-carta { transition: transform .2s, translate .7s cubic-bezier(.22,1,.36,1), scale .7s cubic-bezier(.22,1,.36,1), rotate .5s; }
+.ix-carta.vista { rotate: 0deg; translate: 0 62%; scale: 1.42; }
+.ix-carta.vista .ix-carta-in { transform: rotateY(180deg); }
+.ix-dorso, .ix-cara { position: absolute; inset: 0; border-radius: 3.4cqw; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden; box-shadow: 0 10px 30px -10px rgba(60,20,90,.6); }
+.ix-dorso { display: grid; place-items: center; border: 1.2cqw solid #fff; background: conic-gradient(from 30deg, #f6c7e6, #c9b8ff, #b8ecff, #fff1b8, #f6c7e6); }
+.ix-dorso span { width: 14cqw; height: 14cqw; border-radius: 50%; display: grid; place-items: center; background: #fff; color: #b77ad6; font-size: 8cqw; box-shadow: 0 0 0 1.2cqw rgba(255,255,255,.5); }
+.ix-cara { transform: rotateY(180deg); background: #fffaff; border: 1.2cqw solid #fff; display: grid; align-content: center; justify-items: center; gap: 1.8cqw; padding: 4cqw 3cqw; color: #3b2a4a; text-align: center; }
+.ix-cara small { font: 600 2cqw 'Josefin Sans', sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #9a6bc0; }
+.ix-cara b { font-size: 6.4cqw; line-height: 1.05; font-weight: 500; }
+.ix-cara span { font-size: 3cqw; font-style: italic; }
+.ix-carta.holo .ix-cara { padding: 2.2cqw 2.2cqw 3cqw; align-content: start; background: linear-gradient(135deg, #fff6fd, #f1ecff); }
+.ix-holo-foto { width: 100%; aspect-ratio: 4 / 4.2; border-radius: 2cqw; background-size: cover; background-position: 50% 30%; box-shadow: inset 0 0 0 1px rgba(183,122,214,.4); }
+.ix-carta.holo .ix-cara::after { content: ""; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: color-dodge; opacity: .55;
+  background: radial-gradient(circle at var(--hx, 50%) var(--hy, 30%), rgba(255,255,255,.9), transparent 38%),
+    linear-gradient(115deg, transparent 20%, #ff9ee6 35%, #9ef0ff 50%, #fff59e 62%, #c79eff 75%, transparent 90%);
+  background-size: 100% 100%, 250% 250%; animation: ixHolo 3s ease-in-out infinite alternate; }
+@keyframes ixHolo { from { background-position: center, 0% 0%; } to { background-position: center, 100% 100%; } }
+/* El Ritual */
+.ix-anillo { position: absolute; width: 40cqw; height: 40cqw; transform: translate(-50%,-50%); border: 0; padding: 0; border-radius: 50%; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  background: radial-gradient(circle, rgba(255,190,120,calc(var(--brillo, 0) * .55)) 0%, transparent 62%); -webkit-touch-callout: none; user-select: none; }
+.ix-anillo svg { width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+.ix-anillo circle { fill: none; stroke-width: 1.4; }
+.ix-anillo .base { stroke: rgba(255,236,190,.45); stroke-dasharray: 1.6 1.4; animation: ixGira 8s linear infinite; transform-origin: center; }
+.ix-anillo .carga { stroke: #f3d27a; stroke-linecap: round; filter: drop-shadow(0 0 2px #ffcf6b); }
+@keyframes ixGira { to { transform: rotate(360deg); } }
+.ix.velo::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, rgba(0,0,0,.25), rgba(0,0,0,.78)); animation: ixVelo .8s ease forwards; pointer-events: none; }
+@keyframes ixVelo { from { opacity: 0; } }
+.ix-foto { position: absolute; transform: translate(-50%,-50%); aspect-ratio: 3 / 4; padding: 2.2cqw; background: linear-gradient(135deg, #fff8e8, #f1e2c2); border-radius: 1cqw;
+  box-shadow: 0 0 0 1px #c9a646, 0 16px 40px -10px rgba(0,0,0,.8), 0 0 30px rgba(255,200,120,.25); touch-action: none; }
+.ix-foto-img { width: 100%; height: 100%; background-size: cover; background-position: 50% 35%; border-radius: .6cqw; }
+.ix-placa { position: absolute; left: 50%; width: 70cqw; height: 22cqw; transform: translateX(-50%); display: grid; place-content: center; gap: 1cqw; text-align: center; color: #f3e6d8;
+  border: 1px solid #c9a646; border-radius: 2cqw; background: rgba(18,12,12,.75); box-shadow: inset 0 0 0 1.2cqw rgba(18,12,12,.9), inset 0 0 0 calc(1.2cqw + 1px) rgba(201,166,70,.5); touch-action: none; }
+.ix-placa-txt { font-size: 9cqw; line-height: 1; color: #f3d27a; }
+.ix-placa small { font: 500 3.2cqw 'Cormorant Garamond', serif; letter-spacing: .08em; text-transform: capitalize; }
+.ix-raspa { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 2cqw; cursor: crosshair; touch-action: none; }
+.ix-nombres { position: absolute; left: 50%; margin: 0; transform: translateX(-50%); white-space: nowrap; font-size: 12cqw; color: #f3e6d8; opacity: 0; text-shadow: 0 0 18px rgba(255,200,120,.45), 0 2px 10px rgba(0,0,0,.6); }
+@media (prefers-reduced-motion: reduce) { .ix-hot::before, .ix-hot::after, .ix-flecha i, .ix-linea::before, .ix-anillo .base { animation: none; } }
+/* En computadora, la invitación interactiva se ve en columna vertical (el arte es vertical y los juegos dependen de él). */
+@media (min-aspect-ratio: 4/5) { .inv-page .screen.ix-vertical { width: min(100vw, calc(100dvh * 9 / 16)); margin: 0 auto; box-shadow: 0 0 80px rgba(0,0,0,.5); } }

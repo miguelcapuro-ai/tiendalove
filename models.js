@@ -1,4 +1,4 @@
-// Catálogo de los 17 modelos. Cada uno tiene su arte propio (sobre cerrado, sobre abierto y portada,
+// Catálogo de los 21 modelos. Cada uno tiene su arte propio (sobre cerrado, sobre abierto y portada,
 // generados con IA en assets/modelos/<id>/) y su propia composición (layout).
 // cardY: altura (0–1) de la tarjeta dentro de abierto.webp, donde aparecen los nombres al abrir.
 // heroY: altura (0–1) del bloque de texto sobre la portada.
@@ -87,5 +87,26 @@ window.MODELOS = [
     blurb: "Pergamino, velas y un sello de lacre con un dragón y dos anillos. Una boda de leyenda.",
     cardY: .42, cardInk: "#4a2c16", heroY: .42, heroInk: "#3a2414",
     title: "'Cinzel', serif", body: "'Cormorant Garamond', serif",
-    paper: "#1b1512", ink: "#f1e6d2", accent: "#c9a646" }
+    paper: "#1b1512", ink: "#f1e6d2", accent: "#c9a646" },
+  // Interactivos: el invitado juega para abrir su invitación (apertura: cofre, caja, cartas, ritual).
+  { id: "cofre-legendario", plan: "clasico", remoto: true, video: false, apertura: "cofre", name: "Cofre Legendario", family: "Interactivo", layout: "deco", kicker: "Botín legendario desbloqueado",
+    blurb: "Un cofre del tesoro con candado de corazón. El invitado rompe el candado a toques y desliza para abrirlo.",
+    cardY: .26, cardInk: "#5a3d12", heroY: .46, heroInk: "#f6e7c1",
+    title: "'Cinzel', serif", body: "'Cormorant Garamond', serif",
+    paper: "#120e24", ink: "#f3e6c4", accent: "#e0b44a" },
+  { id: "caja-estelar", plan: "clasico", remoto: true, video: false, apertura: "caja", name: "Caja Estelar", family: "Interactivo", layout: "noche", kicker: "¡Sorpresa desbloqueada!",
+    blurb: "Una caja de cristal que salta con cada toque. Al tercero estalla en confeti y aparece su boda.",
+    cardY: .38, cardInk: "#3a1466", heroY: .45, heroInk: "#ffffff",
+    title: "'Fraunces', serif", body: "'Josefin Sans', sans-serif",
+    paper: "#1a0b33", ink: "#f6efff", accent: "#3fe0f5" },
+  { id: "sobre-coleccionable", plan: "clasico", remoto: true, video: false, apertura: "cartas", name: "Sobre Coleccionable", family: "Interactivo", layout: "arco", kicker: "Edición única",
+    blurb: "Un sobre holográfico de cartas. Se rasga con el dedo y se voltean las cartas hasta la de los novios.",
+    cardY: .24, cardInk: "#3b2a4a", heroY: .45, heroInk: "#3b2a4a",
+    title: "'Playfair Display', serif", italic: true, body: "'Cormorant Garamond', serif",
+    paper: "#fbf6fb", ink: "#3b2a4a", accent: "#b77ad6" },
+  { id: "el-ritual", plan: "clasico", remoto: true, video: false, apertura: "ritual", name: "El Ritual", family: "Interactivo", layout: "real", kicker: "Nuestra boda",
+    blurb: "Tres gestos: romper el sello de lacre, sacar la foto de los novios y raspar la fecha. El más emocionante.",
+    cardY: .38, cardInk: "#4a2c16", heroY: .45, heroInk: "#f3e6d8",
+    title: "'Pinyon Script', cursive", body: "'Cormorant Garamond', serif",
+    paper: "#120c0c", ink: "#f3e6d8", accent: "#c9a646" }
 ];
