@@ -469,9 +469,9 @@
           const H = x.stage.clientHeight;
           k.capa.classList.add("velo");
           foto.style.transition = ""; const top = parseFloat(foto.style.top);
-          fijar(foto, [{ transform: getComputedStyle(foto).transform, top: top + "px" }, { transform: "translate(-50%,-50%) scale(1.45) rotate(-2deg)", top: H * .36 + "px" }], { duration: 900, easing: EASE });
+          fijar(foto, [{ transform: getComputedStyle(foto).transform, top: top + "px" }, { transform: "translate(-50%,-50%) scale(1.15) rotate(-2deg)", top: H * .33 + "px" }], { duration: 900, easing: EASE });
           k.luego(() => {
-            placa.style.top = H * .68 + "px"; k.capa.append(placa);
+            placa.style.top = H * .7 + "px"; k.capa.append(placa);
             placa.animate([{ opacity: 0, transform: "translate(-50%,20%)" }, { opacity: 1, transform: "translate(-50%,0)" }], { duration: 500, easing: EASE, fill: "forwards" });
             prepararRaspa(); fase = 4; k.paso(2, "Raspa con el dedo para descubrir la fecha");
           }, 800);
@@ -513,7 +513,7 @@
           const r = placa.getBoundingClientRect(), s = x.stage.getBoundingClientRect();
           k.chispas(r.left - s.left + r.width / 2, r.top - s.top + r.height / 2, ["#f3d27a", "#fff1c4", "#ffffff"], 36, 1.4);
           // Ahora sí: los nombres de los novios
-          nombres.style.top = x.stage.clientHeight * .12 + "px"; k.capa.append(nombres);
+          nombres.style.top = x.stage.clientHeight * .585 + "px"; k.capa.append(nombres);
           nombres.animate([{ opacity: 0, filter: "blur(8px)", letterSpacing: ".2em", transform: "translate(-50%,10%)" }, { opacity: 1, filter: "blur(0)", letterSpacing: "0", transform: "translate(-50%,0)" }], { delay: 300, duration: 1300, easing: EASE, fill: "forwards" });
           k.paso(3, "");
           k.luego(() => {
