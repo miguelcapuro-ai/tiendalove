@@ -529,3 +529,9 @@
 @keyframes tlHumo { from { transform: translateX(-5%) scaleY(1); } to { transform: translateX(5%) scaleY(1.08); } }
 .env-cam.tl-oscuro .tl-humo { opacity: .25; }
 @media (prefers-reduced-motion: reduce) { .tl-humo { animation: none; } }
+.tl-meta { position: absolute; width: 30cqw; height: 30cqw; transform: translate(-50%,-50%); border-radius: 50%; pointer-events: none;
+  border: 1.5px dashed rgba(255,226,160,.75); box-shadow: 0 0 18px rgba(255,210,140,.25), inset 0 0 18px rgba(255,210,140,.18); animation: tlMeta 1.8s ease-in-out infinite; }
+@keyframes tlMeta { 0%,100% { scale: 1; opacity: .55; } 50% { scale: 1.12; opacity: 1; } }
+.tl-charco { position: absolute; z-index: 1; width: 46cqw; height: 9cqw; transform: translate(-50%,-50%); border-radius: 50%; pointer-events: none; opacity: 0; mix-blend-mode: screen;
+  background: radial-gradient(ellipse at center, rgba(255,246,226,.9) 0%, rgba(255,236,200,.35) 45%, transparent 72%); }
+@media (prefers-reduced-motion: reduce) { .tl-meta { animation: none; } }

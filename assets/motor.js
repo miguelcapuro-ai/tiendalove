@@ -562,7 +562,7 @@
     telon: {
       invita: "Toca el telón para abrirlo",
       jugar(x) {
-        const k = kit(x, 1);
+        const k = kit(x, 2);
         let fase = 0, quitar = null;
         // El sobre cerrado se parte en dos mitades de telón que se recogen hacia los lados.
         const mitad = lado => {
@@ -643,41 +643,96 @@
           // Las telas se ondulan al recogerse
           [izq, der].forEach(m2 => m2.firstChild.animate([{ transform: "skewY(0)" }, { transform: `skewY(${m2 === izq ? 1.2 : -1.2}deg)`, offset: .4 }, { transform: "skewY(0)" }], { duration: dur, easing: "ease-in-out" }));
           k.luego(() => { izq.style.opacity = "0"; der.style.opacity = "0"; }, dur);
-          // El foco: se enciende con parpadeos, barre el escenario y cae sobre la pareja
-          const A = dur * .55, BARRE = 1900, CAE = A + 500 + BARRE;
+          // El foco se enciende con parpadeos, pero apunta a otro lado: el invitado lo lleva hasta la pareja
+          const A = dur * .55;
           k.luego(() => {
             cono.dataset.anim = "1";
+            cono.style.transform = `translateX(-50%) rotate(${haz.ang + 32}deg)`;
             cono.animate([{ opacity: 0 }, { opacity: .9, offset: .1 }, { opacity: 0, offset: .2 }, { opacity: .75, offset: .32 }, { opacity: .1, offset: .42 }, { opacity: 1, offset: .6 }, { opacity: .95 }], { duration: 900, fill: "forwards" });
-            fijar(cono, [{ transform: `translateX(-50%) rotate(${haz.ang + 30}deg)` }, { transform: `translateX(-50%) rotate(${haz.ang - 4}deg)`, offset: .8 }, { transform: `translateX(-50%) rotate(${haz.ang}deg)` }],
-              { delay: 500, duration: BARRE, easing: "cubic-bezier(.45,.05,.3,1)" });
           }, A);
-          // Cae sobre ellos: se encienden las luces del escenario y la cámara se acerca despacio
-          k.luego(() => {
-            vibrar(25);
-            x.cam.classList.remove("tl-oscuro");
-            fijar(luz, [{ opacity: 0 }, { opacity: 1 }], { duration: 1400, easing: "ease-out" });
-            cono.animate([{ opacity: .95 }, { opacity: 0 }], { duration: 1800, easing: "ease-in", fill: "forwards" });
-            k.destello(haz.T.x, haz.T.y, "#fff3d6", 60);
-            const t0 = performance.now();
-            (function sube(t) { foco = limitar((t - t0) / 900, 0, 1); if (foco < 1 && vivo) requestAnimationFrame(sube); })(t0);
-            const oT = `${(haz.T.x / x.stage.clientWidth) * 100}% ${(haz.T.y / x.stage.clientHeight) * 100}%`;
-            x.cam.style.transformOrigin = oT;
-            x.cam.animate([{ scale: "1" }, { scale: "1.12" }], { duration: 7000, easing: "cubic-bezier(.3,0,.4,1)", fill: "forwards" });
-            if (escena.caja) escena.caja.animate([{ scale: "1" }, { scale: "1.035" }], { duration: 7000, easing: "cubic-bezier(.3,0,.4,1)", fill: "forwards" });
-          }, CAE);
+          k.luego(apuntar, dur + 150);
+        };
+
+        // Paso 2: mover la luz con el dedo hasta enfocar a la pareja
+        let quitarLuz = null;
+        const meta = el("div", { class: "tl-meta", "aria-hidden": "true" });
+        const charco = el("div", { class: "tl-charco", "aria-hidden": "true" });
+        const apuntar = () => {
+          if (fase !== 1) return;
+          fase = 2;
+          k.paso(1, "Mueve la luz con el dedo hasta la pareja");
+          x.cam.append(charco);
+          const q = x.punto(x.m.baile ? x.m.baile.x + x.m.baile.w / 2 : F.a[0], x.m.baile ? x.m.baile.y + x.m.baile.h * .5 : F.a[1]);
+          Object.assign(meta.style, { left: q.x + "px", top: q.y + "px" });
+          k.capa.append(meta);
+          let actual = haz.ang + 32, arrastrando = false;
+          const pintar = ang => {
+            actual = ang;
+            cono.style.transform = `translateX(-50%) rotate(${ang}deg)`;
+            // el charco de luz cae en el piso, a la altura de la pareja, donde apunta el foco
+            const r = -ang * Math.PI / 180, dy = haz.T.y - haz.S.y, dx = Math.tan(r) * dy;
+            Object.assign(charco.style, { left: haz.S.x + dx + "px", top: haz.T.y + "px" });
+            const cerca = Math.abs(ang - haz.ang);
+            charco.style.opacity = String(.35 + .45 * Math.max(0, 1 - cerca / 25));
+            if (cerca < 4.5) acierto();
+          };
+          pintar(actual);
+          const angDe = e => {
+            const r = x.stage.getBoundingClientRect(), sx = r.width / x.stage.offsetWidth || 1;
+            const px = (e.clientX - r.left) / sx, py = (e.clientY - r.top) / sx;
+            return limitar(-Math.atan2(px - haz.S.x, Math.max(8, py - haz.S.y)) * 180 / Math.PI, haz.ang - 40, haz.ang + 45);
+          };
+          // Un toque lleva la luz suavemente hacia ese punto; arrastrar la mueve con el dedo.
+          let raf2 = 0;
+          const llevar = destino => {
+            cancelAnimationFrame(raf2);
+            const de = actual, t0 = performance.now();
+            (function paso(t) { if (fase !== 2) return; const u = Math.min(1, (t - t0) / 420), e2 = 1 - Math.pow(1 - u, 3); pintar(de + (destino - de) * e2); if (u < 1 && fase === 2) raf2 = requestAnimationFrame(paso); })(t0);
+          };
+          const abajo = e => { if (fase !== 2) return; arrastrando = true; try { x.stage.setPointerCapture(e.pointerId); } catch (_) {} llevar(angDe(e)); };
+          const mueve = e => { if (fase !== 2 || !arrastrando) return; cancelAnimationFrame(raf2); pintar(angDe(e)); };
+          const suelta = () => { arrastrando = false; };
+          x.stage.addEventListener("pointerdown", abajo); x.stage.addEventListener("pointermove", mueve);
+          x.stage.addEventListener("pointerup", suelta); x.stage.addEventListener("pointercancel", suelta);
+          quitarLuz = () => { cancelAnimationFrame(raf2); ["pointerdown", "pointermove", "pointerup", "pointercancel"].forEach((ev, i2) => x.stage.removeEventListener(ev, [abajo, mueve, suelta, suelta][i2])); };
+          // Si en unos segundos no lo intenta, la luz «tiembla» hacia la pareja como pista
+          k.luego(() => { if (fase === 2 && !arrastrando) llevar(actual + (haz.ang - actual) * .35); }, 4500);
+        };
+
+        // ¡Enfocada! Se encienden las luces y empieza la función
+        const acierto = () => {
+          if (fase !== 2) return;
+          fase = 3; quitarLuz && quitarLuz();
+          cono.style.transform = `translateX(-50%) rotate(${haz.ang}deg)`;
+          meta.animate([{ opacity: 1, scale: "1" }, { opacity: 0, scale: "1.8" }], { duration: 600, fill: "forwards" });
+          charco.animate([{ opacity: charco.style.opacity }, { opacity: 0 }], { duration: 900, fill: "forwards" });
+          k.paso(2, "");
+          encender();
+        };
+        const encender = () => {
+          vibrar([30, 50, 30]);
+          x.cam.classList.remove("tl-oscuro");
+          fijar(luz, [{ opacity: 0 }, { opacity: 1 }], { duration: 1400, easing: "ease-out" });
+          cono.animate([{ opacity: .95 }, { opacity: 0 }], { duration: 1800, easing: "ease-in", fill: "forwards" });
+          k.destello(haz.T.x, haz.T.y, "#fff3d6", 60);
+          const t0 = performance.now();
+          (function sube(t) { foco = limitar((t - t0) / 900, 0, 1); if (foco < 1 && vivo) requestAnimationFrame(sube); })(t0);
+          x.cam.style.transformOrigin = `${(haz.T.x / x.stage.clientWidth) * 100}% ${(haz.T.y / x.stage.clientHeight) * 100}%`;
+          x.cam.animate([{ scale: "1" }, { scale: "1.12" }], { duration: 7000, easing: "cubic-bezier(.3,0,.4,1)", fill: "forwards" });
+          if (escena.caja) escena.caja.animate([{ scale: "1" }, { scale: "1.035" }], { duration: 7000, easing: "cubic-bezier(.3,0,.4,1)", fill: "forwards" });
           // Los nombres, como en una marquesina
           k.luego(() => {
             k.capa.append(letras);
             [...letras.children].forEach((n2, i) => n2.animate(
               [{ opacity: 0, filter: "blur(8px)", transform: "translateY(3cqw)", letterSpacing: n2.tagName === "B" ? ".18em" : "normal" }, { opacity: 1, filter: "blur(0)", transform: "none", letterSpacing: "normal" }],
               { delay: i * 380, duration: 1200, easing: EASE, fill: "forwards" }));
-          }, CAE + 500);
+          }, 500);
           k.luego(() => {
             letras.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 700, fill: "forwards" });
             luz.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 900, fill: "forwards" });
             k.cerrar({ yaAbierto: true, sinTarjeta: true });
             setTimeout(() => { vivo = false; }, 1800);
-          }, CAE + 500 + 380 * 4 + 2600);
+          }, 500 + 380 * 4 + 2600);
         };
         borla.addEventListener("click", e => { e.stopPropagation(); abrir(); });
         quitar = arrastre(x.stage, "x", () => x.stage.clientWidth * .35, t => {
@@ -688,9 +743,9 @@
           if (t > .3 || t < .02) abrir(t > .3 ? t : 0);
           else { [izq, der].forEach(m2 => { m2.style.transition = "transform .35s"; m2.style.transform = ""; setTimeout(() => (m2.style.transition = ""), 380); }); }
         });
-        const fin = () => { vivo = false; quitar && quitar(); quitarBaile(); };
-        k.saltar = () => { fase = 9; fin(); [izq, der, borla, letras, luz, polvo, cono].forEach(n2 => n2.remove()); x.cam.classList.remove("tl-oscuro"); k.cerrar({ yaAbierto: true, sinTarjeta: true }); };
-        return { avanzar: () => abrir(), parar: () => { k.parar(); fin(); } };
+        const fin = () => { vivo = false; quitar && quitar(); quitarLuz && quitarLuz(); quitarBaile(); };
+        k.saltar = () => { fase = 9; fin(); [izq, der, borla, letras, luz, polvo, cono, meta, charco].forEach(n2 => n2.remove()); x.cam.classList.remove("tl-oscuro"); k.cerrar({ yaAbierto: true, sinTarjeta: true }); };
+        return { avanzar: () => { if (fase === 0) abrir(); else if (fase === 2) acierto(); }, parar: () => { k.parar(); fin(); } };
       },
     },
   };
