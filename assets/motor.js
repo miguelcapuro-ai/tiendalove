@@ -125,6 +125,44 @@
     return () => { vivo = false; c.remove(); };
   }
 
+  // ---------- Pareja que baila (modelos con «baile») ----------
+  // El arte trae el escenario vacío; la pareja recortada (foto.webp, fondo transparente) se coloca encima,
+  // en el mismo lugar que ocupaba en el arte de 720×1280, y baila un vals: vaivén, subir y bajar, y una vuelta.
+  function bailarines(cont, m) {
+    const b = m.baile; if (!b) return () => {};
+    const src = asset(m, "foto");
+    const par = el("img", { class: "tl-par", src, alt: "", draggable: false });
+    const reflejo = el("img", { class: "tl-reflejo", src, alt: "", draggable: false });
+    const giro = el("div", { class: "tl-giro" }, [reflejo, par]);
+    const caja = el("div", { class: "tl-baile", "aria-hidden": "true" }, [giro]);
+    giro.style.transformOrigin = `50% ${b.pie * 100}%`;
+    reflejo.style.transformOrigin = `50% ${b.pie * 100}%`;
+    const ancla = cont.querySelector(":scope > .inv-hero-bg, :scope > .env-open");
+    ancla ? ancla.after(caja) : cont.append(caja);
+    const ubicar = () => {
+      const W = cont.clientWidth, H = cont.clientHeight; if (!W || !H) return;
+      const k = Math.max(W / 720, H / 1280), ox = (W - 720 * k) / 2, oy = (H - 1280 * k) / 2;
+      Object.assign(caja.style, { left: ox + b.x * 720 * k + "px", top: oy + b.y * 1280 * k + "px", width: b.w * 720 * k + "px", height: b.h * 1280 * k + "px" });
+    };
+    ubicar();
+    const ro = window.ResizeObserver ? new ResizeObserver(ubicar) : null; ro && ro.observe(cont);
+    const anims = [];
+    if (!reduced) {
+      // Vals: un, dos, tres… se mecen de lado a lado con un leve balanceo.
+      anims.push(giro.animate([
+        { transform: "translateX(0) rotate(0deg)" }, { transform: "translateX(-8%) rotate(-3deg)", offset: .16 },
+        { transform: "translateX(0) rotate(0deg)", offset: .32 }, { transform: "translateX(8%) rotate(3deg)", offset: .48 },
+        { transform: "translateX(0) rotate(0deg)", offset: .64 }, { transform: "translateX(-4%) rotate(-1.5deg)", offset: .82 },
+        { transform: "translateX(0) rotate(0deg)" }], { duration: 7200, iterations: Infinity, easing: "ease-in-out" }));
+      // Subir y bajar del vals, y una vuelta completa en el medio de cada compás largo.
+      anims.push(giro.animate([
+        { scale: "1 1" }, { scale: "1 1.014", offset: .08 }, { scale: "1 1", offset: .16 }, { scale: "1 1.014", offset: .24 }, { scale: "1 1", offset: .32 },
+        { scale: "1 1", offset: .66 }, { scale: "-1 1.02", offset: .72, easing: "ease-in-out" }, { scale: "1 1", offset: .78 },
+        { scale: "1 1.014", offset: .88 }, { scale: "1 1" }], { duration: 7200, iterations: Infinity, easing: "ease-in-out" }));
+    }
+    return () => { ro && ro.disconnect(); anims.forEach(a => a.cancel()); caja.remove(); };
+  }
+
   // ---------- Aperturas interactivas (modelos con «apertura») ----------
   // El invitado hace una o más acciones sencillas para abrir su invitación. Cada juego recibe el
   // escenario (sobre, imágenes, nombres) y llama a fin() al terminar; el motor sigue con la portada.
@@ -554,7 +592,8 @@
         ]);
         x.closed.style.opacity = "0";
         x.opened.style.opacity = "1";
-        x.cam.append(izq, der);
+        const quitarBaile = bailarines(x.cam, x.m);
+        x.cam.insertBefore(izq, null); x.cam.append(der);
         x.cam.classList.add("tl-oscuro");
         k.capa.append(luz, polvo, borla);
         k.paso(0, "Toca el telón para abrirlo");
@@ -630,7 +669,7 @@
           if (t > .3 || t < .02) abrir(t > .3 ? t : 0);
           else { [izq, der].forEach(m2 => { m2.style.transition = "transform .35s"; m2.style.transform = ""; setTimeout(() => (m2.style.transition = ""), 380); }); }
         });
-        const fin = () => { vivo = false; quitar && quitar(); };
+        const fin = () => { vivo = false; quitar && quitar(); quitarBaile(); };
         k.saltar = () => { fase = 9; fin(); [izq, der, borla, letras, luz, polvo].forEach(n2 => n2.remove()); x.cam.classList.remove("tl-oscuro"); k.cerrar({ yaAbierto: true, sinTarjeta: true }); };
         return { avanzar: () => abrir(), parar: () => { k.parar(); fin(); } };
       },
@@ -904,6 +943,8 @@
       const href = d.musicaEnlace || `https://open.spotify.com/search/${encodeURIComponent(d.musica)}`;
       hero.append(el("a", { class: "inv-mini inv-musica", style: `color:${portada ? "#fff" : m.heroInk};border-color:currentColor`, href, target: "_blank", rel: "noopener", "aria-label": `Escuchar nuestra canción${d.musica ? ": " + d.musica : ""}`, text: "♪ Nuestra canción" }));
     }
+
+    if (!portada && m.baile) limpiezas.push(bailarines(hero, m));
 
     // Aparición suave al bajar
     const io = new IntersectionObserver(es => es.forEach(x => { if (x.isIntersecting) { x.target.classList.add("in"); io.unobserve(x.target); } }), { root: inv, threshold: .12 });
