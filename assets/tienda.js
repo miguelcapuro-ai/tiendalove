@@ -342,7 +342,7 @@
         tipos,
         esQuince()
           ? campo("Nombre de la quinceañera", inp("nombre1", { maxlength: "40", autocomplete: "off", placeholder: "Ej.: Valeria", required: true }))
-          : fila(campo("Nombre (1)", inp("nombre1", { maxlength: "40", autocomplete: "off", placeholder: "Ej.: Ana", required: true })), campo("Nombre (2)", inp("nombre2", { maxlength: "40", autocomplete: "off", placeholder: "Ej.: Luis", required: true }))),
+          : fila(campo("Nombre (1)", inp("nombre1", { maxlength: "40", autocomplete: "off", placeholder: `Ej.: ${(modeloActual() && modeloActual().muestra || ["Ana"])[0]}`, required: true })), campo("Nombre (2)", inp("nombre2", { maxlength: "40", autocomplete: "off", placeholder: `Ej.: ${(modeloActual() && modeloActual().muestra || [0, "Luis"])[1]}`, required: true }))),
         campo(esQuince() ? "Su frase" : "Su frase", inp("frase", { maxlength: "120", placeholder: esQuince() ? "Ej.: Una noche para recordar siempre" : "Ej.: Elegimos el mismo camino" }), "Va en la portada.", true),
         fila(campo(esQuince() ? "Fecha de la fiesta" : "Fecha de la boda", inp("fecha", { type: "date", min: hoy(), max: maxFecha(), required: true }), "", false), campo("Hora", inp("hora", { type: "time", required: true }))),
         el("p", { class: "fecha-clara", id: "fechaClara", "aria-live": "polite" }),

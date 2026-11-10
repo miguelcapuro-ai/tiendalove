@@ -693,7 +693,7 @@
     const muestra = !d.nombre1;
     // Quince años: una sola festejada. Save the date: solo fecha y lugar.
     const quince = d.tipo === "quince", std = Boolean(o.std) || T.encabezado === "Reserven la fecha";
-    const n1 = d.nombre1 || (quince ? "Valeria" : SAMPLE.nombre1), n2 = quince ? "" : (d.nombre2 || SAMPLE.nombre2);
+    const n1 = d.nombre1 || (quince ? "Valeria" : (m.muestra || [])[0] || SAMPLE.nombre1), n2 = quince ? "" : (d.nombre2 || (m.muestra || [])[1] || SAMPLE.nombre2);
     if (!(o.diseno && o.diseno.paleta)) {
       if (quince) Object.assign(T, { encabezado: "Mis XV años", intro: "Cumplo quince años y quiero celebrarlo con ustedes.", titulo_rsvp: "¿Me acompañan?", cierre: "Los espero esa noche. Vengan con ganas de bailar." });
       if (std) { Object.assign(T, { encabezado: "Reserven la fecha", intro: quince ? "Cumplo quince años. Guarden la fecha: la invitación con todos los detalles llega pronto." : "Nos casamos. Guarden la fecha: la invitación con todos los detalles llega pronto.", cierre: "Pronto, todos los detalles." }); D.secciones = ["cuenta", "lugar"]; }
