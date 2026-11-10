@@ -125,20 +125,22 @@
     return () => { vivo = false; c.remove(); };
   }
 
-  // ---------- Pareja que baila (modelos con «baile») ----------
-  // El arte trae el escenario vacío; la pareja recortada (foto.webp, fondo transparente) se coloca encima,
-  // en el mismo lugar que ocupaba en el arte de 720×1280, y baila un vals: vaivén, subir y bajar, y una vuelta.
+  // ---------- Pareja en el escenario (modelos con «baile») ----------
+  // El arte trae el escenario vacío; la pareja recortada (foto.webp, fondo transparente) va encima, en el mismo
+  // lugar que ocupaba en el arte de 720×1280, con su reflejo en el piso. Queda quieta, como una foto de teatro:
+  // el movimiento lo ponen la cámara, el foco y el humo. Devuelve la capa para animar la profundidad.
   function bailarines(cont, m) {
-    const b = m.baile; if (!b) return () => {};
+    const b = m.baile; if (!b) return { caja: null, quitar: () => {} };
     const src = asset(m, "foto");
     const par = el("img", { class: "tl-par", src, alt: "", draggable: false });
     const reflejo = el("img", { class: "tl-reflejo", src, alt: "", draggable: false });
     const giro = el("div", { class: "tl-giro" }, [reflejo, par]);
     const caja = el("div", { class: "tl-baile", "aria-hidden": "true" }, [giro]);
-    giro.style.transformOrigin = `50% ${b.pie * 100}%`;
+    const humo = el("div", { class: "tl-humo", "aria-hidden": "true" });
+    caja.style.transformOrigin = `50% ${b.pie * 100}%`;
     reflejo.style.transformOrigin = `50% ${b.pie * 100}%`;
     const ancla = cont.querySelector(":scope > .inv-hero-bg, :scope > .env-open");
-    ancla ? ancla.after(caja) : cont.append(caja);
+    ancla ? ancla.after(humo, caja) : cont.append(humo, caja);
     const ubicar = () => {
       const W = cont.clientWidth, H = cont.clientHeight; if (!W || !H) return;
       const k = Math.max(W / 720, H / 1280), ox = (W - 720 * k) / 2, oy = (H - 1280 * k) / 2;
@@ -146,21 +148,7 @@
     };
     ubicar();
     const ro = window.ResizeObserver ? new ResizeObserver(ubicar) : null; ro && ro.observe(cont);
-    const anims = [];
-    if (!reduced) {
-      // Vals: un, dos, tres… se mecen de lado a lado con un leve balanceo.
-      anims.push(giro.animate([
-        { transform: "translateX(0) rotate(0deg)" }, { transform: "translateX(-8%) rotate(-3deg)", offset: .16 },
-        { transform: "translateX(0) rotate(0deg)", offset: .32 }, { transform: "translateX(8%) rotate(3deg)", offset: .48 },
-        { transform: "translateX(0) rotate(0deg)", offset: .64 }, { transform: "translateX(-4%) rotate(-1.5deg)", offset: .82 },
-        { transform: "translateX(0) rotate(0deg)" }], { duration: 7200, iterations: Infinity, easing: "ease-in-out" }));
-      // Subir y bajar del vals, y una vuelta completa en el medio de cada compás largo.
-      anims.push(giro.animate([
-        { scale: "1 1" }, { scale: "1 1.014", offset: .08 }, { scale: "1 1", offset: .16 }, { scale: "1 1.014", offset: .24 }, { scale: "1 1", offset: .32 },
-        { scale: "1 1", offset: .66 }, { scale: "-1 1.02", offset: .72, easing: "ease-in-out" }, { scale: "1 1", offset: .78 },
-        { scale: "1 1.014", offset: .88 }, { scale: "1 1" }], { duration: 7200, iterations: Infinity, easing: "ease-in-out" }));
-    }
-    return () => { ro && ro.disconnect(); anims.forEach(a => a.cancel()); caja.remove(); };
+    return { caja, quitar: () => { ro && ro.disconnect(); caja.remove(); humo.remove(); } };
   }
 
   // ---------- Aperturas interactivas (modelos con «apertura») ----------
@@ -592,7 +580,19 @@
         ]);
         x.closed.style.opacity = "0";
         x.opened.style.opacity = "1";
-        const quitarBaile = bailarines(x.cam, x.m);
+        const escena = bailarines(x.cam, x.m), quitarBaile = escena.quitar;
+        const F = x.m.foco || { de: [.9, .3], a: [.5, .86] };
+        const cono = el("div", { class: "tl-cono", "aria-hidden": "true" });
+        (escena.caja ? escena.caja.after(cono) : x.cam.append(cono));
+        let haz = null; // geometría del foco en píxeles del escenario
+        const medirHaz = () => {
+          const S = x.punto(F.de[0], F.de[1]), T = x.punto(F.a[0], F.a[1]);
+          const dx = T.x - S.x, dy = T.y - S.y, L = Math.hypot(dx, dy), ang = -Math.atan2(dx, dy) * 180 / Math.PI;
+          haz = { S, T, L, ang };
+          Object.assign(cono.style, { left: S.x + "px", top: S.y + "px", height: L * 1.1 + "px", width: L * .62 + "px" });
+          if (!cono.dataset.anim) cono.style.transform = `translateX(-50%) rotate(${ang + 30}deg)`;
+        };
+        medirHaz();
         x.cam.insertBefore(izq, null); x.cam.append(der);
         x.cam.classList.add("tl-oscuro");
         k.capa.append(luz, polvo, borla);
@@ -609,7 +609,7 @@
           W = polvo.width = x.stage.clientWidth * dpr; H = polvo.height = x.stage.clientHeight * dpr;
           motas = Array.from({ length: 70 }, () => ({ x: Math.random() * W, y: Math.random() * H, r: (.5 + Math.random() * 1.6) * dpr, v: (.25 + Math.random() * .6) * dpr, f: Math.random() * 6.28 }));
         };
-        medir(); k.ubicar = medir;
+        medir(); k.ubicar = () => { medir(); medirHaz(); };
         (function cuadro(t) {
           if (!vivo) return;
           ctx.clearRect(0, 0, W, H);
@@ -617,7 +617,12 @@
             p.y += p.v * (1 + foco); p.x += Math.sin(t / 1100 + p.f) * .3 * dpr;
             if (p.y > H) { p.y = -4; p.x = Math.random() * W; }
             // con el foco encendido, las motas brillan más dentro del haz (de arriba a la derecha hacia el centro)
-            const enHaz = foco ? Math.max(0, 1 - Math.abs((p.x / W) - (.82 - .32 * (p.y / H))) * 4) : 0;
+            let enHaz = 0;
+            if (foco && haz) {
+              const sx = haz.S.x * dpr, sy = haz.S.y * dpr, ux = (haz.T.x - haz.S.x) * dpr, uy = (haz.T.y - haz.S.y) * dpr, LL = ux * ux + uy * uy;
+              const u = ((p.x - sx) * ux + (p.y - sy) * uy) / LL;
+              if (u > 0 && u < 1.05) { const d = Math.abs((p.x - sx) * uy - (p.y - sy) * ux) / Math.sqrt(LL); enHaz = Math.max(0, 1 - d / ((.02 + .2 * u) * Math.sqrt(LL))); }
+            }
             const b = (.25 + .75 * Math.abs(Math.sin(t / 380 + p.f))) * (.45 + enHaz * foco);
             ctx.globalAlpha = Math.min(1, b);
             ctx.fillStyle = p.f > 3 ? "#ffe9b0" : "#ffffff";
@@ -638,27 +643,41 @@
           // Las telas se ondulan al recogerse
           [izq, der].forEach(m2 => m2.firstChild.animate([{ transform: "skewY(0)" }, { transform: `skewY(${m2 === izq ? 1.2 : -1.2}deg)`, offset: .4 }, { transform: "skewY(0)" }], { duration: dur, easing: "ease-in-out" }));
           k.luego(() => { izq.style.opacity = "0"; der.style.opacity = "0"; }, dur);
-          // Se encienden las luces: el escenario sale de la penumbra y baja el foco
+          // El foco: se enciende con parpadeos, barre el escenario y cae sobre la pareja
+          const A = dur * .55, BARRE = 1900, CAE = A + 500 + BARRE;
           k.luego(() => {
+            cono.dataset.anim = "1";
+            cono.animate([{ opacity: 0 }, { opacity: .9, offset: .1 }, { opacity: 0, offset: .2 }, { opacity: .75, offset: .32 }, { opacity: .1, offset: .42 }, { opacity: 1, offset: .6 }, { opacity: .95 }], { duration: 900, fill: "forwards" });
+            fijar(cono, [{ transform: `translateX(-50%) rotate(${haz.ang + 30}deg)` }, { transform: `translateX(-50%) rotate(${haz.ang - 4}deg)`, offset: .8 }, { transform: `translateX(-50%) rotate(${haz.ang}deg)` }],
+              { delay: 500, duration: BARRE, easing: "cubic-bezier(.45,.05,.3,1)" });
+          }, A);
+          // Cae sobre ellos: se encienden las luces del escenario y la cámara se acerca despacio
+          k.luego(() => {
+            vibrar(25);
             x.cam.classList.remove("tl-oscuro");
-            fijar(luz, [{ opacity: 0 }, { opacity: .2, offset: .08 }, { opacity: 0, offset: .16 }, { opacity: 1 }], { duration: 1100, easing: "ease-out" });
+            fijar(luz, [{ opacity: 0 }, { opacity: 1 }], { duration: 1400, easing: "ease-out" });
+            cono.animate([{ opacity: .95 }, { opacity: 0 }], { duration: 1800, easing: "ease-in", fill: "forwards" });
+            k.destello(haz.T.x, haz.T.y, "#fff3d6", 60);
             const t0 = performance.now();
             (function sube(t) { foco = limitar((t - t0) / 900, 0, 1); if (foco < 1 && vivo) requestAnimationFrame(sube); })(t0);
-            const q = x.punto(.5, .72); k.destello(q.x, q.y, "#fff3d6", 70);
-          }, dur * .55);
+            const oT = `${(haz.T.x / x.stage.clientWidth) * 100}% ${(haz.T.y / x.stage.clientHeight) * 100}%`;
+            x.cam.style.transformOrigin = oT;
+            x.cam.animate([{ scale: "1" }, { scale: "1.12" }], { duration: 7000, easing: "cubic-bezier(.3,0,.4,1)", fill: "forwards" });
+            if (escena.caja) escena.caja.animate([{ scale: "1" }, { scale: "1.035" }], { duration: 7000, easing: "cubic-bezier(.3,0,.4,1)", fill: "forwards" });
+          }, CAE);
           // Los nombres, como en una marquesina
           k.luego(() => {
             k.capa.append(letras);
             [...letras.children].forEach((n2, i) => n2.animate(
               [{ opacity: 0, filter: "blur(8px)", transform: "translateY(3cqw)", letterSpacing: n2.tagName === "B" ? ".18em" : "normal" }, { opacity: 1, filter: "blur(0)", transform: "none", letterSpacing: "normal" }],
               { delay: i * 380, duration: 1200, easing: EASE, fill: "forwards" }));
-          }, dur * .8);
+          }, CAE + 500);
           k.luego(() => {
             letras.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 700, fill: "forwards" });
             luz.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 900, fill: "forwards" });
             k.cerrar({ yaAbierto: true, sinTarjeta: true });
             setTimeout(() => { vivo = false; }, 1800);
-          }, dur * .8 + 380 * 4 + 2600);
+          }, CAE + 500 + 380 * 4 + 2600);
         };
         borla.addEventListener("click", e => { e.stopPropagation(); abrir(); });
         quitar = arrastre(x.stage, "x", () => x.stage.clientWidth * .35, t => {
@@ -670,7 +689,7 @@
           else { [izq, der].forEach(m2 => { m2.style.transition = "transform .35s"; m2.style.transform = ""; setTimeout(() => (m2.style.transition = ""), 380); }); }
         });
         const fin = () => { vivo = false; quitar && quitar(); quitarBaile(); };
-        k.saltar = () => { fase = 9; fin(); [izq, der, borla, letras, luz, polvo].forEach(n2 => n2.remove()); x.cam.classList.remove("tl-oscuro"); k.cerrar({ yaAbierto: true, sinTarjeta: true }); };
+        k.saltar = () => { fase = 9; fin(); [izq, der, borla, letras, luz, polvo, cono].forEach(n2 => n2.remove()); x.cam.classList.remove("tl-oscuro"); k.cerrar({ yaAbierto: true, sinTarjeta: true }); };
         return { avanzar: () => abrir(), parar: () => { k.parar(); fin(); } };
       },
     },
@@ -944,7 +963,7 @@
       hero.append(el("a", { class: "inv-mini inv-musica", style: `color:${portada ? "#fff" : m.heroInk};border-color:currentColor`, href, target: "_blank", rel: "noopener", "aria-label": `Escuchar nuestra canción${d.musica ? ": " + d.musica : ""}`, text: "♪ Nuestra canción" }));
     }
 
-    if (!portada && m.baile) limpiezas.push(bailarines(hero, m));
+    if (!portada && m.baile) limpiezas.push(bailarines(hero, m).quitar);
 
     // Aparición suave al bajar
     const io = new IntersectionObserver(es => es.forEach(x => { if (x.isIntersecting) { x.target.classList.add("in"); io.unobserve(x.target); } }), { root: inv, threshold: .12 });
