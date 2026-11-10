@@ -189,7 +189,7 @@ def planes_html():
     return ("<h2>Planes</h2><ul>"
             "<li><b>Esencial, US$89:</b> hasta 50 invitaciones con nombre y cupos, envío por correo, hasta 5 fotos y 1 ronda de ajustes.</li>"
             "<li><b>Clásico, US$149:</b> hasta 150 invitaciones, envío por WhatsApp, modelos exclusivos, música y hasta 10 fotos.</li>"
-            "<li><b>Premium, US$219:</b> hasta 300 invitaciones, número de mesa, recordatorios automáticos y cambio de modelo cuando quieran.</li></ul>")
+            "<li><b>Premium, US$219:</b> hasta 300 invitaciones, los modelos Gran Estreno, número de mesa, recordatorios automáticos y cambio de modelo cuando quieran.</li></ul>")
 
 escritas = []
 
@@ -215,7 +215,7 @@ for p in PAISES:
       {secciones}
       <h2>Algunos modelos</h2>
       <div class="mgrid">{''.join(tarjeta_modelo(m, '../') for m in destacados)}</div>
-      <p><a href="../modelos/">Ver los 21 modelos</a></p>
+      <p><a href="../modelos/">Ver los 24 modelos</a></p>
       {planes_html()}
       <h2>Preguntas frecuentes</h2>
       {faq}
@@ -236,14 +236,14 @@ for m in MODELOS:
     grupos.setdefault(m["family"], []).append(m)
 bloques = "".join(f"<h2>{e(f)}</h2><div class='mgrid'>{''.join(tarjeta_modelo(m, '../') for m in ms)}</div>" for f, ms in grupos.items())
 cuerpo = f"""    <span class="label">Mejorativa Love · Catálogo</span>
-    <h1 class="display">21 modelos de invitación de boda digital.</h1>
+    <h1 class="display">24 modelos de invitación de boda digital.</h1>
     <p class="lead">Cada modelo tiene su propio arte y su forma de abrirse: un sobre clásico, un cofre que se rompe a toques o un sobre holográfico que se rasga con el dedo. Toquen uno para ver cómo se abre.</p>
     <div class="body">{bloques}{planes_html()}{cta('../')}</div>"""
 ld = {"@context": "https://schema.org", "@graph": [ORG,
     {"@type": "ItemList", "name": "Modelos de invitación de boda digital", "itemListElement": [
         {"@type": "ListItem", "position": i + 1, "url": f"{BASE}/modelos/{m['id']}/", "name": m["name"]} for i, m in enumerate(MODELOS)]},
     migas(("Mejorativa Love", f"{BASE}/"), ("Modelos", f"{BASE}/modelos/"))]}
-escribir(ruta, pagina(ruta, "21 modelos de invitaciones de boda digitales · Mejorativa Love",
+escribir(ruta, pagina(ruta, "24 modelos de invitaciones de boda digitales · Mejorativa Love",
     "Catálogo de invitaciones de boda digitales: elegantes, de lujo, de playa, tropicales, gamer, anime e interactivas. Todas se abren como un sobre en el teléfono. Desde US$89.",
     cuerpo, ld, 1), "0.8", "weekly")
 
@@ -255,7 +255,7 @@ for m in MODELOS:
                     [(sobre, f"Sobre cerrado de la invitación {m['name']}"), (portada, f"Portada de la invitación de boda {m['name']}")] if x)
     hermanos = [x for x in MODELOS if x["family"] == m["family"] and x["id"] != m["id"]] or [x for x in MODELOS if x["id"] != m["id"]][:3]
     plan = m["plan"]
-    nota_plan = "Disponible en todos los planes." if plan == "esencial" else "Exclusivo de los planes Clásico y Premium."
+    nota_plan = "Disponible en todos los planes." if plan == "esencial" else "Exclusivo del plan Premium." if plan == "premium" else "Exclusivo de los planes Clásico y Premium."
     titulo = f"Invitación de boda digital {m['name']} ({m['family']}) · Mejorativa Love"
     desc = f"{m['blurb']} Invitación de boda digital que se abre en el teléfono de cada invitado, con confirmación de asistencia. Desde US${PRECIO[plan]}."
     cuerpo = f"""    <span class="label"><a href="../">Modelos</a> · {e(m['family'])}</span>

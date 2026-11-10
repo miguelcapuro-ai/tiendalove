@@ -477,3 +477,35 @@
 .inv-check { display: flex; gap: 2.4cqw; align-items: flex-start; font-size: 3cqw; line-height: 1.4; opacity: .85; }
 .inv-check input { width: auto; margin-top: .6cqw; flex: none; }
 .inv-humano { display: flex; justify-content: center; margin-top: 3cqw; }
+
+/* ---------- Gran Estreno (apertura «telon») ---------- */
+.tl-mitad { position: absolute; top: 0; bottom: 0; width: 50.6%; overflow: hidden; z-index: 2; will-change: transform; }
+.tl-izq { left: 0; transform-origin: 0 50%; }
+.tl-der { right: 0; transform-origin: 100% 50%; }
+.tl-tela { position: absolute; inset: 0; transform-origin: 50% 0; }
+.tl-img { position: absolute; top: 0; height: 100%; width: 197.6%; max-width: none; object-fit: cover; }
+.tl-izq .tl-img { left: 0; }
+.tl-der .tl-img { right: 0; }
+.tl-izq::after, .tl-der::after { content: ""; position: absolute; inset: 0; pointer-events: none; }
+.tl-izq::after { background: linear-gradient(90deg, transparent 80%, rgba(0,0,0,.35)); }
+.tl-der::after { background: linear-gradient(270deg, transparent 80%, rgba(0,0,0,.35)); }
+.env-cam .env-open { transition: filter 1.4s ease; }
+.env-cam.tl-oscuro .env-open { filter: brightness(.18) saturate(.6); }
+.tl-luz { position: absolute; inset: 0; opacity: 0; pointer-events: none; mix-blend-mode: screen;
+  background: radial-gradient(ellipse 34% 14% at 50% 80%, rgba(255,240,210,.35), transparent 70%),
+              linear-gradient(200deg, rgba(255,246,225,.22) 0%, rgba(255,246,225,.06) 38%, transparent 55%); }
+.ix .tl-luz, .ix .tl-polvo, .ix .tl-letras { pointer-events: none; }
+.tl-polvo { position: absolute; inset: 0; width: 100%; height: 100%; }
+.tl-borla { position: absolute; left: 50%; top: 50%; width: 28cqw; height: 28cqw; transform: translate(-50%,-50%); border: 0; padding: 0; border-radius: 50%; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.tl-borla::before, .tl-borla::after { content: ""; position: absolute; inset: 20%; border-radius: 50%; border: 2px solid rgba(255,226,160,.9); animation: ixPulso 1.6s ease-out infinite; }
+.tl-borla::after { animation-delay: .8s; }
+.tl-borla span { position: absolute; left: 50%; top: 50%; width: 9cqw; height: 9cqw; transform: translate(-50%,-50%) rotate(45deg); border-radius: 1.2cqw;
+  background: radial-gradient(circle at 35% 35%, #fff4cf, #e9b955 45%, #8a5a14); box-shadow: 0 0 14px rgba(255,210,120,.85), 0 0 34px rgba(255,120,80,.45); }
+.tl-letras { position: absolute; left: 6%; right: 6%; top: 7%; display: grid; justify-items: center; gap: .4cqw; text-align: center; color: #fff4e6;
+  text-shadow: 0 0 16px rgba(255,190,140,.45), 0 2px 10px rgba(0,0,0,.7); }
+.tl-letras > * { opacity: 0; }
+.tl-letras small { font: 500 3.4cqw 'Cormorant Garamond', serif; font-style: italic; letter-spacing: .06em; margin-bottom: 1cqw; }
+.tl-letras b { font-weight: 400; font-size: 13cqw; line-height: 1.05; white-space: nowrap; }
+.tl-letras i { font-style: normal; font-size: 7cqw; line-height: 1; opacity: 0; }
+.tl-letras .tl-fecha { margin-top: 2.4cqw; font: 600 3cqw 'Cormorant Garamond', serif; letter-spacing: .22em; text-transform: uppercase; color: #f3d27a; }
+@media (prefers-reduced-motion: reduce) { .tl-borla::before, .tl-borla::after { animation: none; } }

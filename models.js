@@ -1,4 +1,4 @@
-// Catálogo de los 21 modelos. Cada uno tiene su arte propio (sobre cerrado, sobre abierto y portada,
+// Catálogo de los 24 modelos. Cada uno tiene su arte propio (sobre cerrado, sobre abierto y portada,
 // generados con IA en assets/modelos/<id>/) y su propia composición (layout).
 // cardY: altura (0–1) de la tarjeta dentro de abierto.webp, donde aparecen los nombres al abrir.
 // heroY: altura (0–1) del bloque de texto sobre la portada.
@@ -108,5 +108,21 @@ window.MODELOS = [
     blurb: "Tres gestos: romper el sello de lacre, sacar la foto de los novios y raspar la fecha. El más emocionante.",
     cardY: .38, cardInk: "#4a2c16", heroY: .45, heroInk: "#f3e6d8",
     title: "'Pinyon Script', cursive", body: "'Cormorant Garamond', serif",
-    paper: "#120c0c", ink: "#f3e6d8", accent: "#c9a646" }
+    paper: "#120c0c", ink: "#f3e6d8", accent: "#c9a646" },
+  // Gran Estreno (solo Premium): telón de terciopelo que se abre, luces y nombres en marquesina. Tres parejas.
+  { id: "estreno-ella-el", plan: "premium", remoto: true, video: false, apertura: "telon", name: "Gran Estreno · Ella y él", family: "Gran Estreno", layout: "noche", kicker: "Se abre el telón",
+    blurb: "Un telón rojo con brillo que se abre como en el teatro. Se encienden las luces y ella y él bailan en el escenario.",
+    cardY: .72, cardInk: "#f3e6d8", heroY: .2, heroInk: "#fff4e6",
+    title: "'Great Vibes', cursive", body: "'Cormorant Garamond', serif",
+    paper: "#120808", ink: "#f6e8dc", accent: "#d9a441" },
+  { id: "estreno-el-el", plan: "premium", remoto: true, video: false, apertura: "telon", name: "Gran Estreno · Él y él", family: "Gran Estreno", layout: "noche", kicker: "Se abre el telón",
+    blurb: "Un telón rojo con brillo que se abre como en el teatro. Se encienden las luces y los dos novios bailan en el escenario.",
+    cardY: .72, cardInk: "#f3e6d8", heroY: .2, heroInk: "#fff4e6",
+    title: "'Great Vibes', cursive", body: "'Cormorant Garamond', serif",
+    paper: "#120808", ink: "#f6e8dc", accent: "#d9a441" },
+  { id: "estreno-ella-ella", plan: "premium", remoto: true, video: false, apertura: "telon", name: "Gran Estreno · Ella y ella", family: "Gran Estreno", layout: "noche", kicker: "Se abre el telón",
+    blurb: "Un telón rojo con brillo que se abre como en el teatro. Se encienden las luces y las dos novias bailan en el escenario.",
+    cardY: .72, cardInk: "#f3e6d8", heroY: .2, heroInk: "#fff4e6",
+    title: "'Great Vibes', cursive", body: "'Cormorant Garamond', serif",
+    paper: "#120808", ink: "#f6e8dc", accent: "#d9a441" }
 ];

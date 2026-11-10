@@ -530,6 +530,111 @@
         };
       },
     },
+
+    // 5) Gran Estreno: un telón de terciopelo con brillo. El invitado toca (o separa con el dedo) y el telón
+    //    se recoge hacia los lados; se encienden las luces del escenario y los nombres aparecen escritos.
+    telon: {
+      invita: "Toca el telón para abrirlo",
+      jugar(x) {
+        const k = kit(x, 1);
+        let fase = 0, quitar = null;
+        // El sobre cerrado se parte en dos mitades de telón que se recogen hacia los lados.
+        const mitad = lado => {
+          const img = el("img", { class: "tl-img", src: x.closed.src, alt: "", draggable: false });
+          return el("div", { class: `tl-mitad tl-${lado}` }, [el("div", { class: "tl-tela" }, [img])]);
+        };
+        const izq = mitad("izq"), der = mitad("der");
+        const luz = el("div", { class: "tl-luz", "aria-hidden": "true" });
+        const polvo = el("canvas", { class: "tl-polvo", "aria-hidden": "true" });
+        const borla = el("button", { class: "tl-borla", type: "button", "aria-label": "Abrir el telón" }, [el("span")]);
+        const letras = el("div", { class: "tl-letras", style: x.tituloCSS }, [
+          el("small", { text: "Junto a sus familias" }),
+          el("b", { text: x.n1 }), x.n2 ? el("i", { text: "&" }) : null, x.n2 ? el("b", { text: x.n2 }) : null,
+          el("span", { class: "tl-fecha", text: longDate(x.fecha) }),
+        ]);
+        x.closed.style.opacity = "0";
+        x.opened.style.opacity = "1";
+        x.cam.append(izq, der);
+        x.cam.classList.add("tl-oscuro");
+        k.capa.append(luz, polvo, borla);
+        k.paso(0, "Toca el telón para abrirlo");
+        const btnSaltar = k.capa.querySelector(".ix-saltar");
+        btnSaltar && btnSaltar.addEventListener("pointerdown", e => e.stopPropagation());
+
+        // Polvo de brillo que cae sobre el telón mientras espera (y en la luz del foco al abrir).
+        let vivo = true, foco = 0;
+        const dpr = Math.min(2, devicePixelRatio || 1);
+        const ctx = polvo.getContext("2d");
+        let W = 0, H = 0, motas = [];
+        const medir = () => {
+          W = polvo.width = x.stage.clientWidth * dpr; H = polvo.height = x.stage.clientHeight * dpr;
+          motas = Array.from({ length: 70 }, () => ({ x: Math.random() * W, y: Math.random() * H, r: (.5 + Math.random() * 1.6) * dpr, v: (.25 + Math.random() * .6) * dpr, f: Math.random() * 6.28 }));
+        };
+        medir(); k.ubicar = medir;
+        (function cuadro(t) {
+          if (!vivo) return;
+          ctx.clearRect(0, 0, W, H);
+          for (const p of motas) {
+            p.y += p.v * (1 + foco); p.x += Math.sin(t / 1100 + p.f) * .3 * dpr;
+            if (p.y > H) { p.y = -4; p.x = Math.random() * W; }
+            // con el foco encendido, las motas brillan más dentro del haz (de arriba a la derecha hacia el centro)
+            const enHaz = foco ? Math.max(0, 1 - Math.abs((p.x / W) - (.82 - .32 * (p.y / H))) * 4) : 0;
+            const b = (.25 + .75 * Math.abs(Math.sin(t / 380 + p.f))) * (.45 + enHaz * foco);
+            ctx.globalAlpha = Math.min(1, b);
+            ctx.fillStyle = p.f > 3 ? "#ffe9b0" : "#ffffff";
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 + enHaz * foco), 0, 6.28); ctx.fill();
+          }
+          requestAnimationFrame(cuadro);
+        })(performance.now());
+
+        // Separar el telón con el dedo (de lado a lado) o con un toque.
+        const abrir = (desde = 0) => {
+          if (fase !== 0) return;
+          fase = 1; quitar && quitar(); vibrar([20, 40, 60]);
+          borla.remove(); k.paso(1, "");
+          const dur = 2300 * (1 - desde * .5);
+          const kf = s => [{ transform: `translateX(${s * desde * 22}%) scaleX(${1 - desde * .35})` }, { transform: `translateX(${s * 46}%) scaleX(.22)`, offset: .82 }, { transform: `translateX(${s * 50}%) scaleX(.16)` }];
+          fijar(izq, kf(-1), { duration: dur, easing: "cubic-bezier(.55,.05,.25,1)" });
+          fijar(der, kf(1), { duration: dur, easing: "cubic-bezier(.55,.05,.25,1)" });
+          // Las telas se ondulan al recogerse
+          [izq, der].forEach(m2 => m2.firstChild.animate([{ transform: "skewY(0)" }, { transform: `skewY(${m2 === izq ? 1.2 : -1.2}deg)`, offset: .4 }, { transform: "skewY(0)" }], { duration: dur, easing: "ease-in-out" }));
+          k.luego(() => { izq.style.opacity = "0"; der.style.opacity = "0"; }, dur);
+          // Se encienden las luces: el escenario sale de la penumbra y baja el foco
+          k.luego(() => {
+            x.cam.classList.remove("tl-oscuro");
+            fijar(luz, [{ opacity: 0 }, { opacity: .2, offset: .08 }, { opacity: 0, offset: .16 }, { opacity: 1 }], { duration: 1100, easing: "ease-out" });
+            const t0 = performance.now();
+            (function sube(t) { foco = limitar((t - t0) / 900, 0, 1); if (foco < 1 && vivo) requestAnimationFrame(sube); })(t0);
+            const q = x.punto(.5, .72); k.destello(q.x, q.y, "#fff3d6", 70);
+          }, dur * .55);
+          // Los nombres, como en una marquesina
+          k.luego(() => {
+            k.capa.append(letras);
+            [...letras.children].forEach((n2, i) => n2.animate(
+              [{ opacity: 0, filter: "blur(8px)", transform: "translateY(3cqw)", letterSpacing: n2.tagName === "B" ? ".18em" : "normal" }, { opacity: 1, filter: "blur(0)", transform: "none", letterSpacing: "normal" }],
+              { delay: i * 380, duration: 1200, easing: EASE, fill: "forwards" }));
+          }, dur * .8);
+          k.luego(() => {
+            letras.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 700, fill: "forwards" });
+            luz.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 900, fill: "forwards" });
+            k.cerrar({ yaAbierto: true, sinTarjeta: true });
+            setTimeout(() => { vivo = false; }, 1800);
+          }, dur * .8 + 380 * 4 + 2600);
+        };
+        borla.addEventListener("click", e => { e.stopPropagation(); abrir(); });
+        quitar = arrastre(x.stage, "x", () => x.stage.clientWidth * .35, t => {
+          if (fase !== 0) return;
+          izq.style.transform = `translateX(${-t * 22}%) scaleX(${1 - t * .35})`; der.style.transform = `translateX(${t * 22}%) scaleX(${1 - t * .35})`;
+        }, t => {
+          if (fase !== 0) return;
+          if (t > .3 || t < .02) abrir(t > .3 ? t : 0);
+          else { [izq, der].forEach(m2 => { m2.style.transition = "transform .35s"; m2.style.transform = ""; setTimeout(() => (m2.style.transition = ""), 380); }); }
+        });
+        const fin = () => { vivo = false; quitar && quitar(); };
+        k.saltar = () => { fase = 9; fin(); [izq, der, borla, letras, luz, polvo].forEach(n2 => n2.remove()); x.cam.classList.remove("tl-oscuro"); k.cerrar({ yaAbierto: true, sinTarjeta: true }); };
+        return { avanzar: () => abrir(), parar: () => { k.parar(); fin(); } };
+      },
+    },
   };
 
   // ---------- Construcción ----------

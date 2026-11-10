@@ -33,7 +33,7 @@
   let PLANES = [
     {"id":"esencial","nombre":"Esencial","precio":89,"revisiones":1,"maxFotos":5,"musica":false,"listaInvitados":true,"canales":["correo"],"maxInvitaciones":50,"modelosExclusivos":false,"mesas":false,"recordatorios":false,"aMedida":false,"cambiarModelo":false,"resumen":"Su invitación y hasta 50 invitaciones personales por correo.","incluye":["Invitación con el sobre que se abre","Hasta 50 invitaciones con nombre y cupos","Envío por correo","Confirmaciones en su tablero","Hasta 5 fotos","1 ronda de ajustes"]},
     {"id":"clasico","nombre":"Clásico","precio":149,"revisiones":1,"maxFotos":10,"musica":true,"listaInvitados":true,"canales":["correo","whatsapp"],"maxInvitaciones":150,"modelosExclusivos":true,"destacado":true,"mesas":false,"recordatorios":false,"aMedida":false,"cambiarModelo":false,"resumen":"Cada invitado la recibe por WhatsApp o correo, con su nombre y sus cupos.","incluye":["Todo lo del Esencial","Hasta 150 invitaciones","Envío por WhatsApp con un toque","Los modelos exclusivos (Épicos, Anime e Interactivos)","Música y hasta 10 fotos","1 ronda de ajustes"]},
-    {"id":"premium","nombre":"Premium","precio":219,"revisiones":1,"maxFotos":20,"musica":true,"listaInvitados":true,"canales":["correo","whatsapp"],"maxInvitaciones":300,"modelosExclusivos":true,"mesas":true,"recordatorios":true,"aMedida":false,"cambiarModelo":true,"resumen":"El panel completo: mesas, recordatorios y cambio de modelo.","incluye":["Todo lo del Clásico","Hasta 300 invitaciones","Mesas: cada invitado ve la suya","Recordatorios automáticos a quienes no responden","Cambien de modelo cuando quieran","Hasta 20 fotos y 2 secciones extra"]},
+    {"id":"premium","nombre":"Premium","precio":219,"revisiones":1,"maxFotos":20,"musica":true,"listaInvitados":true,"canales":["correo","whatsapp"],"maxInvitaciones":300,"modelosExclusivos":true,"mesas":true,"recordatorios":true,"aMedida":false,"cambiarModelo":true,"resumen":"El panel completo: mesas, recordatorios y cambio de modelo.","incluye":["Todo lo del Clásico","Hasta 300 invitaciones","Los modelos Gran Estreno (telón de teatro)","Mesas: cada invitado ve la suya","Recordatorios automáticos a quienes no responden","Cambien de modelo cuando quieran","Hasta 20 fotos y 2 secciones extra"]},
   ];
   let PAGO = { yappy: "6665-3528", whatsapp: CFG.whatsapp || "50763454868" };
   // Save the date (producto de entrada), precio de lanzamiento, descuento de planners y eventos activos: los manda el servidor.
@@ -55,7 +55,9 @@
   const ORDEN = { std: 0, esencial: 0, clasico: 1, premium: 2 };
   const alcanza = (planId, m) => !m || !m.plan || (ORDEN[planId] ?? 0) >= (ORDEN[m.plan] ?? 0);
   const modeloActual = () => MODELS.find(m => m.id === data.modelo);
-  const sello = m => (m.plan ? el("span", { class: "excl", text: "Clásico y Premium" }) : null);
+  const planesDe = m => (m && m.plan === "premium" ? "Premium" : "Clásico y Premium");
+  const planesO = m => (m && m.plan === "premium" ? "el plan Premium" : "los planes Clásico o Premium");
+  const sello = m => (m.plan ? el("span", { class: "excl" + (m.plan === "premium" ? " solo-premium" : ""), text: m.plan === "premium" ? "Solo Premium" : "Clásico y Premium" }) : null);
 
   // ---------- Datos del pedido ----------
   // La zona por defecto es la del teléfono de quien compra, si es una de las que atendemos.
@@ -173,7 +175,7 @@
   modal.addEventListener("click", e => { if (e.target === modal) cerrarVista(); });
   $("#previewReplay").addEventListener("click", () => Motor.construir($("#previewScreen"), { modelo: vistaModelo.id, datos: datosVista(), fotos: fotos.map(f => f.url), portada, autoAbrir: true, vista: true }));
   $("#previewChoose").addEventListener("click", () => {
-    data.modelo = vistaModelo.id; save(); cerrarVista();
+    data.modelo = vistaModelo.id; if (vistaModelo.plan && data.plan && data.plan !== "std" && !alcanza(data.plan, vistaModelo)) data.plan = vistaModelo.plan; save(); cerrarVista();
     if ($("#wizard").hidden) abrirPedido(2); else { pintarPaso(); actualizarVista(true); }
   });
   const datosVista = () => (data.nombre1 && (data.nombre2 || esQuince()) ? data : { tipo: data.tipo });
@@ -321,12 +323,12 @@
     if (paso === 1) {
       const box = el("div", { class: "pick", role: "radiogroup", "aria-label": "Modelo de invitación" });
       MODELS.forEach(m => {
-        const card = el("div", { class: "pcard-m", role: "radio", tabindex: "0", "aria-checked": String(data.modelo === m.id), "aria-label": m.plan ? `${m.name} (planes Clásico y Premium)` : m.name }, [art(m), sello(m),
+        const card = el("div", { class: "pcard-m", role: "radio", tabindex: "0", "aria-checked": String(data.modelo === m.id), "aria-label": m.plan ? `${m.name} (${m.plan === "premium" ? "solo plan Premium" : "planes Clásico y Premium"})` : m.name }, [art(m), sello(m),
           el("div", { class: "mmeta" }, [el("div", {}, [el("b", { text: m.name }), el("small", { text: m.family })]),
             el("button", { class: "see", type: "button", text: "Ver", "aria-label": `Ver ${m.name} en grande`, onclick: e => { e.stopPropagation(); abrirVista(m.id); } })])]);
         const elegir = () => {
-          if (data.plan === "std" && m.plan) { err.textContent = `El Save the date viene con los modelos sin sello. ${m.name} está en la invitación completa (Clásico o Premium).`; return; }
-          data.modelo = m.id; if (!alcanza(data.plan, m)) data.plan = "clasico"; save(); $$(".pcard-m", box).forEach(c => c.setAttribute("aria-checked", String(c === card))); err.textContent = ""; actualizarVista(true); };
+          if (data.plan === "std" && m.plan) { err.textContent = `El Save the date viene con los modelos sin sello. ${m.name} está en la invitación completa (${planesDe(m) === "Premium" ? "Premium" : "Clásico o Premium"}).`; return; }
+          data.modelo = m.id; if (!alcanza(data.plan, m)) data.plan = m.plan; save(); $$(".pcard-m", box).forEach(c => c.setAttribute("aria-checked", String(c === card))); err.textContent = ""; actualizarVista(true); };
         card.addEventListener("click", elegir);
         card.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); elegir(); } });
         box.append(card);
@@ -358,11 +360,11 @@
           el("div", { class: "pp-h" }, [el("b", { text: pl.nombre }), el("span", { class: "pp-price", html: precioHtml(pl) })]),
           LANZ && LANZ.activo && LANZ.plan === pl.id ? el("p", { class: "pp-lz", text: `Precio de lanzamiento · quedan ${LANZ.quedan} de ${LANZ.cupos}` }) : null,
           el("p", { class: "pp-r", text: pl.resumen }),
-          bloqueado ? el("p", { class: "pp-off", text: `No incluye el modelo ${mod.name}. Elijan Clásico o Premium, o cambien de modelo en el paso 1.` }) : null,
+          bloqueado ? el("p", { class: "pp-off", text: `No incluye el modelo ${mod.name}. Elijan ${mod.plan === "premium" ? "Premium" : "Clásico o Premium"}, o cambien de modelo en el paso 1.` }) : null,
           el("ul", {}, pl.incluye.map(t => el("li", { text: t }))),
         ]);
         const elegir = () => {
-          if (bloqueado) { err.textContent = `El modelo ${mod.name} viene en los planes Clásico y Premium.`; return; }
+          if (bloqueado) { err.textContent = `El modelo ${mod.name} viene en ${planesO(mod)}.`; return; }
           data.plan = pl.id; save(); err.textContent = "";
           $$(".pp", box).forEach(x => x.setAttribute("aria-checked", String(x === c)));
         };
@@ -553,8 +555,8 @@
   function validar(n) {
     const f = name => form.querySelector(`[name="${name}"]`);
     if (n === 1 && !data.modelo) return falla(null, "Elijan un modelo para seguir.");
-    if (n === 3 && data.plan === "std" && modeloActual() && modeloActual().plan) return falla(null, "El Save the date viene con los modelos sin sello. Cambien de modelo o elijan Clásico o Premium.");
-    if (n === 3 && !alcanza(data.plan, modeloActual())) return falla(null, `El modelo ${modeloActual().name} viene en los planes Clásico y Premium.`);
+    if (n === 3 && data.plan === "std" && modeloActual() && modeloActual().plan) return falla(null, `El Save the date viene con los modelos sin sello. Cambien de modelo o elijan ${planesO(modeloActual()).replace(/^(el|los) planes? /, "")}.`);
+    if (n === 3 && !alcanza(data.plan, modeloActual())) return falla(null, `El modelo ${modeloActual().name} viene en ${planesO(modeloActual())}.`);
     if (n === 2) {
       if (!(data.nombre1 || "").trim()) return falla(f("nombre1"), "Falta el primer nombre.");
       if (!esQuince() && !(data.nombre2 || "").trim()) return falla(f("nombre2"), "Falta el segundo nombre.");
