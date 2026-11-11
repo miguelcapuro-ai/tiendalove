@@ -9,7 +9,7 @@ import json, os, subprocess, html, datetime
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE = "https://tiendalove.mejorativa.com"
 HOY = datetime.date.today().isoformat()
-V = "ix20261110a"
+V = "ix20261111a"
 PRECIO = {"esencial": 89, "clasico": 149, "premium": 219}
 NOMBRE_PLAN = {"esencial": "Esencial", "clasico": "Clásico", "premium": "Premium"}
 

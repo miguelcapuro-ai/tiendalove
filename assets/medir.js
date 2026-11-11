@@ -45,8 +45,13 @@
     listo = true; cola.splice(0).forEach(([e, p]) => enviar(e, p));
   }
 
+  // Enlaces con llave (#pagar=… y #completa=…): las etiquetas esperan a que la tienda limpie la dirección,
+  // para que la llave del pedido no salga del sitio. Si la dirección no se limpia, en esa visita no se mide.
+  const conLlave = () => /^#(pagar|completa)=/.test(location.hash);
+  const cargarSinLlave = (n = 0) => { if (!conLlave()) cargar(); else if (n < 40) setTimeout(() => cargarSinLlave(n + 1), 250); };
+
   const permiso = ls.get("ml-medicion");
-  if (permiso === "si") { cargar(); return; }
+  if (permiso === "si") { cargarSinLlave(); return; }
   if (permiso === "no") { window.medir = () => {}; return; }
   const aviso = () => {
     const b = document.createElement("div");
@@ -54,7 +59,7 @@
     const quien = [META ? "Meta" : "", PIN ? "Pinterest" : ""].filter(Boolean).join(" y ");
     b.innerHTML = '<p>Usamos cookies de ' + quien + ' para saber qué anuncios funcionan. ¿Nos dejan usarlas? <a href="' + (window.LOVE_BASE || "") + 'aviso/#medicion">Más información</a></p><div><button type="button" class="btn sm" data-si>Aceptar</button><button type="button" class="link" data-no>No, gracias</button></div>';
     document.body.append(b);
-    b.querySelector("[data-si]").onclick = () => { ls.set("ml-medicion", "si"); b.remove(); cargar(); };
+    b.querySelector("[data-si]").onclick = () => { ls.set("ml-medicion", "si"); b.remove(); cargarSinLlave(); };
     b.querySelector("[data-no]").onclick = () => { ls.set("ml-medicion", "no"); b.remove(); cola.length = 0; window.medir = () => {}; };
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", aviso); else aviso();
