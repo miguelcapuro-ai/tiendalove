@@ -215,7 +215,7 @@ for p in PAISES:
       {secciones}
       <h2>Algunos modelos</h2>
       <div class="mgrid">{''.join(tarjeta_modelo(m, '../') for m in destacados)}</div>
-      <p><a href="../modelos/">Ver los 24 modelos</a></p>
+      <p><a href="../modelos/">Ver los 25 modelos</a></p>
       {planes_html()}
       <h2>Preguntas frecuentes</h2>
       {faq}
@@ -236,14 +236,14 @@ for m in MODELOS:
     grupos.setdefault(m["family"], []).append(m)
 bloques = "".join(f"<h2>{e(f)}</h2><div class='mgrid'>{''.join(tarjeta_modelo(m, '../') for m in ms)}</div>" for f, ms in grupos.items())
 cuerpo = f"""    <span class="label">Mejorativa Love · Catálogo</span>
-    <h1 class="display">24 modelos de invitación de boda digital.</h1>
+    <h1 class="display">25 modelos de invitación de boda digital.</h1>
     <p class="lead">Cada modelo tiene su propio arte y su forma de abrirse: un sobre clásico, un cofre que se rompe a toques o un sobre holográfico que se rasga con el dedo. Toquen uno para ver cómo se abre.</p>
     <div class="body">{bloques}{planes_html()}{cta('../')}</div>"""
 ld = {"@context": "https://schema.org", "@graph": [ORG,
     {"@type": "ItemList", "name": "Modelos de invitación de boda digital", "itemListElement": [
         {"@type": "ListItem", "position": i + 1, "url": f"{BASE}/modelos/{m['id']}/", "name": m["name"]} for i, m in enumerate(MODELOS)]},
     migas(("Mejorativa Love", f"{BASE}/"), ("Modelos", f"{BASE}/modelos/"))]}
-escribir(ruta, pagina(ruta, "24 modelos de invitaciones de boda digitales · Mejorativa Love",
+escribir(ruta, pagina(ruta, "25 modelos de invitaciones de boda digitales · Mejorativa Love",
     "Catálogo de invitaciones de boda digitales: elegantes, de lujo, de playa, tropicales, gamer, anime e interactivas. Todas se abren como un sobre en el teléfono. Desde US$89.",
     cuerpo, ld, 1), "0.8", "weekly")
 
