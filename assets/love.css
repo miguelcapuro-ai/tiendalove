@@ -338,3 +338,10 @@ button.link { background: none; border: 0; padding: 0 0 2px; font: inherit; font
 .medir-aviso p { margin: 0; }
 .medir-aviso div { display: flex; gap: 14px; align-items: center; }
 .excl.solo-premium { background: linear-gradient(135deg, #7a0f1d, #b3202a); color: #fff1d6; box-shadow: 0 0 0 1px rgba(243,210,122,.6); }
+
+/* Botón de Pago Yappy (se confirma solo) */
+.y-campo { display: grid; gap: 6px; font-size: .9rem; font-weight: 600; color: #E7ECF4; }
+.y-campo input { font: inherit; font-weight: 500; font-size: 1.05rem; letter-spacing: .04em; padding: 13px 14px; border: 1px solid #C9D2DE; border-radius: 12px; background: #fff; color: #0D1B33; width: 100%; max-width: 260px; }
+.y-campo input:focus-visible { outline: 3px solid #E9D7A6; outline-offset: 2px; }
+.y-slot { min-height: 52px; display: flex; align-items: center; }
+.y-slot btn-yappy { display: block; width: 100%; max-width: 360px; }

@@ -82,13 +82,14 @@
     if (!P.pagado) {
       $("#pLead").textContent = "Su pedido está esperando el pago.";
       $("#pTabs").hidden = true;
-      const msg = `Hola, Miguel. ${quince() ? "Soy" : "Somos"} ${pareja(d)}. Pedido ${P.codigo} por $${P.plan.precio}. Aquí va el comprobante de Yappy.`;
-      const pagarPP = `${location.origin}/#pagar=${id}.${encodeURIComponent(key)}`;
+      // El pago se hace en la tienda: ahí aparecen los métodos disponibles (Yappy solo desde Panamá, tarjeta o PayPal) y se confirma solo.
+      const pagar = `${location.origin}/#pagar=${id}.${encodeURIComponent(key)}`;
+      const ayuda = `Hola, Miguel. ${quince() ? "Soy" : "Somos"} ${pareja(d)}. Pedido ${P.codigo} por $${P.plan.precio}. Necesito ayuda con el pago.`;
       $("#pCuerpo").innerHTML = `<div class="pay" style="max-width:620px"><div class="price">US$${P.plan.precio}<small>plan ${esc(P.plan.nombre)}</small></div>
-        ${pagarPP ? `<section class="pay-op"><h3>Tarjeta o PayPal <span class="tag">Al instante</span></h3><p class="fine-w">Se confirma solo y no tienen que enviarnos nada.</p><a class="btn gold" href="${pagarPP}">Pagar con tarjeta o PayPal ${arrow}</a></section>` : ""}
-        <section class="pay-op manual-ok"><h3>Yappy <span class="tag">Panamá</span></h3><span class="label" style="color:#A9B6CB">Su código</span><div class="code">${esc(P.codigo)}</div>
-        <ol><li>Envíen <b>$${P.plan.precio}</b> por Yappy al <b>6665-3528</b> con el código en la descripción.</li><li>Mándennos el comprobante por WhatsApp.</li></ol>
-        <a class="btn gold" href="https://wa.me/${WA}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Enviar comprobante ${arrow}</a></section>
+        <section class="pay-op"><h3>Pagar ahora <span class="tag">Al instante</span></h3><span class="label" style="color:#A9B6CB">Su código</span><div class="code">${esc(P.codigo)}</div>
+        <p class="fine-w">Con Yappy (desde Panamá), tarjeta o PayPal. Se confirma solo y no tienen que enviarnos nada: al terminar el pago empezamos su invitación.</p>
+        <a class="btn gold" href="${pagar}">Pagar mi invitación ${arrow}</a>
+        <p class="fine-w">¿Algún problema con el pago? <a href="https://wa.me/${WA}?text=${encodeURIComponent(ayuda)}" target="_blank" rel="noopener">Escríbannos por WhatsApp</a>.</p></section>
         <div class="wait-box"><span class="spinner"></span><b>Esperando la confirmación</b></div></div>`;
       tPoll = setInterval(refrescar, 15000); return;
     }

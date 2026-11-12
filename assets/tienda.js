@@ -147,7 +147,7 @@
   const humano = window.Humano ? window.Humano($("#humanoPedido")) : null;
   const cfgListo = !API ? Promise.resolve() : fetch(API + "/love/api/config").then(r => r.json()).then(c => {
     if (c && c.ok) {
-      PLANES = c.planes.filter(p => !p.std).map(p => ({ ...p, incluye: p.incluye })); PAGO = { ...PAGO, ...c.pago }; CLAVE_HUMANO = c.turnstile || null;
+      PLANES = c.planes.filter(p => !p.std).map(p => ({ ...p, incluye: p.incluye })); PAGO = { ...PAGO, ...c.pago, pais: c.pais || null }; CLAVE_HUMANO = c.turnstile || null;
       if (c.std) STD = c.std; LANZ = c.lanzamiento || null; if (c.referido) REF_DESC = c.referido.descuento; if (c.creditoStd) CREDITO = c.creditoStd;
       if (Array.isArray(c.eventos)) EVENTOS = c.eventos.filter(e => e.activo);
       $$("[data-cfg=revisionExtra]").forEach(n => (n.textContent = c.revisionExtra)); pintarPlanes(); pintarResenas(c.resenas || []);
@@ -644,8 +644,6 @@
     $("#wNav").hidden = true; $(".w-side").hidden = true; $("#humanoPedido").hidden = true; err.textContent = "";
     $("#wCount").textContent = `Pedido ${p.codigo}`; $("#wTitle").textContent = "Último paso: el pago."; $("#wSub").textContent = `Plan ${p.plan} para ${p.nombres}.`;
     $$("#progress i").forEach(b => b.classList.add("on"));
-    // Yappy solo para quien entra desde Panamá (país que detecta Cloudflare). Afuera, solo tarjeta o PayPal.
-    const soloPayPal = !!(PAGO.paypal && PAGO.paypal.clientId && PAGO.pais && PAGO.pais !== "PA");
     const msg = `Hola, Miguel. Somos ${p.nombres} y ya pagamos nuestra invitación de Mejorativa Love. Pedido ${p.codigo} por ${money(p.monto)}. Aquí va el comprobante de Yappy.`;
     form.textContent = "";
     form.append(el("div", { class: "pay", html: `
@@ -653,14 +651,22 @@
         <div><span class="label" style="color:#A9B6CB">Su invitación</span><div class="price">${money(p.monto)}<small>pago único</small></div></div>
         <div class="pay-cod"><span class="label" style="color:#A9B6CB">Su código</span><b>${esc(p.codigo)}</b></div>
       </div>
-      <p class="pay-intro">Elijan cómo pagar. Con tarjeta o PayPal se confirma solo; con Yappy, apenas veamos su comprobante.</p>
+      <p class="pay-intro">Elijan cómo pagar.</p>
+      <section class="pay-op" id="opYappyAuto" hidden>
+        <h3>Yappy <span class="tag">Al instante</span></h3>
+        <p class="fine-w">Escriban su número de Yappy y toquen el botón. Les llega la solicitud de pago a su app y tienen 5 minutos para aprobarla. Se confirma solo: no tienen que enviarnos nada.</p>
+        <label class="y-campo" for="yTel">Su número de Yappy
+          <input id="yTel" inputmode="numeric" autocomplete="tel-national" maxlength="9" placeholder="6123-4567"></label>
+        <div class="y-slot" id="ySlot"></div>
+        <p class="fine-w" id="yMsg" aria-live="polite"></p>
+      </section>
       <section class="pay-op" id="ppBox" hidden>
         <h3>Tarjeta o PayPal <span class="tag">Al instante</span></h3>
         <p class="fine-w">Débito o crédito de cualquier país, o su cuenta PayPal. No tienen que enviarnos nada: al terminar el pago, Claude empieza su invitación y en unos minutos les llega al correo.</p>
         <div class="pp-slot" id="ppSlot"></div>
         <p class="fine-w" id="ppMsg" aria-live="polite"></p>
       </section>
-      <section class="pay-op manual-ok" id="opYappy">
+      <section class="pay-op manual-ok" id="opYappy" hidden>
         <h3>Yappy <span class="tag">Panamá</span></h3>
         <ol>
           <li>Envíen <b>${money(p.monto)}</b> por Yappy al <b>${esc(p.yappy || PAGO.yappy)}</b>.</li>
@@ -677,7 +683,8 @@
       <div id="payStatus"><div class="wait-box"><span class="spinner"></span><b>Esperando la confirmación de su pago</b></div></div>
       <p class="fine-w">Al pagar aceptan las <a href="aviso/#condiciones" target="_blank" rel="noopener">condiciones</a>. No hay devoluciones.</p>
     ` }), el("button", { class: "link", type: "button", text: "Empezar otro pedido", onclick: () => { if (confirm("¿Empezar un pedido nuevo? Este seguirá esperando su pago.")) { store.del(PENDIENTE); clearInterval(tPoll); irA(1); } } }));
-    if (soloPayPal) { const y = $("#opYappy"); if (y) y.remove(); const intro = $(".pay-intro"); if (intro) intro.textContent = "Paguen con tarjeta de débito o crédito, o con PayPal. Se confirma solo y Claude empieza su invitación de inmediato."; }
+    const OPCIONES = ["#opYappyAuto", "#ppBox", "#opYappy", ".pay-intro", "#promoBox"];
+    const ocultarOpciones = () => OPCIONES.forEach(q => { const n = $(q); if (n) n.hidden = true; });
     // Código de regalo: el pedido queda pagado sin cobro y Claude empieza a diseñar.
     $("#promoBtn").addEventListener("click", async () => {
       const cod = ($("#promoIn").value || "").trim(), m = $("#promoMsg"), btn = $("#promoBtn");
@@ -687,7 +694,7 @@
         const r = await fetch(API + "/love/api/codigo", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: p.id, key: p.key, codigo: cod }) });
         const j = await r.json().catch(() => ({}));
         if (!r.ok || !j.ok) throw new Error(j.mensaje || "No pudimos usar el código. Intenten de nuevo.");
-        ["#ppBox", "#opYappy", ".pay-intro", "#promoBox"].forEach(q => { const n = $(q); if (n) n.hidden = true; });
+        ocultarOpciones();
         $("#payStatus").innerHTML = '<div class="wait-box"><span class="spinner"></span><b>¡Código aplicado!</b><p>Claude está diseñando su invitación. Toma unos minutos.</p></div>';
         revisar();
       } catch (x) { m.textContent = x.message; btn.disabled = false; }
@@ -698,7 +705,7 @@
         const r = await fetch(`${API}/love/api/estado?id=${encodeURIComponent(p.id)}&key=${encodeURIComponent(p.key)}`);
         if (r.status === 404 || r.status === 410) { clearInterval(tPoll); store.del(PENDIENTE); $("#payStatus").innerHTML = '<div class="wait-box"><b>Este pedido ya no existe.</b><p>Si pagaron, escríbannos por WhatsApp con su código.</p></div>'; return; }
         const j = await r.json();
-        if (j.pagado) ["#ppBox", "#opYappy", ".pay-intro", "#promoBox"].forEach(q => { const n = $(q); if (n) n.hidden = true; });
+        if (j.pagado) ocultarOpciones();
         if (j.pagado && j.metodo !== "codigo") medir("compra", { valor: j.monto, pedido: p.codigo, plan: p.plan });
         if (j.listo) {
           clearInterval(tPoll); store.del(PENDIENTE); store.del(STORE);
@@ -709,7 +716,82 @@
       } catch {}
     };
     revisar(); tPoll = setInterval(revisar, 10000);
-    cfgListo.then(() => montarPayPal(p, revisar));
+    // Con la configuración cargada se decide qué métodos se muestran.
+    // Yappy solo para quien entra desde Panamá (país que detecta Cloudflare). Afuera, solo tarjeta o PayPal.
+    const metodos = () => {
+      if (!document.body.contains($("#payStatus"))) return;
+      const paypalOn = !!(PAGO.paypal && PAGO.paypal.clientId);
+      const enPanama = PAGO.pais === "PA";
+      const yappyAuto = enPanama && !!(PAGO.yappyAuto && PAGO.yappyAuto.cdn);
+      // Yappy manual (comprobante por WhatsApp): solo si el botón automático no está activo en el servicio.
+      const yappyManual = !PAGO.yappyAuto && PAGO.manual !== false && (enPanama || !PAGO.pais || !paypalOn);
+      const intro = $(".pay-intro");
+      if (yappyAuto) { $("#opYappyAuto").hidden = false; intro.textContent = "Elijan cómo pagar. Con Yappy, tarjeta o PayPal se confirma solo y Claude empieza su invitación de inmediato."; montarYappy(p, revisar, ocultarOpciones); }
+      else if (yappyManual) { $("#opYappy").hidden = false; intro.textContent = paypalOn ? "Elijan cómo pagar. Con tarjeta o PayPal se confirma solo; con Yappy, apenas veamos su comprobante." : "Paguen por Yappy y envíennos el comprobante."; }
+      else if (paypalOn) intro.textContent = "Paguen con tarjeta de débito o crédito, o con PayPal. Se confirma solo y Claude empieza su invitación de inmediato.";
+      else intro.innerHTML = `El pago en línea no está disponible en este momento. Escríbannos por <a href="https://wa.me/${digits(PAGO.whatsapp)}" target="_blank" rel="noopener">WhatsApp</a> con su código y lo resolvemos hoy.`;
+      montarPayPal(p, revisar, ocultarOpciones);
+    };
+    cfgListo.then(metodos, metodos);
+  }
+
+  // Botón de Pago Yappy: el servidor crea la orden con el precio del pedido y Yappy le avisa al servidor cuando se paga.
+  // El navegador nunca confirma nada: solo pregunta al servidor si el pago ya llegó.
+  let sdkYappy = null;
+  function cargarSdkYappy(cdn) {
+    if (window.customElements && customElements.get("btn-yappy")) return Promise.resolve();
+    if (!sdkYappy) sdkYappy = new Promise((ok, mal) => {
+      const s = document.createElement("script");
+      s.type = "module"; s.src = cdn; s.async = true;
+      s.onload = ok; s.onerror = () => { sdkYappy = null; mal(new Error("sdk")); };
+      document.head.append(s);
+    });
+    return sdkYappy;
+  }
+  async function montarYappy(p, revisar, ocultarOpciones) {
+    const box = $("#opYappyAuto"), slot = $("#ySlot"), msg = $("#yMsg"), tel = $("#yTel");
+    if (!box || !slot || slot.firstChild) return;
+    const aviso = (t, malo) => { msg.textContent = t; msg.classList.toggle("pp-err", !!malo); };
+    const numero = () => tel.value.replace(/\D/g, "").replace(/^507/, "");
+    let ocupado = false, tSeguir = null;
+    try { await cargarSdkYappy(PAGO.yappyAuto.cdn); }
+    catch { aviso("No pudimos cargar el botón de Yappy. Recarguen la página o paguen con tarjeta o PayPal.", true); return; }
+    if (!document.body.contains(slot)) return;
+    const btn = document.createElement("btn-yappy");
+    btn.setAttribute("theme", "blue"); btn.setAttribute("rounded", "true");
+    slot.append(btn);
+    btn.addEventListener("isYappyOnline", (e) => { if (e && e.detail === false) aviso("Yappy no está disponible en este momento. Intenten en unos minutos o paguen con tarjeta o PayPal.", true); });
+    const FALLO = { rejected: "El pago no se confirmó a tiempo. Tienen 5 minutos para aprobarlo en su app.", cancelled: "Cancelaron el pago en su app de Yappy.", expired: "La solicitud de pago venció." };
+    // Pregunta al servidor cada 3 segundos, hasta 6 minutos (la solicitud de Yappy vive 5).
+    const seguir = () => {
+      const hasta = Date.now() + 6 * 60 * 1000;
+      clearInterval(tSeguir);
+      tSeguir = setInterval(async () => {
+        if (!document.body.contains(slot)) { clearInterval(tSeguir); return; }
+        try {
+          const r = await fetch(`${API}/love/api/estado?id=${encodeURIComponent(p.id)}&key=${encodeURIComponent(p.key)}`);
+          const j = await r.json();
+          if (j.pagado) { clearInterval(tSeguir); ocultarOpciones(); revisar(); return; }
+          if (FALLO[j.yappy]) { clearInterval(tSeguir); ocupado = false; aviso(FALLO[j.yappy] + " Pueden intentar de nuevo.", true); return; }
+        } catch {}
+        if (Date.now() > hasta) { clearInterval(tSeguir); ocupado = false; aviso("No recibimos la confirmación de Yappy. Si ya aprobaron el pago, esperen un minuto: esta pantalla se actualiza sola. Si no, intenten de nuevo.", true); }
+      }, 3000);
+    };
+    btn.addEventListener("eventClick", async () => {
+      if (ocupado) return;
+      if (!/^6\d{7}$/.test(numero())) { aviso("Escriban su número de Yappy: 8 dígitos y empieza con 6.", true); tel.focus(); return; }
+      ocupado = true; btn.isButtonLoading = true; aviso("Enviando la solicitud a su app de Yappy…");
+      try {
+        const r = await fetch(`${API}/love/api/yappy/crear`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: p.id, key: p.key, telefono: numero() }) });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.ok) throw new Error(j.mensaje || "No pudimos conectar con Yappy. Intenten de nuevo o paguen con tarjeta o PayPal.");
+        if (j.pagado) { ocultarOpciones(); revisar(); return; }
+        try { btn.eventPayment({ transactionId: j.transactionId, documentName: j.documentName, token: j.token }); } catch {}
+        aviso("Abran su app de Yappy (o la de su banco) y aprueben el pago. Tienen 5 minutos.");
+        seguir();
+      } catch (x) { ocupado = false; aviso(x.message, true); }
+      finally { btn.isButtonLoading = false; }
+    });
   }
 
   // PayPal: el navegador solo aprueba; el servidor crea la orden con el precio del plan y captura el pago.
@@ -724,12 +806,12 @@
     });
     return sdkPayPal;
   }
-  async function montarPayPal(p, revisar) {
+  async function montarPayPal(p, revisar, ocultarOpciones) {
     const box = $("#ppBox"), slot = $("#ppSlot"), msg = $("#ppMsg");
     if (!box || !PAGO.paypal || !PAGO.paypal.clientId) return;
     box.hidden = false;
     const aviso = (t, malo) => { msg.textContent = t; msg.classList.toggle("pp-err", !!malo); };
-    // Con PayPal disponible, va primero: es el camino que se confirma solo.
+    // Con PayPal disponible, va antes del Yappy manual: es el camino que se confirma solo.
     const yappy = $("#opYappy"); if (yappy) box.after(yappy);
     const llamar = async (ruta, extra) => {
       const r = await fetch(`${API}/love/api/paypal/${ruta}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: p.id, key: p.key, ...extra }) });
@@ -747,7 +829,7 @@
         aviso("Confirmando su pago…");
         try {
           const j = await llamar("capturar", { paypal_id: d.orderID });
-          if (j.pagado) { box.hidden = true; $("#opYappy").hidden = true; $(".pay-intro").hidden = true; $("#payStatus").innerHTML = '<div class="wait-box"><span class="spinner"></span><b>¡Pago confirmado!</b><p>Claude está diseñando su invitación. Toma unos minutos.</p></div>'; revisar(); }
+          if (j.pagado) { ocultarOpciones(); $("#payStatus").innerHTML = '<div class="wait-box"><span class="spinner"></span><b>¡Pago confirmado!</b><p>Claude está diseñando su invitación. Toma unos minutos.</p></div>'; revisar(); }
           else aviso(j.mensaje || "PayPal está revisando su pago. Les avisamos por correo apenas se apruebe.");
         } catch (x) { aviso(x.message, true); }
       },
