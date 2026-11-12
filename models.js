@@ -1,4 +1,4 @@
-// Catálogo de los 24 modelos. Cada uno tiene su arte propio (sobre cerrado, sobre abierto y portada,
+// Catálogo de los 25 modelos. Cada uno tiene su arte propio (sobre cerrado, sobre abierto y portada,
 // generados con IA en assets/modelos/<id>/) y su propia composición (layout).
 // cardY: altura (0–1) de la tarjeta dentro de abierto.webp, donde aparecen los nombres al abrir.
 // heroY: altura (0–1) del bloque de texto sobre la portada.
@@ -88,6 +88,11 @@ window.MODELOS = [
     cardY: .42, cardInk: "#4a2c16", heroY: .42, heroInk: "#3a2414",
     title: "'Cinzel', serif", body: "'Cormorant Garamond', serif",
     paper: "#1b1512", ink: "#f1e6d2", accent: "#c9a646" },
+  { id: "espiritu-santo", plan: "clasico", remoto: true, name: "Espíritu Santo", family: "Lujo", layout: "noche", kicker: "Nos casamos",
+    blurb: "Un sobre de porcelana con forma de la flor del Espíritu Santo, frente a un telón de terciopelo rojo. Se rompe el sello, la orquídea se abre como alas y sube la tarjeta dorada.",
+    cardY: .33, cardInk: "#8e1424", heroY: .34, heroInk: "#8e1424",
+    title: "'Pinyon Script', cursive", body: "'Cormorant Garamond', serif",
+    paper: "#2a0409", ink: "#fbf6ee", accent: "#c9a46a" },
   // Interactivos: el invitado juega para abrir su invitación (apertura: cofre, caja, cartas, ritual).
   { id: "cofre-legendario", plan: "clasico", remoto: true, video: false, apertura: "cofre", name: "Cofre Legendario", family: "Interactivo", layout: "deco", kicker: "Botín legendario desbloqueado",
     blurb: "Un cofre del tesoro con candado de corazón. El invitado rompe el candado a toques y desliza para abrirlo.",
