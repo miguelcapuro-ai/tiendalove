@@ -3,9 +3,9 @@
 // cardY: altura (0–1) de la tarjeta dentro de abierto.webp, donde aparecen los nombres al abrir.
 // heroY: altura (0–1) del bloque de texto sobre la portada.
 window.MODELOS = [
-  { id: "marfil", name: "Marfil", family: "Elegante", layout: "arco",
+  { id: "marfil", video: false, name: "Marfil", family: "Elegante", layout: "arco",
     blurb: "Papel de algodón con bordes rasgados, sello dorado y un arco clásico de rosas blancas.",
-    cardY: .45, cardInk: "#6b5a3e", heroY: .48, heroInk: "#5c4a2e",
+    cardY: .5, cardInk: "#6b5a3e", heroY: .48, heroInk: "#5c4a2e",
     title: "'Cormorant Garamond', serif", italic: true, body: "'Cormorant Garamond', serif",
     paper: "#fbf7f0", ink: "#4a3d2a", accent: "#b8964f" },
   { id: "medianoche", name: "Medianoche", family: "Elegante", layout: "noche",
