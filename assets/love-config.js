@@ -4,6 +4,6 @@
 window.LOVE = {
   api: "https://panel.mejorativa.com",
   whatsapp: "50763454868",
-  metaPixel: "1454856588705415",
+  metaPixel: "1653966566369289",
   pinterestTag: ""
 };
