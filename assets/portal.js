@@ -1,4 +1,4 @@
-/* Mejorativa Love · portal de los novios. Se entra con el enlace privado del correo: /portal/#id.clave */
+/* Mejorativa Love · portal de quien compró la invitación (novios, familia u organización). Se entra con el enlace privado del correo: /portal/#id.clave */
 (() => {
   "use strict";
   const API = (window.LOVE.api || "").replace(/\/$/, "");
@@ -19,10 +19,11 @@
   const hoy = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
   const maxF = () => { const d = new Date(); d.setFullYear(d.getFullYear() + 10); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
   const [id, key] = decodeURIComponent(location.hash.slice(1)).split(".");
-  // "Ana y Luis", o solo "Valeria" en unos quince años.
-  const pareja = d => [d.nombre1, d.nombre2].filter(Boolean).join(" y ");
-  const quince = () => P && P.tipo === "quince";
-  const verbo = (plural, singular) => (quince() ? singular : plural);
+  // "Ana y Luis", "Valeria" o "Grupo Andino": quién invita según el tipo de evento.
+  const EV = () => Motor.evento(P && P.tipo);
+  const pareja = d => Motor.quienInvita({ ...d, tipo: P && P.tipo });
+  const invita = d => Motor.fraseInvita({ ...d, tipo: P && P.tipo });
+  const NP = id => ({ esencial: "Íntima", clasico: "Celebración", premium: "Gran Fiesta" }[id] || id);
   let P = null, tab = sessionStorage.getItem("ml-tab") || "invitacion", tPoll = null;
 
   async function api(path, body) {
@@ -76,7 +77,7 @@
   function pintar() {
     const d = P.datos;
     $("#pCodigo").textContent = `Pedido ${P.codigo}`;
-    $("#pTitulo").textContent = `Hola, ${pareja(d)}.`;
+    $("#pTitulo").textContent = EV().dos ? `Hola, ${pareja(d)}.` : EV().empresa ? `Hola, equipo de ${d.nombre1}.` : `${EV().nombre} de ${d.nombre1}`;
     $("#pEtapa").textContent = P.etapa;
     clearInterval(tPoll);
     if (!P.pagado) {
@@ -84,7 +85,7 @@
       $("#pTabs").hidden = true;
       // El pago se hace en la tienda: ahí aparecen los métodos disponibles (Yappy solo desde Panamá, tarjeta o PayPal) y se confirma solo.
       const pagar = `${location.origin}/#pagar=${id}.${encodeURIComponent(key)}`;
-      const ayuda = `Hola, Miguel. ${quince() ? "Soy" : "Somos"} ${pareja(d)}. Pedido ${P.codigo} por $${P.plan.precio}. Necesito ayuda con el pago.`;
+      const ayuda = `Hola, Miguel. Escribo por la invitación de ${pareja(d)}. Pedido ${P.codigo} por $${P.plan.precio}. Necesito ayuda con el pago.`;
       $("#pCuerpo").innerHTML = `<div class="pay" style="max-width:620px"><div class="price">US$${P.plan.precio}<small>plan ${esc(P.plan.nombre)}</small></div>
         <section class="pay-op"><h3>Pagar ahora <span class="tag">Al instante</span></h3><span class="label" style="color:#A9B6CB">Su código</span><div class="code">${esc(P.codigo)}</div>
         <p class="fine-w">Con Yappy (desde Panamá), tarjeta o PayPal. Se confirma solo y no tienen que enviarnos nada: al terminar el pago empezamos su invitación.</p>
@@ -130,7 +131,7 @@
       el("div", { class: "p-card" }, [el("b", { text: P.plan.listaInvitados ? "Enlace general" : "Su enlace para compartir" }),
         el("p", { class: "hint", text: P.plan.std ? "Compártanlo con todos sus invitados para que reserven la fecha. La invitación con confirmación llega después." : P.plan.listaInvitados ? "Sirve para quien no esté en su lista. Para cada invitado usen su enlace personal (pestaña Invitados)." : `Compártanlo con todos. Cada respuesta puede incluir hasta ${P.totales.cupoGeneral} ${P.totales.cupoGeneral === 1 ? "persona" : "personas"}.` }),
         el("div", { class: "p-link" }, [el("input", { value: P.enlaceGeneral, readonly: true, "aria-label": "Enlace general" }), el("button", { class: "btn sm", type: "button", text: "Copiar", onclick: e => copiar(P.enlaceGeneral, e.currentTarget) })]),
-        el("a", { class: "link", href: `https://wa.me/?text=${encodeURIComponent(`${pareja(P.datos)} ${verbo("los invitan a su boda", "los invita a sus quince años")} 💌 Abran su invitación aquí: ${P.enlaceGeneral}`)}`, target: "_blank", rel: "noopener", text: "Compartir por WhatsApp" })]),
+        el("a", { class: "link", href: `https://wa.me/?text=${encodeURIComponent(`${invita(P.datos)} 💌 Abran su invitación aquí: ${P.enlaceGeneral}`)}`, target: "_blank", rel: "noopener", text: "Compartir por WhatsApp" })]),
       P.plan.std ? tarjetaCredito() : totales(),
       P.plan.std || !P.pagado ? null : tarjetaResena(),
     ]));
@@ -197,7 +198,7 @@
     if (!P.plan.listaInvitados) {
       c.append(el("div", { class: "p-card" }, [el("b", { text: "Su plan comparte un solo enlace con todos" }),
         el("p", { text: "Cópienlo en la pestaña «Su invitación» y envíenlo por WhatsApp. Las respuestas llegan a «Confirmaciones»." }),
-        el("p", { class: "hint", html: `¿Quieren que cada invitado reciba la suya, con su nombre y sus cupos? Es parte del plan Clásico. <a href="https://wa.me/${WA}?text=${encodeURIComponent(`Hola, Miguel. Quiero pasar mi pedido ${P.codigo} al plan Clásico.`)}" target="_blank" rel="noopener">Escríbannos</a>.` })]));
+        el("p", { class: "hint", html: `¿Quieren que cada invitado reciba la suya, con su nombre y sus cupos? Es parte del plan ${NP("clasico")}. <a href="https://wa.me/${WA}?text=${encodeURIComponent(`Hola, Miguel. Quiero pasar mi pedido ${P.codigo} al plan ${NP("clasico")}.`)}" target="_blank" rel="noopener">Escríbannos</a>.` })]));
       return;
     }
     const lista = P.invitados.map(i => ({ ...i }));
@@ -212,7 +213,7 @@
     const bloqueada = i => Boolean(i.enviado_at) && !desbloqueados.has(i.id);
 
     // ----- Cuadre -----
-    const totalIn = el("input", { type: "number", min: "1", max: "3000", inputmode: "numeric", value: total || "", placeholder: "150", "aria-label": "Total de invitados de su boda", id: "cqTotal" });
+    const totalIn = el("input", { type: "number", min: "1", max: "3000", inputmode: "numeric", value: total || "", placeholder: "150", "aria-label": `Total de invitados de ${EV().su}`, id: "cqTotal" });
     const relleno = el("i");
     const cqNum = el("div", { class: "cq-num", "aria-live": "polite" });
     const cqMsg = el("p", { class: "cq-msg" });
@@ -220,7 +221,7 @@
     const cqLib = el("p", { class: "cq-lib", hidden: true });
     const cuadre = el("section", { class: "p-card cuadre", "aria-label": "Cuadre de cupos" }, [
       el("div", { class: "cq-top" }, [
-        el("label", { class: "cq-total", for: "cqTotal" }, [el("span", { text: "Total de invitados de su boda" }), totalIn]),
+        el("label", { class: "cq-total", for: "cqTotal" }, [el("span", { text: `Total de invitados de ${EV().su}` }), totalIn]),
         cqNum]),
       el("div", { class: "cq-barra", role: "progressbar", "aria-label": "Cupos asignados" }, [relleno]), cqMsg, cqLib, cqSub]);
     const asignados = () => conNombre().reduce((s, i) => s + ocupa(i), 0);
@@ -435,8 +436,8 @@
         el("div", { class: "p-acc" }, [masivo])]),
       PLAN.recordatorios ? tarjetaRecordatorio() : null,
       !conWa ? el("div", { class: "p-card upsell" }, [el("b", { text: "¿Prefieren enviarlas por WhatsApp?" }),
-        el("p", { text: "Con el plan Clásico, cada invitación sale por WhatsApp con un toque, con el nombre y los cupos ya escritos. También suben a 150 invitaciones." }),
-        el("a", { class: "btn sm", href: `https://wa.me/${WA}?text=${encodeURIComponent(`Hola, Miguel. Quiero pasar mi pedido ${P.codigo} al plan Clásico.`)}`, target: "_blank", rel: "noopener", text: "Pasar al plan Clásico" })]) : null,
+        el("p", { text: `Con el plan ${NP("clasico")}, cada invitación sale por WhatsApp con un toque, con el nombre y los cupos ya escritos. También suben a 150 invitaciones.` }),
+        el("a", { class: "btn sm", href: `https://wa.me/${WA}?text=${encodeURIComponent(`Hola, Miguel. Quiero pasar mi pedido ${P.codigo} al plan ${NP("clasico")}.`)}`, target: "_blank", rel: "noopener", text: `Pasar al plan ${NP("clasico")}` })]) : null,
     ].filter(Boolean));
     pintarCuadre();
   }
@@ -560,7 +561,7 @@
     dibujar();
   }
 
-  const textoWa = i => `Hola, ${i.nombre} 💌 ${pareja(P.datos)} ${verbo("los invitan a su boda", "los invita a sus quince años")}${P.datos.fecha ? ` el ${Motor.longDate(P.datos.fecha)}` : ""}. Su invitación es para ${i.cupos} ${i.cupos === 1 ? "persona" : "personas"}. Ábranla y confirmen aquí: ${i.enlace}`;
+  const textoWa = i => `Hola, ${i.nombre} 💌 ${invita(P.datos)}${P.datos.fecha ? ` el ${Motor.longDate(P.datos.fecha)}` : ""}. Su invitación es para ${i.cupos} ${i.cupos === 1 ? "persona" : "personas"}. Ábranla y confirmen aquí: ${i.enlace}`;
   function descargarCSV() {
     const filas = [["Invitado", "Cupos", "WhatsApp", "Correo", "Respuesta", "Personas", "Nombres", "Alergias", "Mensaje", "Enlace"]];
     P.invitados.forEach(i => filas.push([i.nombre, i.cupos, i.telefono, i.correo, i.rsvp ? (i.rsvp.asiste ? "Sí" : "No") : "Pendiente", i.rsvp ? i.rsvp.personas : "", i.rsvp?.nombres || "", i.rsvp?.alergias || "", i.rsvp?.mensaje || "", i.enlace]));
@@ -594,14 +595,14 @@
     const row = (...k) => el("div", { class: "row2" }, k);
     f.append(
       el("p", { class: "hint", text: "Corregir datos es gratis y no gasta la ronda de ajustes. Sus invitados ven los cambios al instante, con el mismo enlace." }),
-      quince() ? campo("Nombre de la quinceañera", "nombre1", { maxlength: "40" }) : row(campo("Nombre (1)", "nombre1", { maxlength: "40" }), campo("Nombre (2)", "nombre2", { maxlength: "40" })),
+      EV().dos || EV().empresa ? row(campo(EV().l1, "nombre1", { maxlength: "40" }), campo(EV().l2, "nombre2", { maxlength: "40" })) : campo(EV().l1, "nombre1", { maxlength: "40" }),
       campo("Su frase", "frase", { maxlength: "120" }),
       row(campo("Fecha", "fecha", { type: "date", min: hoy(), max: maxF() }), campo("Hora", "hora", { type: "time" })),
       row(campo("Lugar", "lugar", { maxlength: "80" }), campo("Dirección", "direccion", { maxlength: "160" })),
       campo("Enlace de Google Maps", "mapa", { type: "url" }),
       row(campo("Recepción (lugar)", "recepcion.lugar", { maxlength: "80" }), campo("Recepción (hora)", "recepcion.hora", { type: "time" })),
       row(campo("Recepción (dirección)", "recepcion.direccion", { maxlength: "160" }), campo("Recepción (mapa)", "recepcion.mapa", { type: "url" })),
-      quince() ? campo("Padres de " + d.nombre1, "padres1", { maxlength: "120" }) : row(campo("Padres de " + d.nombre1, "padres1", { maxlength: "120" }), campo("Padres de " + d.nombre2, "padres2", { maxlength: "120" })),
+      EV().campos === "pareja" ? row(campo("Padres de " + d.nombre1, "padres1", { maxlength: "120" }), campo("Padres de " + d.nombre2, "padres2", { maxlength: "120" })) : EV().campos === "padres" ? campo("Padres de " + d.nombre1, "padres1", { maxlength: "120" }) : EV().campos === "hijos" ? campo("Sus hijos", "padres1", { maxlength: "120" }) : null,
       campo("Código de vestimenta", "vestimenta", { maxlength: "200" }),
       campo("Regalos", "regalos", { area: true, maxlength: "300" }),
       row(campo("Yappy para regalos", "regalosYappy", { maxlength: "30" }), campo("Confirmar antes del", "fechaLimite", { type: "date", min: hoy(), max: maxF() })),

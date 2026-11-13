@@ -31,9 +31,9 @@
 
   // Planes: los del servidor mandan; estos son el respaldo.
   let PLANES = [
-    {"id":"esencial","nombre":"Esencial","precio":89,"revisiones":1,"maxFotos":5,"musica":false,"listaInvitados":true,"canales":["correo"],"maxInvitaciones":50,"modelosExclusivos":false,"mesas":false,"recordatorios":false,"aMedida":false,"cambiarModelo":false,"resumen":"Su invitación y hasta 50 invitaciones personales por correo.","incluye":["Invitación con el sobre que se abre","Hasta 50 invitaciones con nombre y cupos","Envío por correo","Confirmaciones en su tablero","Hasta 5 fotos","1 ronda de ajustes"]},
-    {"id":"clasico","nombre":"Clásico","precio":149,"revisiones":1,"maxFotos":10,"musica":true,"listaInvitados":true,"canales":["correo","whatsapp"],"maxInvitaciones":150,"modelosExclusivos":true,"destacado":true,"mesas":false,"recordatorios":false,"aMedida":false,"cambiarModelo":false,"resumen":"Cada invitado la recibe por WhatsApp o correo, con su nombre y sus cupos.","incluye":["Todo lo del Esencial","Hasta 150 invitaciones","Envío por WhatsApp con un toque","Los modelos exclusivos (Épicos, Anime e Interactivos)","Música y hasta 10 fotos","1 ronda de ajustes"]},
-    {"id":"premium","nombre":"Premium","precio":219,"revisiones":1,"maxFotos":20,"musica":true,"listaInvitados":true,"canales":["correo","whatsapp"],"maxInvitaciones":300,"modelosExclusivos":true,"mesas":true,"recordatorios":true,"aMedida":false,"cambiarModelo":true,"resumen":"El panel completo: mesas, recordatorios y cambio de modelo.","incluye":["Todo lo del Clásico","Hasta 300 invitaciones","Los modelos Gran Estreno (telón de teatro)","Mesas: cada invitado ve la suya","Recordatorios automáticos a quienes no responden","Cambien de modelo cuando quieran","Hasta 20 fotos y 2 secciones extra"]},
+    {"id":"esencial","nombre":"Íntima","precio":79,"revisiones":1,"maxFotos":5,"musica":false,"listaInvitados":true,"canales":["correo"],"maxInvitaciones":50,"mesas":false,"recordatorios":false,"aMedida":false,"modelosExclusivos":false,"cambiarModelo":false,"invitados":"Hasta 50 invitados","resumen":"Para una celebración pequeña. Cada invitación llega por correo, con su nombre y sus cupos.","incluye":["Invitación con el sobre que se abre","Hasta 50 invitaciones con nombre y cupos","Envío por correo","Confirmaciones en vivo en su portal","Hasta 5 fotos"]},
+    {"id":"clasico","nombre":"Celebración","precio":129,"revisiones":1,"maxFotos":10,"musica":true,"listaInvitados":true,"canales":["correo","whatsapp"],"maxInvitaciones":150,"mesas":false,"recordatorios":false,"aMedida":false,"modelosExclusivos":true,"cambiarModelo":false,"destacado":true,"invitados":"Hasta 150 invitados","resumen":"La que más eligen. Cada invitado la recibe por WhatsApp o correo, con su nombre y sus cupos.","incluye":["Todo lo de Íntima","Hasta 150 invitaciones","Envío por WhatsApp con un toque","Los modelos exclusivos (Épicos, Anime e Interactivos)","Música y hasta 10 fotos"]},
+    {"id":"premium","nombre":"Gran Fiesta","precio":199,"revisiones":1,"maxFotos":20,"musica":true,"listaInvitados":true,"canales":["correo","whatsapp"],"maxInvitaciones":300,"mesas":true,"recordatorios":true,"aMedida":false,"modelosExclusivos":true,"cambiarModelo":true,"invitados":"Hasta 300 invitados","resumen":"Para la fiesta grande: mesas, recordatorios automáticos y cambio de modelo cuando quieran.","incluye":["Todo lo de Celebración","Hasta 300 invitaciones","Los modelos Gran Estreno (telón de teatro)","Mesas: cada invitado ve la suya","Recordatorios automáticos a quienes no responden","Cambien de modelo cuando quieran","Hasta 20 fotos y 2 secciones extra"]},
   ];
   let PAGO = { yappy: "6665-3528", whatsapp: CFG.whatsapp || "50763454868" };
   // Save the date (producto de entrada), precio de lanzamiento, descuento de planners y eventos activos: los manda el servidor.
@@ -51,13 +51,16 @@
     return { lista, precio, notas };
   }
   const precioHtml = (pl, conDescuentos = true) => { const x = precioDe(pl, conDescuentos); return x.precio < x.lista ? `<s>${money(x.lista)}</s> ${money(x.precio)}` : money(x.precio); };
-  // Modelos exclusivos: vienen desde el plan Clásico.
+  // Modelos exclusivos: vienen desde el plan del medio (Celebración) o solo en el mayor (Gran Fiesta).
   const ORDEN = { std: 0, esencial: 0, clasico: 1, premium: 2 };
   const alcanza = (planId, m) => !m || !m.plan || (ORDEN[planId] ?? 0) >= (ORDEN[m.plan] ?? 0);
   const modeloActual = () => MODELS.find(m => m.id === data.modelo);
-  const planesDe = m => (m && m.plan === "premium" ? "Premium" : "Clásico y Premium");
-  const planesO = m => (m && m.plan === "premium" ? "el plan Premium" : "los planes Clásico o Premium");
-  const sello = m => (m.plan ? el("span", { class: "excl" + (m.plan === "premium" ? " solo-premium" : ""), text: m.plan === "premium" ? "Solo Premium" : "Clásico y Premium" }) : null);
+  const N = id => (PLANES.find(p => p.id === id) || {}).nombre || id;
+  const planesDe = m => (m && m.plan === "premium" ? N("premium") : `${N("clasico")} y ${N("premium")}`);
+  const planesO = m => (m && m.plan === "premium" ? `el plan ${N("premium")}` : `los planes ${N("clasico")} o ${N("premium")}`);
+  const sello = m => (m.plan ? el("span", { class: "excl" + (m.plan === "premium" ? " solo-premium" : ""), text: m.plan === "premium" ? `Solo ${N("premium")}` : `Desde ${N("clasico")}` }) : null);
+  const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  const hastaTexto = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ""); return m ? `${Number(m[3])} de ${MESES[Number(m[2]) - 1]}` : ""; };
 
   // ---------- Datos del pedido ----------
   // La zona por defecto es la del teléfono de quien compra, si es una de las que atendemos.
@@ -67,7 +70,11 @@
   if (!data.tipo) data.tipo = "boda";
   if (!data.referido && window.loveRef && window.loveRef()) data.referido = window.loveRef();
   const save = () => store.set(STORE, data);
-  const esQuince = () => data.tipo === "quince";
+  // Tipo de evento (boda, quince, renovación de votos, bautizo, primera comunión, empresa): textos y campos de cada uno.
+  const EV = () => Motor.evento(data.tipo);
+  const pide2 = () => EV().dos || Boolean(EV().empresa);
+  // "Fecha de la boda", "Fecha del bautizo", "País del evento".
+  const deEv = s => `${s} de ${EV().cuando}`.replace(/ de el /, " del ");
   let fotos = []; // { url, b64 }
   let portada = 0;
 
@@ -94,23 +101,24 @@
   MODELS.forEach((m, i) => $("#catalog").append(el("button", { class: "mcard", type: "button", "data-family": m.family, "aria-label": `Ver el modelo ${m.name}`, onclick: () => abrirVista(m.id) }, [
     art(m), sello(m), el("div", { class: "mmeta" }, [el("div", {}, [el("b", { text: `${pad(i + 1)} · ${m.name}` }), el("small", { text: m.family })]), el("span", { class: "see", html: `Ver modelo ${arrow}` })])])));
 
-  // ---------- Volver a su boda ----------
-  (() => { const g = store.get("ml-boda"); const a = $("#navEntrar"); if (g && g.h && a) { a.href = `portal/#${g.h}`; a.textContent = "Mi boda"; a.title = `Continuar con la boda de ${g.nombres}`; } })();
+  // ---------- Volver a su portal ----------
+  (() => { const g = store.get("ml-boda"); const a = $("#navEntrar"); if (g && g.h && a) { a.href = `portal/#${g.h}`; a.textContent = "Mi portal"; a.title = `Continuar con la invitación de ${g.nombres}`; } })();
 
   // ---------- Planes ----------
   function pintarPlanes() {
     const box = $("#plans"); box.textContent = "";
     const lz = LANZ && LANZ.activo ? LANZ : null;
     const banner = $("#lanzBanner");
-    if (banner) { banner.hidden = !lz; if (lz) banner.innerHTML = `<b>Precio de lanzamiento:</b> el plan ${esc(planById(lz.plan).nombre)} a <b>US$${lz.precio}</b> en vez de US$${lz.antes} para las primeras ${lz.cupos} parejas. <span class="lz-quedan">Quedan ${lz.quedan} de ${lz.cupos}.</span>`; }
-    $$("[data-lanz]").forEach(n => { n.hidden = !lz; if (lz) n.textContent = `Clásico a US$${lz.precio} (antes US$${lz.antes}) · quedan ${lz.quedan} de ${lz.cupos} cupos de lanzamiento`; });
+    const hasta = lz ? hastaTexto(lz.hasta) : "";
+    if (banner) { banner.hidden = !lz; if (lz) banner.innerHTML = `<b>Precio de lanzamiento hasta el ${esc(hasta)}:</b> el plan ${esc(planById(lz.plan).nombre)} a <b>US$${lz.precio}</b> en vez de US$${lz.antes}. Vale aunque su evento sea en 2027 o 2028: el precio queda fijo desde que hacen su pedido.`; }
+    $$("[data-lanz]").forEach(n => { n.hidden = !lz; if (lz) n.textContent = `${planById(lz.plan).nombre} a US$${lz.precio} (antes US$${lz.antes}) hasta el ${hasta}`; });
     PLANES.forEach(p => box.append(el("article", { class: "plan" + (p.destacado ? " rec" : "") }, [
-      p.destacado ? el("span", { class: "badge", text: lz && lz.plan === p.id ? `Lanzamiento · quedan ${lz.quedan}` : "Recomendado" }) : null,
-      el("h3", { text: p.nombre }), el("p", { class: "fmt", text: p.resumen }),
+      p.destacado ? el("span", { class: "badge", text: lz && lz.plan === p.id ? `Lanzamiento · hasta el ${hasta}` : "La que más eligen" }) : null,
+      el("h3", { text: p.nombre }), p.invitados ? el("p", { class: "plan-inv", text: p.invitados }) : null, el("p", { class: "fmt", text: p.resumen }),
       lz && lz.plan === p.id
         ? el("p", { class: "price", html: `<small>USD</small>${lz.precio} <s class="antes">${lz.antes}</s>` })
         : el("p", { class: "price", html: `<small>USD</small>${p.precio}` }),
-      el("p", { class: "per", text: lz && lz.plan === p.id ? `Pago único · precio de lanzamiento para las primeras ${lz.cupos} parejas` : "Pago único" }),
+      el("p", { class: "per", text: lz && lz.plan === p.id ? `Pago único · precio de lanzamiento hasta el ${hasta}` : "Pago único" }),
       el("ul", {}, p.incluye.map(t => el("li", { html: `<svg aria-hidden="true"><use href="#delta"/></svg>${esc(t)}` }))),
       el("button", { class: "btn", type: "button", html: `Elegir ${esc(p.nombre)} ${arrow}`, onclick: () => { data.plan = p.id; save(); abrirPedido(data.modelo ? 2 : 1); } }),
     ])));
@@ -178,7 +186,7 @@
     data.modelo = vistaModelo.id; if (vistaModelo.plan && data.plan && data.plan !== "std" && !alcanza(data.plan, vistaModelo)) data.plan = vistaModelo.plan; save(); cerrarVista();
     if ($("#wizard").hidden) abrirPedido(2); else { pintarPaso(); actualizarVista(true); }
   });
-  const datosVista = () => (data.nombre1 && (data.nombre2 || esQuince()) ? data : { tipo: data.tipo });
+  const datosVista = () => (data.nombre1 && (data.nombre2 || !pide2()) ? data : { tipo: data.tipo });
 
   // ---------- Pedido por pasos ----------
   const PASOS = [
@@ -213,10 +221,16 @@
   $("#wReplay").addEventListener("click", () => actualizarVista(true));
   $("#wPeek").addEventListener("click", () => { if (!data.modelo) { err.textContent = "Primero elijan un modelo."; return; } abrirVista(data.modelo); });
 
+  // Paso 2: el título y la ayuda cambian según el evento.
+  function titulo2() {
+    const t = { quince: ["Empecemos por la quinceañera", "Su nombre y la fecha: la invitación se arma en vivo."], bautizo: ["Empecemos por el bebé", "Su nombre y la fecha: la invitación se arma en vivo."],
+      comunion: ["Empecemos por quien hace la comunión", "Su nombre y la fecha: la invitación se arma en vivo."], empresa: ["Empecemos por su evento", "La organización, el nombre del evento y la fecha: la invitación se arma en vivo."] }[data.tipo];
+    $("#wTitle").textContent = t ? t[0] : PASOS[1].t; $("#wSub").textContent = t ? t[1] : PASOS[1].s;
+  }
   function irA(n) {
     paso = n; err.textContent = "";
     $("#wCount").textContent = n <= 7 ? `Paso ${n} de 7` : "Resumen";
-    $("#wTitle").textContent = n === 2 && esQuince() ? "Empecemos por la quinceañera" : PASOS[n - 1].t; $("#wSub").textContent = PASOS[n - 1].s;
+    $("#wTitle").textContent = PASOS[n - 1].t; $("#wSub").textContent = PASOS[n - 1].s; if (n === 2) titulo2();
     $$("#progress i").forEach((b, i) => b.classList.toggle("on", i < n));
     $("#wBack").textContent = n === 1 ? "Cancelar" : "Atrás";
     $("#wNext").innerHTML = (n === 8 ? "Confirmar y pagar" : n === 7 ? "Revisar mi pedido" : "Siguiente") + " " + arrow;
@@ -323,11 +337,11 @@
     if (paso === 1) {
       const box = el("div", { class: "pick", role: "radiogroup", "aria-label": "Modelo de invitación" });
       MODELS.forEach(m => {
-        const card = el("div", { class: "pcard-m", role: "radio", tabindex: "0", "aria-checked": String(data.modelo === m.id), "aria-label": m.plan ? `${m.name} (${m.plan === "premium" ? "solo plan Premium" : "planes Clásico y Premium"})` : m.name }, [art(m), sello(m),
+        const card = el("div", { class: "pcard-m", role: "radio", tabindex: "0", "aria-checked": String(data.modelo === m.id), "aria-label": m.plan ? `${m.name} (${m.plan === "premium" ? `solo plan ${N("premium")}` : `planes ${planesDe(m)}`})` : m.name }, [art(m), sello(m),
           el("div", { class: "mmeta" }, [el("div", {}, [el("b", { text: m.name }), el("small", { text: m.family })]),
             el("button", { class: "see", type: "button", text: "Ver", "aria-label": `Ver ${m.name} en grande`, onclick: e => { e.stopPropagation(); abrirVista(m.id); } })])]);
         const elegir = () => {
-          if (data.plan === "std" && m.plan) { err.textContent = `El Save the date viene con los modelos sin sello. ${m.name} está en la invitación completa (${planesDe(m) === "Premium" ? "Premium" : "Clásico o Premium"}).`; return; }
+          if (data.plan === "std" && m.plan) { err.textContent = `El Save the date viene con los modelos sin sello. ${m.name} está en la invitación completa (${planesDe(m).replace(" y ", " o ")}).`; return; }
           data.modelo = m.id; if (!alcanza(data.plan, m)) data.plan = m.plan; save(); $$(".pcard-m", box).forEach(c => c.setAttribute("aria-checked", String(c === card))); err.textContent = ""; actualizarVista(true); };
         card.addEventListener("click", elegir);
         card.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); elegir(); } });
@@ -337,16 +351,17 @@
     }
     if (paso === 2) {
       const tipos = EVENTOS.length > 1 ? el("div", { class: "tipo-pick", role: "radiogroup", "aria-label": "Tipo de evento" }, EVENTOS.map(ev => el("button", { type: "button", role: "radio", class: "chip", "aria-checked": String(data.tipo === ev.id), text: ev.nombre,
-        onclick: () => { data.tipo = ev.id; if (ev.id === "quince") data.nombre2 = ""; save(); pintarPaso(); actualizarVista(false); } }))) : null;
+        onclick: () => { const antes = data.tipo; data.tipo = ev.id; if (antes !== ev.id && (Motor.evento(antes).empresa || ev.id === "empresa" || !Motor.evento(ev.id).dos)) data.nombre2 = ""; if (ev.id === "empresa") { data.padres1 = ""; data.padres2 = ""; data.padrinos = ""; } const c = Motor.evento(ev.id).ceremonias; if (!c.includes(data.ceremonia)) data.ceremonia = c[0]; save(); titulo2(); pintarPaso(); actualizarVista(false); } }))) : null;
+      const E = EV(), boda = data.tipo === "boda", mu = modeloActual() && modeloActual().muestra;
       form.append(
         tipos,
-        esQuince()
-          ? campo("Nombre de la quinceañera", inp("nombre1", { maxlength: "40", autocomplete: "off", placeholder: "Ej.: Valeria", required: true }))
-          : fila(campo("Nombre (1)", inp("nombre1", { maxlength: "40", autocomplete: "off", placeholder: `Ej.: ${(modeloActual() && modeloActual().muestra || ["Ana"])[0]}`, required: true })), campo("Nombre (2)", inp("nombre2", { maxlength: "40", autocomplete: "off", placeholder: `Ej.: ${(modeloActual() && modeloActual().muestra || [0, "Luis"])[1]}`, required: true }))),
-        campo(esQuince() ? "Su frase" : "Su frase", inp("frase", { maxlength: "120", placeholder: esQuince() ? "Ej.: Una noche para recordar siempre" : "Ej.: Elegimos el mismo camino" }), "Va en la portada.", true),
-        fila(campo(esQuince() ? "Fecha de la fiesta" : "Fecha de la boda", inp("fecha", { type: "date", min: hoy(), max: maxFecha(), required: true }), "", false), campo("Hora", inp("hora", { type: "time", required: true }))),
+        pide2()
+          ? fila(campo(E.l1, inp("nombre1", { maxlength: "40", autocomplete: "off", placeholder: `Ej.: ${boda && mu ? mu[0] : E.ej[0]}`, required: true })), campo(E.l2, inp("nombre2", { maxlength: "40", autocomplete: "off", placeholder: `Ej.: ${boda && mu ? mu[1] : E.ej[1]}`, required: true })))
+          : campo(E.l1, inp("nombre1", { maxlength: "40", autocomplete: "off", placeholder: `Ej.: ${E.ej[0]}`, required: true })),
+        campo("Su frase", inp("frase", { maxlength: "120", placeholder: E.frase }), "Va en la portada.", true),
+        fila(campo(deEv("Fecha"), inp("fecha", { type: "date", min: hoy(), max: maxFecha(), required: true }), "Puede ser dentro de meses o años: el precio queda fijo desde hoy.", false), campo("Hora", inp("hora", { type: "time", required: true }))),
         el("p", { class: "fecha-clara", id: "fechaClara", "aria-live": "polite" }),
-        campo(esQuince() ? "País de la fiesta" : "País de la boda", (() => { const s = el("select", { name: "zona", id: "f-zona" }); ZONAS.map(z => [z[0], z[1]]).forEach(([v, t]) => s.append(el("option", { value: v, text: t }))); s.value = data.zona; return s; })(), "Para la hora exacta y para buscar el lugar en el mapa."),
+        campo(deEv("País"), (() => { const s = el("select", { name: "zona", id: "f-zona" }); ZONAS.map(z => [z[0], z[1]]).forEach(([v, t]) => s.append(el("option", { value: v, text: t }))); s.value = data.zona; return s; })(), "Para la hora exacta y para buscar el lugar en el mapa."),
       );
       fechaClara();
     }
@@ -357,10 +372,10 @@
         const bloqueado = mod && !alcanza(pl.id, mod);
         const c = el("div", { class: "pp" + (pl.destacado ? " rec" : "") + (bloqueado ? " off" : ""), role: "radio", tabindex: bloqueado ? "-1" : "0", "aria-disabled": String(bloqueado), "aria-checked": String(data.plan === pl.id) }, [
           pl.destacado ? el("span", { class: "badge", text: "Recomendado" }) : null,
-          el("div", { class: "pp-h" }, [el("b", { text: pl.nombre }), el("span", { class: "pp-price", html: precioHtml(pl) })]),
-          LANZ && LANZ.activo && LANZ.plan === pl.id ? el("p", { class: "pp-lz", text: `Precio de lanzamiento · quedan ${LANZ.quedan} de ${LANZ.cupos}` }) : null,
+          el("div", { class: "pp-h" }, [el("b", { text: pl.nombre }), el("span", { class: "pp-price", html: precioHtml(pl) })]), pl.invitados ? el("p", { class: "pp-inv", text: pl.invitados }) : null,
+          LANZ && LANZ.activo && LANZ.plan === pl.id ? el("p", { class: "pp-lz", text: `Precio de lanzamiento hasta el ${hastaTexto(LANZ.hasta)}` }) : null,
           el("p", { class: "pp-r", text: pl.resumen }),
-          bloqueado ? el("p", { class: "pp-off", text: `No incluye el modelo ${mod.name}. Elijan ${mod.plan === "premium" ? "Premium" : "Clásico o Premium"}, o cambien de modelo en el paso 1.` }) : null,
+          bloqueado ? el("p", { class: "pp-off", text: `No incluye el modelo ${mod.name}. Elijan ${mod.plan === "premium" ? N("premium") : `${N("clasico")} o ${N("premium")}`}, o cambien de modelo en el paso 1.` }) : null,
           el("ul", {}, pl.incluye.map(t => el("li", { text: t }))),
         ]);
         const elegir = () => {
@@ -398,7 +413,7 @@
       otro.querySelector("input").addEventListener("change", e => { rec.hidden = !e.target.checked; if (!e.target.checked) { data.recepcion = null; save(); } });
       const prog = el("div", { class: "program", id: "progList" });
       form.append(
-        campo("¿Cómo llaman a la ceremonia?", (() => { const s = el("select", { name: "ceremonia", id: "f-ceremonia" }); ["Ceremonia", "Ceremonia religiosa", "Misa", "Ceremonia civil", "Ceremonia simbólica"].forEach(v => s.append(el("option", { value: v, text: v }))); s.value = data.ceremonia || "Ceremonia"; return s; })()),
+        campo(EV().empresa ? "¿Cómo llaman al momento principal?" : "¿Cómo llaman a la ceremonia?", (() => { const s = el("select", { name: "ceremonia", id: "f-ceremonia" }); const op = EV().ceremonias; op.forEach(v => s.append(el("option", { value: v, text: v }))); s.value = op.includes(data.ceremonia) ? data.ceremonia : op[0]; data.ceremonia = s.value; return s; })()),
         buscadorLugar(""),
         campo("Lugar", inp("lugar", { maxlength: "80", placeholder: "Ej.: Iglesia San Francisco de Asís", required: true })),
         campo("Dirección", inp("direccion", { maxlength: "160", placeholder: "Ciudad, calle o referencia", required: true })),
@@ -412,23 +427,24 @@
     if (paso === 5) {
       const premium = p.id === "premium";
       form.append(
-        esQuince() ? campo("Padres de " + (data.nombre1 || "la quinceañera"), inp("padres1", { maxlength: "120", placeholder: "Ej.: Carlos Pérez y María Gómez" }), "", true)
-          : fila(campo("Padres de " + (data.nombre1 || "(1)"), inp("padres1", { maxlength: "120", placeholder: "Ej.: Carlos Pérez y María Gómez" }), "", true), campo("Padres de " + (data.nombre2 || "(2)"), inp("padres2", { maxlength: "120" }), "", true)),
-        campo("Padrinos", inp("padrinos", { maxlength: "200" }), "", true),
+        EV().campos === "pareja" ? fila(campo("Padres de " + (data.nombre1 || "(1)"), inp("padres1", { maxlength: "120", placeholder: "Ej.: Carlos Pérez y María Gómez" }), "", true), campo("Padres de " + (data.nombre2 || "(2)"), inp("padres2", { maxlength: "120" }), "", true))
+          : EV().campos === "padres" ? campo("Padres de " + (data.nombre1 || "la persona festejada"), inp("padres1", { maxlength: "120", placeholder: "Ej.: Carlos Pérez y María Gómez" }), "", true)
+          : EV().campos === "hijos" ? campo("Sus hijos", inp("padres1", { maxlength: "120", placeholder: "Ej.: Andrea y Diego" }), "Aparecen en la invitación junto a ustedes.", true) : null,
+        EV().empresa ? null : campo("Padrinos", inp("padrinos", { maxlength: "200" }), "", true),
         campo("Código de vestimenta", inp("vestimenta", { maxlength: "200", placeholder: "Ej.: Formal. Guayabera blanca para ellos." }), "", true),
-        campo("Regalos", area("regalos", { maxlength: "300", placeholder: "Ej.: Su presencia es nuestro mejor regalo. Si desean, lluvia de sobres." }), "", true),
-        fila(campo("Yappy para regalos", inp("regalosYappy", { maxlength: "30", inputmode: "tel", placeholder: "6000-0000" }), "Aparece con un botón para copiar.", true), campo("Enlace de mesa de regalos", inp("regalosEnlace", { type: "url", placeholder: "https://…" }), "", true)),
+        EV().empresa ? null : campo("Regalos", area("regalos", { maxlength: "300", placeholder: "Ej.: Su presencia es nuestro mejor regalo. Si desean, lluvia de sobres." }), "", true),
+        EV().empresa ? null : fila(campo("Yappy para regalos", inp("regalosYappy", { maxlength: "30", inputmode: "tel", placeholder: "6000-0000" }), "Aparece con un botón para copiar.", true), campo("Enlace de mesa de regalos", inp("regalosEnlace", { type: "url", placeholder: "https://…" }), "", true)),
         check("soloAdultos", "La celebración es solo para adultos"),
         el("p", { class: "label", style: "margin-top:18px", text: "Confirmaciones" }),
         campo("Confirmar antes del", inp("fechaLimite", { type: "date", min: hoy(), max: data.fecha || maxFecha() }), "Después de esta fecha la invitación deja de recibir respuestas.", true),
         p.listaInvitados ? null : fila(campo("Cupos por confirmación", (() => { const s = el("select", { name: "cupoGeneral", id: "f-cupoGeneral" }); for (let i = 1; i <= 6; i++) s.append(el("option", { value: String(i), text: i === 1 ? "Solo la persona" : `Hasta ${i} personas` })); s.value = String(data.cupoGeneral || 2); return s; })(), "Con su enlace general, cada respuesta incluye hasta esta cantidad.")),
         check("preguntarAlergias", "Preguntar alergias o comida especial"),
         check("preguntarCancion", "Pedir a cada invitado una canción para la fiesta"),
-        premium ? el("p", { class: "label", style: "margin-top:18px", text: "Secciones Premium" }) : el("p", { class: "hint", html: "Con el plan <b>Premium</b> también pueden contar su historia, el hospedaje y el transporte." }),
-        premium ? campo("Nuestra historia", area("historia", { maxlength: "900", rows: "3", placeholder: "Cómo se conocieron, la propuesta…" }), "", true) : null,
+        premium ? el("p", { class: "label", style: "margin-top:18px", text: `Secciones ${p.nombre}` }) : el("p", { class: "hint", html: `Con el plan <b>${esc(planById("premium").nombre)}</b> también pueden sumar «${esc(EV().historia[0])}», el hospedaje y el transporte.` }),
+        premium ? campo(EV().historia[0], area("historia", { maxlength: "900", rows: "3", placeholder: EV().historia[1] }), "", true) : null,
         premium ? campo("Hospedaje para invitados", area("hospedaje", { maxlength: "400" }), "", true) : null,
         premium ? campo("Transporte", area("transporte", { maxlength: "300" }), "", true) : null,
-        fila(campo("Hashtag", inp("hashtag", { maxlength: "40", placeholder: "#AnaYLuis2027" }), "", true), campo("Transmisión en vivo", inp("transmision", { type: "url", placeholder: "https://…" }), "Para quienes no puedan ir.", true)),
+        fila(campo("Hashtag", inp("hashtag", { maxlength: "40", placeholder: EV().empresa ? "#FinDeAño2026" : "#AnaYLuis2027" }), "", true), campo("Transmisión en vivo", inp("transmision", { type: "url", placeholder: "https://…" }), "Para quienes no puedan ir.", true)),
       );
     }
     if (paso === 6) {
@@ -462,8 +478,8 @@
           b.hidden = !data.quiereFactura; return b;
         })(),
         el("div", { class: "w-legal" }, [el("p", { html: "<b>Condiciones</b>" }),
-          el("p", { text: "Usamos sus datos y fotos solo para crear y publicar su invitación. Es privada: no aparece en buscadores y está disponible hasta tres meses después de la boda; después la borramos." }),
-          el("p", { text: "Desde que confirmamos su pago empezamos a diseñar. Por eso no hacemos devoluciones, ni si la boda se cancela. Si se pospone, la invitación sigue siendo suya." }),
+          el("p", { text: `Usamos sus datos y fotos solo para crear y publicar su invitación. Es privada: no aparece en buscadores y está disponible hasta seis meses después ${deEv("").trim()}; después la borramos.` }),
+          el("p", { text: `Desde que confirmamos su pago empezamos a diseñar. Por eso no hacemos devoluciones, ni si ${EV().cuando} se cancela. Si se pospone, la invitación sigue siendo suya y la fecha se cambia gratis.` }),
           el("p", { html: '<a href="aviso/" target="_blank" rel="noopener">Leer el aviso completo</a>' })]),
         el("label", { class: "check" }, [el("input", { type: "checkbox", id: "ac-aviso" }), el("span", { text: "Leí y acepto el aviso de uso de información." })]),
         el("label", { class: "check" }, [el("input", { type: "checkbox", id: "ac-fotos" }), el("span", { text: "Tengo permiso para usar las fotos que subí." })]),
@@ -475,7 +491,7 @@
     if (paso === 8) {
       const m = Motor.modelById(data.modelo);
       const filas = [
-        ["Modelo", m.name, 1], [esQuince() ? "Quinceañera" : "Ustedes", `${esQuince() ? data.nombre1 : `${data.nombre1} & ${data.nombre2}`}${data.frase ? ` · “${data.frase}”` : ""}`, 2],
+        ["Modelo", m.name, 1], [EV().nombre, `${EV().dos ? `${data.nombre1} & ${data.nombre2}` : EV().empresa ? `${data.nombre2} · ${data.nombre1}` : data.nombre1}${data.frase ? ` · “${data.frase}”` : ""}`, 2],
         ["Fecha", `${Motor.longDate(data.fecha)} · ${Motor.hora12(data.hora)}`, 2], ["Plan", `${p.nombre} · ${money(p.precio)}${p.std ? "" : ` · ${p.revisiones === 1 ? "1 ronda de ajustes" : `${p.revisiones} rondas de ajustes`}`}`, 3],
         [data.ceremonia || "Ceremonia", `${data.lugar}, ${data.direccion}`, 4],
         data.recepcion && data.recepcion.lugar ? ["Recepción", `${data.recepcion.lugar}${data.recepcion.hora ? " · " + Motor.hora12(data.recepcion.hora) : ""}`, 4] : null,
@@ -501,7 +517,7 @@
   }
   function fechaClara() {
     const n = $("#fechaClara"); if (!n) return;
-    n.textContent = fechaOk(data.fecha) ? `${esQuince() ? "Su fiesta" : "Su boda"}: ${Motor.longDate(data.fecha)}` : "";
+    n.textContent = fechaOk(data.fecha) ? `${EV().nombre}: ${Motor.longDate(data.fecha)}` : "";
   }
   function pintarPrograma() {
     const box = $("#progList"); if (!box) return; box.textContent = "";
@@ -558,10 +574,10 @@
     if (n === 3 && data.plan === "std" && modeloActual() && modeloActual().plan) return falla(null, `El Save the date viene con los modelos sin sello. Cambien de modelo o elijan ${planesO(modeloActual()).replace(/^(el|los) planes? /, "")}.`);
     if (n === 3 && !alcanza(data.plan, modeloActual())) return falla(null, `El modelo ${modeloActual().name} viene en ${planesO(modeloActual())}.`);
     if (n === 2) {
-      if (!(data.nombre1 || "").trim()) return falla(f("nombre1"), "Falta el primer nombre.");
-      if (!esQuince() && !(data.nombre2 || "").trim()) return falla(f("nombre2"), "Falta el segundo nombre.");
-      if (esQuince()) data.nombre2 = "";
-      if (!fechaOk(data.fecha)) return falla(f("fecha"), esQuince() ? "Elijan la fecha de la fiesta." : "Elijan la fecha de la boda.");
+      if (!(data.nombre1 || "").trim()) return falla(f("nombre1"), EV().empresa ? "Falta el nombre de la empresa u organización." : "Falta el primer nombre.");
+      if (pide2() && !(data.nombre2 || "").trim()) return falla(f("nombre2"), EV().empresa ? "Falta el nombre del evento." : "Falta el segundo nombre.");
+      if (!pide2()) data.nombre2 = "";
+      if (!fechaOk(data.fecha)) return falla(f("fecha"), `Elijan ${deEv("la fecha").toLowerCase()}.`);
       if (data.fecha < hoy()) return falla(f("fecha"), "La fecha no puede estar en el pasado.");
       if (data.fecha > maxFecha()) return falla(f("fecha"), "La fecha no puede ser a más de 10 años.");
       if (!/^\d\d:\d\d$/.test(data.hora || "")) return falla(f("hora"), "Elijan la hora.");

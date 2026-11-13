@@ -16,6 +16,46 @@
     lugar: "Hacienda Los Robles", direccion: "Boquete, Chiriquí",
     programa: [{ hora: "16:00", acto: "Ceremonia" }, { hora: "17:30", acto: "Cóctel" }, { hora: "19:00", acto: "Cena" }, { hora: "21:00", acto: "Fiesta" }] };
 
+  // Tipos de evento: quién habla, cómo se nombra y los textos base. Debe coincidir con EVENTOS de la API (src/love/planes.js).
+  // dos: dos nombres. voz: "nosotros" (hablan los dos), "yo" (la persona festejada), "empresa" (la organización).
+  const EVENTOS = {
+    boda: { nombre: "Boda", dos: true, voz: "nosotros", l1: "Nombre (1)", l2: "Nombre (2)", ej: ["Ana", "Luis"], frase: "Ej.: Elegimos el mismo camino", cuando: "la boda",
+      encabezado: "Nos casamos", kicker: "Nuestra boda", intro: "Nos casamos y queremos que estén ahí, cerca de nosotros.", rsvp: "¿Nos acompañan?", cierre: "Los esperamos. Va a ser una fiesta de las que se cuentan.",
+      std: "Nos casamos. Guarden la fecha: la invitación con todos los detalles llega pronto.", padres: "Con la bendición de nuestros padres", padrinos: "Y nuestros padrinos",
+      campos: "pareja", historia: ["Nuestra historia", "Cómo se conocieron, la propuesta…"], cal: (a, b) => `Boda de ${a} y ${b}`, invita: "los invitan a su boda", su: "su boda",
+      ceremonias: ["Ceremonia", "Ceremonia religiosa", "Misa", "Ceremonia civil", "Ceremonia simbólica"] },
+    quince: { nombre: "Quince años", dos: false, voz: "yo", l1: "Nombre de la quinceañera", ej: ["Valeria"], frase: "Ej.: Una noche para recordar siempre", cuando: "la fiesta",
+      encabezado: "Mis XV años", kicker: "Mis XV años", intro: "Cumplo quince años y quiero celebrarlo con ustedes.", rsvp: "¿Me acompañan?", cierre: "Los espero esa noche. Vengan con ganas de bailar.",
+      std: "Cumplo quince años. Guarden la fecha: la invitación con todos los detalles llega pronto.", padres: "Con la bendición de mis padres", padrinos: "Y mis padrinos",
+      campos: "padres", padresL: "Padres de", historia: ["Mi historia", "Lo que quieras contar de ti…"], cal: a => `XV años de ${a}`, invita: "los invita a sus quince años", su: "sus quince años",
+      ceremonias: ["Ceremonia", "Misa", "Recepción", "Fiesta"] },
+    votos: { nombre: "Renovación de votos", dos: true, voz: "nosotros", l1: "Nombre (1)", l2: "Nombre (2)", ej: ["Marta", "Jorge"], frase: "Ej.: Veinticinco años después, otra vez sí", cuando: "la renovación",
+      encabezado: "Renovamos nuestros votos", kicker: "Renovamos nuestros votos", intro: "Volvemos a decirnos que sí, y queremos que estén ahí otra vez.", rsvp: "¿Nos acompañan?", cierre: "Los esperamos para brindar por lo que viene.",
+      std: "Renovamos nuestros votos. Guarden la fecha: la invitación con todos los detalles llega pronto.", padres: "Con nuestros hijos", padrinos: "Y nuestros padrinos",
+      campos: "hijos", historia: ["Nuestra historia", "Cuántos años llevan, cómo empezó todo…"], cal: (a, b) => `Renovación de votos de ${a} y ${b}`, invita: "los invitan a la renovación de sus votos", su: "su renovación de votos",
+      ceremonias: ["Ceremonia", "Misa", "Ceremonia simbólica", "Brindis"] },
+    bautizo: { nombre: "Bautizo", dos: false, voz: "yo", l1: "Nombre del bebé", ej: ["Mateo"], frase: "Ej.: Un regalo de Dios", cuando: "el bautizo",
+      encabezado: "Mi bautizo", kicker: "Mi bautizo", intro: "Voy a recibir el bautismo y quiero que estén conmigo ese día.", rsvp: "¿Me acompañan?", cierre: "Los espero con mucho cariño.",
+      std: "Voy a recibir el bautismo. Guarden la fecha: la invitación con todos los detalles llega pronto.", padres: "Con mis papás", padrinos: "Y mis padrinos",
+      campos: "padres", padresL: "Padres de", historia: ["Unas palabras de la familia", "Lo que quieran contarles a sus invitados…"], cal: a => `Bautizo de ${a}`, invita: "los invita a su bautizo", su: "su bautizo",
+      ceremonias: ["Ceremonia religiosa", "Misa", "Ceremonia"] },
+    comunion: { nombre: "Primera comunión", dos: false, voz: "yo", l1: "Nombre de quien hace la comunión", ej: ["Sofía"], frase: "Ej.: Con Jesús en mi corazón", cuando: "la primera comunión",
+      encabezado: "Mi primera comunión", kicker: "Mi primera comunión", intro: "Voy a recibir mi primera comunión y quiero compartirla con ustedes.", rsvp: "¿Me acompañan?", cierre: "Los espero para celebrar juntos.",
+      std: "Voy a recibir mi primera comunión. Guarden la fecha: la invitación con todos los detalles llega pronto.", padres: "Con mis papás", padrinos: "Y mis padrinos",
+      campos: "padres", padresL: "Padres de", historia: ["Unas palabras de la familia", "Lo que quieran contarles a sus invitados…"], cal: a => `Primera comunión de ${a}`, invita: "los invita a su primera comunión", su: "su primera comunión",
+      ceremonias: ["Misa", "Ceremonia religiosa", "Ceremonia"] },
+    empresa: { nombre: "Evento de empresa", dos: false, empresa: true, voz: "empresa", l1: "Empresa u organización", l2: "Nombre del evento", ej: ["Grupo Andino", "Cena de fin de año"], frase: "Ej.: Gracias por un gran año", cuando: "el evento",
+      encabezado: "Están invitados", kicker: "Están invitados", intro: "Queremos compartir esta noche con ustedes.", rsvp: "¿Nos acompañan?", cierre: "Los esperamos.",
+      std: "Guarden la fecha: la invitación con todos los detalles llega pronto.", padres: "", padrinos: "",
+      campos: "", historia: ["Sobre el evento", "Qué celebramos, quién habla, la agenda…"], cal: (a, b) => `${b} · ${a}`, invita: "los invita a", su: "su evento",
+      ceremonias: ["Evento", "Bienvenida", "Cena", "Conferencia", "Ceremonia", "Lanzamiento"] },
+  };
+  const evento = tipo => EVENTOS[tipo] || EVENTOS.boda;
+  // Quién firma: "Ana y Luis", "Valeria" o "Grupo Andino".
+  const quienInvita = d => { const ev = evento(d && d.tipo); return ev.dos ? [d.nombre1, d.nombre2].filter(Boolean).join(" y ") : (d && d.nombre1) || ""; };
+  // "Ana y Luis los invitan a su boda" · "Grupo Andino los invita a Cena de fin de año".
+  const fraseInvita = d => { const ev = evento(d && d.tipo); return `${quienInvita(d)} ${ev.invita}${ev.empresa ? ` «${d.nombre2 || "su evento"}»` : ""}`; };
+
   // ---------- Utilidades ----------
   const el = (tag, attrs = {}, kids = []) => {
     const n = document.createElement(tag);
@@ -765,15 +805,20 @@
     const T = D.textos || {};
     const d = Object.assign({}, o.datos || {});
     const muestra = !d.nombre1;
-    // Quince años: una sola festejada. Save the date: solo fecha y lugar.
-    const quince = d.tipo === "quince", std = Boolean(o.std) || T.encabezado === "Reserven la fecha";
-    const n1 = d.nombre1 || (quince ? "Valeria" : (m.muestra || [])[0] || SAMPLE.nombre1), n2 = quince ? "" : (d.nombre2 || (m.muestra || [])[1] || SAMPLE.nombre2);
+    // Tipo de evento: boda y renovación de votos llevan dos nombres; quince, bautizo y comunión, uno;
+    // en un evento de empresa, nombre1 es la organización y nombre2 el nombre del evento. Save the date: solo fecha y lugar.
+    const ev = evento(d.tipo), boda = !d.tipo || d.tipo === "boda", std = Boolean(o.std) || T.encabezado === "Reserven la fecha";
+    const n1 = d.nombre1 || (boda ? (m.muestra || [])[0] || SAMPLE.nombre1 : ev.ej[0]);
+    const n2 = ev.dos ? (d.nombre2 || (boda ? (m.muestra || [])[1] || SAMPLE.nombre2 : ev.ej[1])) : "";
+    const nEvento = ev.empresa ? (d.nombre2 || ev.ej[1]) : "";
     if (!(o.diseno && o.diseno.paleta)) {
-      if (quince) Object.assign(T, { encabezado: "Mis XV años", intro: "Cumplo quince años y quiero celebrarlo con ustedes.", titulo_rsvp: "¿Me acompañan?", cierre: "Los espero esa noche. Vengan con ganas de bailar." });
-      if (std) { Object.assign(T, { encabezado: "Reserven la fecha", intro: quince ? "Cumplo quince años. Guarden la fecha: la invitación con todos los detalles llega pronto." : "Nos casamos. Guarden la fecha: la invitación con todos los detalles llega pronto.", cierre: "Pronto, todos los detalles." }); D.secciones = ["cuenta", "lugar"]; }
+      if (!boda) Object.assign(T, { encabezado: ev.empresa ? nEvento : ev.encabezado, intro: ev.intro, titulo_rsvp: ev.rsvp, cierre: ev.cierre });
+      if (std) { Object.assign(T, { encabezado: "Reserven la fecha", intro: ev.std, cierre: "Pronto, todos los detalles." }); D.secciones = ["cuenta", "lugar"]; }
     }
-    const pareja = n2 ? `${n1} & ${n2}` : n1;
-    const frase = muestra ? SAMPLE.frase : (d.frase || "");
+    const pareja = n2 ? `${n1} & ${n2}` : ev.empresa ? nEvento : n1;
+    // A quién se dirigen los invitados: los novios, la pareja, la festejada, la familia o los organizadores.
+    const anfitriones = boda ? "los novios" : d.tipo === "votos" ? "la pareja" : ev.empresa ? "los organizadores" : d.tipo === "quince" ? n1 : "la familia";
+    const frase = muestra ? (boda ? SAMPLE.frase : ev.frase.replace(/^Ej\.: /, "")) : (d.frase || "");
     const fecha = d.fecha || futura();
     const tz = d.zona || "America/Panama";
     const lugar = d.lugar || SAMPLE.lugar, dir = d.direccion || SAMPLE.direccion;
@@ -797,8 +842,8 @@
     const hero = el("div", { class: "inv-hero" + (portada ? " has-photo" : "") }, [
       el("img", { class: "inv-hero-bg", src: portada || asset(m, "portada"), alt: "" }),
       el("div", { class: "inv-hero-text", style: `top:${m.heroY * 100}%;color:${portada ? "#fff" : m.heroInk}` }, [
-        el("p", { class: "inv-kicker", text: (quince || std) ? T.encabezado : (m.kicker || R.kicker || T.encabezado || "Nuestra boda") }),
-        el("p", { class: "inv-names", style: tituloCSS }, n2 ? [n1, el("span", { class: "amp", text: m.layout === "galeria" || m.layout === "deco" ? " & " : "&" }), n2] : [n1]),
+        el("p", { class: "inv-kicker", text: ev.empresa ? n1 : (!boda || std) ? T.encabezado : (m.kicker || R.kicker || T.encabezado || "Nuestra boda") }),
+        el("p", { class: "inv-names", style: tituloCSS }, n2 ? [n1, el("span", { class: "amp", text: m.layout === "galeria" || m.layout === "deco" ? " & " : "&" }), n2] : [ev.empresa ? nEvento : n1]),
         el("p", { class: "inv-date", text: shortDate(fecha) }),
         frase ? el("p", { class: "inv-phrase", text: `“${frase}”` }) : null,
       ]),
@@ -820,9 +865,11 @@
       ]));
     }
     if (d.padres1 || d.padres2) {
-      body.append(el("div", { class: "inv-padres rv" }, [el("small", { text: quince ? "Con la bendición de mis padres" : "Con la bendición de nuestros padres" }),
+      body.append(el("div", { class: "inv-padres rv" }, [el("small", { text: ev.padres || "Con la bendición de nuestros padres" }),
         d.padres1 ? el("p", { text: d.padres1 }) : null, d.padres2 ? el("p", { text: d.padres2 }) : null,
-        d.padrinos ? el("p", {}, [el("small", { text: "Y nuestros padrinos" }), d.padrinos]) : null]));
+        d.padrinos ? el("p", {}, [el("small", { text: ev.padrinos || "Y nuestros padrinos" }), d.padrinos]) : null]));
+    } else if (d.padrinos && ev.padrinos) {
+      body.append(el("div", { class: "inv-padres rv" }, [el("small", { text: ev.padrinos.replace(/^Y /, "Con ") }), el("p", { text: d.padrinos })]));
     }
     body.append(ornament());
 
@@ -844,14 +891,14 @@
     limpiezas.push(() => clearInterval(iv));
 
     // Calendario
-    const titulo = quince ? `XV años de ${n1}` : `Boda de ${n1} y ${n2}`;
+    const titulo = ev.cal(n1, ev.empresa ? nEvento : n2);
     const fin = new Date(target.getTime() + 6 * 3600000);
     const fmtCal = x => x.toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
     const gcal = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(titulo)}&dates=${fmtCal(target)}/${fmtCal(fin)}&location=${encodeURIComponent(`${lugar}, ${dir}`)}`;
     const ics = () => {
       const txt = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Mejorativa Love//ES", "BEGIN:VEVENT", `UID:${o.slug || "demo"}@love.mejorativa.com`, `DTSTAMP:${fmtCal(new Date())}`,
         `DTSTART:${fmtCal(target)}`, `DTEND:${fmtCal(fin)}`, `SUMMARY:${titulo}`, `LOCATION:${lugar}, ${dir}`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
-      const a = el("a", { href: URL.createObjectURL(new Blob([txt], { type: "text/calendar" })), download: "boda.ics" }); a.click();
+      const a = el("a", { href: URL.createObjectURL(new Blob([txt], { type: "text/calendar" })), download: "invitacion.ics" }); a.click();
     };
 
     // Lugar(es)
@@ -889,7 +936,7 @@
         R.tl === "trail" ? el("span", { class: "mk", text: "▲", "aria-hidden": "true" }) : null, el("time", { text: hora12(a.hora) }), el("span", { class: "act", text: a.acto })])))]) : null,
       fotos: () => {
         const resto = fotos.filter((_, i) => i !== (o.portada || 0));
-        return resto.length ? el("div", { class: "inv-gal rv", tabindex: "0", role: "region", "aria-label": "Fotos de los novios" }, resto.map(u => el("img", { src: u, alt: "Foto de los novios", loading: "lazy" }))) : null;
+        return resto.length ? el("div", { class: "inv-gal rv", tabindex: "0", role: "region", "aria-label": "Fotos" }, resto.map(u => el("img", { src: u, alt: "Foto", loading: "lazy" }))) : null;
       },
       lugar: () => sec("s-loc", T.titulo_lugar || "Dónde", [
         rc ? el("span", { class: "inv-sub", text: d.ceremonia || "Ceremonia" }) : null,
@@ -915,7 +962,7 @@
       const caja = el("div");
       const cerrado = o.cerrado;
       const max = o.invitado ? o.invitado.cupos : (d.acompanantes === "no" ? 1 : (o.cupoGeneral || 2));
-      const intro = el("p", { class: "addr", text: cerrado ? "La fecha para confirmar ya pasó. Escríbanles directamente a los novios." :
+      const intro = el("p", { class: "addr", text: cerrado ? `La fecha para confirmar ya pasó. Escríbanles directamente a ${anfitriones}.` :
         `${T.mensaje_rsvp || "Confirmen su asistencia."}${d.fechaLimite ? ` Antes del ${longDate(d.fechaLimite)}.` : ""}` });
       caja.append(intro);
       if (d.soloAdultos) caja.append(el("p", { class: "inv-nota", text: "Celebración solo para adultos." }));
@@ -936,7 +983,7 @@
         const nombres = el("input", { name: "nombres", maxlength: "300", placeholder: "Ej.: Ana, Pedro y Sofía" });
         const alergias = el("input", { name: "alergias", maxlength: "200", placeholder: "Ej.: maní, mariscos" });
         const cancion = el("input", { name: "cancion", maxlength: "120", placeholder: "La que no puede faltar" });
-        const mensaje = el("textarea", { name: "mensaje", rows: "2", maxlength: "400", placeholder: "Unas palabras para los novios" });
+        const mensaje = el("textarea", { name: "mensaje", rows: "2", maxlength: "400", placeholder: `Unas palabras para ${anfitriones}` });
         if (previa) nombres.value = previa.nombres || "";
         const camposSi = [
           max > 1 ? el("label", {}, ["Nombres de quienes van", nombres]) : null,
@@ -1140,5 +1187,5 @@
     return { abrir, destruir: () => { limpiezas.forEach(f => f()); screen.textContent = ""; } };
   }
 
-  window.Motor = { construir, modelById, shortDate, longDate, hora12, disenoInicial, asset };
+  window.Motor = { construir, modelById, shortDate, longDate, hora12, disenoInicial, asset, EVENTOS, evento, quienInvita, fraseInvita };
 })();

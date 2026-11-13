@@ -9,9 +9,9 @@ import json, os, subprocess, html, datetime
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE = "https://tiendalove.mejorativa.com"
 HOY = datetime.date.today().isoformat()
-V = "ix20261111b"
-PRECIO = {"esencial": 89, "clasico": 149, "premium": 219}
-NOMBRE_PLAN = {"esencial": "Esencial", "clasico": "Clásico", "premium": "Premium"}
+V = "ix20261113a"
+PRECIO = {"esencial": 79, "clasico": 129, "premium": 199}
+NOMBRE_PLAN = {"esencial": "Íntima", "clasico": "Celebración", "premium": "Gran Fiesta"}
 
 e = lambda s: html.escape(str(s), quote=True)
 
@@ -28,7 +28,7 @@ PAISES = [
     {
         "slug": "mexico", "nombre": "México", "hreflang": "es-MX", "locale": "es_MX",
         "titulo": "Invitaciones de boda digitales en México · Mejorativa Love",
-        "desc": "Invitaciones de boda digitales para bodas en México: se abren como un sobre, cada invitado confirma desde su celular y ustedes ven todo en su portal. Desde US$89.",
+        "desc": "Invitaciones de boda digitales para bodas en México: se abren como un sobre, cada invitado confirma desde su celular y ustedes ven todo en su portal. Desde US$79.",
         "h1": "Invitaciones de boda digitales para su boda en México.",
         "lead": "Su invitación llega al celular de cada invitado, se abre como un sobre de verdad y trae su nombre y sus lugares. Ustedes ven en vivo quién confirma.",
         "secciones": [
@@ -37,7 +37,7 @@ PAISES = [
             ("Cada familia, con sus lugares",
              "Ustedes cargan la lista y deciden cuántos lugares lleva cada invitación. Al confirmar, nadie puede anotar más personas de las que ustedes dieron. Si una familia va incompleta, esos lugares quedan libres para otra."),
             ("Se envía por WhatsApp",
-             "En los planes Clásico y Premium cada invitación sale por WhatsApp con un toque, con el nombre del invitado ya escrito. En todos los planes también se puede enviar por correo."),
+             "En los planes Celebración y Gran Fiesta cada invitación sale por WhatsApp con un toque, con el nombre del invitado ya escrito. En todos los planes también se puede enviar por correo."),
             ("Pago en dólares, sin complicaciones",
              "Pagan una sola vez con tarjeta de débito o crédito, o con PayPal. Su banco hace la conversión a pesos. La invitación queda lista minutos después de confirmar el pago."),
         ],
@@ -50,7 +50,7 @@ PAISES = [
     {
         "slug": "estados-unidos", "nombre": "Estados Unidos", "hreflang": "es-US", "locale": "es_US",
         "titulo": "Invitaciones de boda digitales en español en EE. UU. · Mejorativa Love",
-        "desc": "Invitaciones de boda digitales en español para parejas latinas en Estados Unidos, con invitados en varios países. Confirmación por WhatsApp y portal de novios. Desde US$89.",
+        "desc": "Invitaciones de boda digitales en español para parejas latinas en Estados Unidos, con invitados en varios países. Confirmación por WhatsApp y portal de novios. Desde US$79.",
         "h1": "Su boda en Estados Unidos, con una invitación en español.",
         "lead": "Para parejas latinas que se casan en EE. UU. y tienen familia repartida en varios países. Cada invitado recibe la suya en su teléfono, esté donde esté.",
         "secciones": [
@@ -72,29 +72,29 @@ PAISES = [
     {
         "slug": "espana", "nombre": "España", "hreflang": "es-ES", "locale": "es_ES",
         "titulo": "Invitaciones de boda online en España · Mejorativa Love",
-        "desc": "Invitaciones de boda online para bodas en España: un sobre que se abre en el móvil, confirmación de asistencia, alergias y lista de invitados con plazas. Desde 89 dólares.",
+        "desc": "Invitaciones de boda online para bodas en España: un sobre que se abre en el móvil, confirmación de asistencia, alergias y lista de invitados con plazas. Desde 79 dólares.",
         "h1": "Invitaciones de boda online para vuestra boda en España.",
         "lead": "Una invitación que se abre como un sobre en el móvil de cada invitado. Cada uno confirma su asistencia, cuántos van y si tiene alguna alergia, y vosotros lo veis todo en vuestro portal.",
         "secciones": [
             ("Confirmaciones sin perseguir a nadie",
-             "Cada invitado recibe su propia invitación con su nombre y sus plazas. Al confirmar indica cuántos van, sus nombres y las alergias. En el plan Premium, quienes no responden reciben un recordatorio automático."),
+             "Cada invitado recibe su propia invitación con su nombre y sus plazas. Al confirmar indica cuántos van, sus nombres y las alergias. En el plan Gran Fiesta, quienes no responden reciben un recordatorio automático."),
             ("Mesas y plazas",
-             "En el plan Premium cada invitación lleva el número de mesa. Si alguien va con menos personas, esas plazas quedan libres para otra familia, y el total se cuadra solo."),
+             "En el plan Gran Fiesta cada invitación lleva el número de mesa. Si alguien va con menos personas, esas plazas quedan libres para otra familia, y el total se cuadra solo."),
             ("Todo lo que vuestros invitados preguntan",
              "Horario de la ceremonia y del convite, dirección con Google Maps, código de vestimenta, número de cuenta o lista de bodas y alojamiento cercano. Si cambia algo, lo cambiáis vosotros desde el portal y el enlace sigue siendo el mismo."),
             ("Pago único",
              "Se paga una vez con tarjeta o PayPal, en dólares; vuestro banco hace el cambio a euros. La invitación llega a vuestro correo minutos después de confirmar el pago."),
         ],
         "faq": [
-            ("¿Se puede enviar por WhatsApp?", "Sí, en los planes Clásico y Premium, con un toque y el nombre de cada invitado ya escrito. En todos los planes se envía también por correo."),
-            ("¿Cuánto cuesta en euros?", "El precio es en dólares (desde US$89) y vuestro banco lo convierte a euros con su tipo de cambio del día."),
-            ("¿Hasta cuándo funciona?", "Hasta tres meses después de la boda. Después la apagamos y borramos los datos."),
+            ("¿Se puede enviar por WhatsApp?", "Sí, en los planes Celebración y Gran Fiesta, con un toque y el nombre de cada invitado ya escrito. En todos los planes se envía también por correo."),
+            ("¿Cuánto cuesta en euros?", "El precio es en dólares (desde US$79) y vuestro banco lo convierte a euros con su tipo de cambio del día."),
+            ("¿Hasta cuándo funciona?", "Hasta seis meses después de la boda. Después la apagamos y borramos los datos."),
         ],
     },
     {
         "slug": "panama", "nombre": "Panamá", "hreflang": "es-PA", "locale": "es_PA",
         "titulo": "Invitaciones de boda digitales en Panamá · Mejorativa Love",
-        "desc": "Invitaciones de boda digitales hechas en Panamá: se abren como un sobre, cada invitado confirma desde su celular y pagas con Yappy, PayPal o tarjeta. Desde US$89.",
+        "desc": "Invitaciones de boda digitales hechas en Panamá: se abren como un sobre, cada invitado confirma desde su celular y pagas con Yappy, PayPal o tarjeta. Desde US$79.",
         "h1": "Invitaciones de boda digitales, hechas en Panamá.",
         "lead": "Su invitación llega al celular de cada invitado, se abre como un sobre y trae su nombre y sus cupos. Ustedes ven en su portal quién confirma y cuántas personas van.",
         "secciones": [
@@ -105,7 +105,7 @@ PAISES = [
             ("Se paga con Yappy",
              "Pueden pagar con Yappy, con tarjeta o con PayPal. Si necesitan factura, la emitimos y les llega en PDF."),
             ("Por WhatsApp, como se hace aquí",
-             "En los planes Clásico y Premium cada invitación se envía por WhatsApp con un toque. En todos los planes también por correo."),
+             "En los planes Celebración y Gran Fiesta cada invitación se envía por WhatsApp con un toque. En todos los planes también por correo."),
         ],
         "faq": [
             ("¿Cuánto tarda?", "Minutos después de confirmar el pago. Con tarjeta o PayPal se confirma al instante; con Yappy, apenas vemos el comprobante."),
@@ -187,9 +187,9 @@ def cta(pre, modelo=None):
 
 def planes_html():
     return ("<h2>Planes</h2><ul>"
-            "<li><b>Esencial, US$89:</b> hasta 50 invitaciones con nombre y cupos, envío por correo, hasta 5 fotos y 1 ronda de ajustes.</li>"
-            "<li><b>Clásico, US$149:</b> hasta 150 invitaciones, envío por WhatsApp, modelos exclusivos, música y hasta 10 fotos.</li>"
-            "<li><b>Premium, US$219:</b> hasta 300 invitaciones, los modelos Gran Estreno, número de mesa, recordatorios automáticos y cambio de modelo cuando quieran.</li></ul>")
+            "<li><b>Íntima, US$79:</b> hasta 50 invitaciones con nombre y cupos, envío por correo y hasta 5 fotos.</li>"
+            "<li><b>Celebración, US$129:</b> hasta 150 invitaciones, envío por WhatsApp, modelos exclusivos, música y hasta 10 fotos.</li>"
+            "<li><b>Gran Fiesta, US$199:</b> hasta 300 invitaciones, los modelos Gran Estreno, número de mesa, recordatorios automáticos y cambio de modelo cuando quieran.</li></ul>")
 
 escritas = []
 
@@ -244,7 +244,7 @@ ld = {"@context": "https://schema.org", "@graph": [ORG,
         {"@type": "ListItem", "position": i + 1, "url": f"{BASE}/modelos/{m['id']}/", "name": m["name"]} for i, m in enumerate(MODELOS)]},
     migas(("Mejorativa Love", f"{BASE}/"), ("Modelos", f"{BASE}/modelos/"))]}
 escribir(ruta, pagina(ruta, "24 modelos de invitaciones de boda digitales · Mejorativa Love",
-    "Catálogo de invitaciones de boda digitales: elegantes, de lujo, de playa, tropicales, gamer, anime e interactivas. Todas se abren como un sobre en el teléfono. Desde US$89.",
+    "Catálogo de invitaciones de boda digitales: elegantes, de lujo, de playa, tropicales, gamer, anime e interactivas. Todas se abren como un sobre en el teléfono. Desde US$79.",
     cuerpo, ld, 1), "0.8", "weekly")
 
 for m in MODELOS:
@@ -255,7 +255,7 @@ for m in MODELOS:
                     [(sobre, f"Sobre cerrado de la invitación {m['name']}"), (portada, f"Portada de la invitación de boda {m['name']}")] if x)
     hermanos = [x for x in MODELOS if x["family"] == m["family"] and x["id"] != m["id"]] or [x for x in MODELOS if x["id"] != m["id"]][:3]
     plan = m["plan"]
-    nota_plan = "Disponible en todos los planes." if plan == "esencial" else "Exclusivo del plan Premium." if plan == "premium" else "Exclusivo de los planes Clásico y Premium."
+    nota_plan = "Disponible en todos los planes." if plan == "esencial" else "Exclusivo del plan Gran Fiesta." if plan == "premium" else "Exclusivo de los planes Celebración y Gran Fiesta."
     titulo = f"Invitación de boda digital {m['name']} ({m['family']}) · Mejorativa Love"
     desc = f"{m['blurb']} Invitación de boda digital que se abre en el teléfono de cada invitado, con confirmación de asistencia. Desde US${PRECIO[plan]}."
     cuerpo = f"""    <span class="label"><a href="../">Modelos</a> · {e(m['family'])}</span>
