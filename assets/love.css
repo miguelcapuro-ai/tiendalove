@@ -345,3 +345,10 @@ button.link { background: none; border: 0; padding: 0 0 2px; font: inherit; font
 .y-campo input:focus-visible { outline: 3px solid #E9D7A6; outline-offset: 2px; }
 .y-slot { min-height: 52px; display: flex; align-items: center; }
 .y-slot btn-yappy { display: block; width: 100%; max-width: 360px; }
+
+/* Planes por tamaño del evento: la cantidad de invitados va debajo del nombre (13 nov 2026). */
+.plan-inv { display: inline-block; margin: 2px 0 6px; font-size: .74rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
+.plan.rec .plan-inv { color: var(--gold-bright); }
+.pp-inv { margin: 2px 0 0; font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); }
+.std-hero { margin-top: 4px; }
+.std-hero a { color: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
