@@ -1,4 +1,4 @@
-/* Mejorativa Love · portal de quien compró la invitación (novios, familia u organización). Se entra con el enlace privado del correo: /portal/#id.clave */
+/* Lazo · portal de quien compró la invitación (novios, familia u organización). Se entra con el enlace privado del correo: /portal/#id.clave */
 (() => {
   "use strict";
   const API = (window.LOVE.api || "").replace(/\/$/, "");

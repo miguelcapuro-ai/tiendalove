@@ -1,4 +1,4 @@
-/* Mejorativa Love · medición de anuncios (Meta y Pinterest) y código de planner en el enlace.
+/* Lazo · medición de anuncios (Meta y Pinterest) y código de planner en el enlace.
    - Si no hay ID en love-config.js, no se carga nada.
    - Las etiquetas solo se cargan si la persona acepta (aviso abajo). Sin permiso, no se mide.
    - ?ref=CODIGO en cualquier página guarda el código del wedding planner para el pedido. */

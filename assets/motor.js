@@ -1,4 +1,4 @@
-/* Mejorativa Love · motor de invitaciones.
+/* Lazo · motor de invitaciones.
    Dibuja una invitación a partir del modelo (arte y composición), la ficha de diseño de Claude
    (paleta, letra, textos, orden, animación) y los datos del evento. Lo usan la tienda (vista previa),
    el portal de los novios y la página de cada invitado. */
@@ -896,7 +896,7 @@
     const fmtCal = x => x.toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
     const gcal = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(titulo)}&dates=${fmtCal(target)}/${fmtCal(fin)}&location=${encodeURIComponent(`${lugar}, ${dir}`)}`;
     const ics = () => {
-      const txt = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Mejorativa Love//ES", "BEGIN:VEVENT", `UID:${o.slug || "demo"}@love.mejorativa.com`, `DTSTAMP:${fmtCal(new Date())}`,
+      const txt = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Lazo//ES", "BEGIN:VEVENT", `UID:${o.slug || "demo"}@love.mejorativa.com`, `DTSTAMP:${fmtCal(new Date())}`,
         `DTSTART:${fmtCal(target)}`, `DTEND:${fmtCal(fin)}`, `SUMMARY:${titulo}`, `LOCATION:${lugar}, ${dir}`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
       const a = el("a", { href: URL.createObjectURL(new Blob([txt], { type: "text/calendar" })), download: "invitacion.ics" }); a.click();
     };
