@@ -566,7 +566,9 @@
     const filas = [["Invitado", "Cupos", "WhatsApp", "Correo", "Respuesta", "Personas", "Nombres", "Alergias", "Mensaje", "Enlace"]];
     P.invitados.forEach(i => filas.push([i.nombre, i.cupos, i.telefono, i.correo, i.rsvp ? (i.rsvp.asiste ? "Sí" : "No") : "Pendiente", i.rsvp ? i.rsvp.personas : "", i.rsvp?.nombres || "", i.rsvp?.alergias || "", i.rsvp?.mensaje || "", i.enlace]));
     P.generales.forEach(r => filas.push([r.nombre + " (enlace general)", "", "", "", r.asiste ? "Sí" : "No", r.personas, r.nombres || "", r.alergias || "", r.mensaje || "", ""]));
-    const csv = "﻿" + filas.map(f => f.map(x => `"${String(x ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n");
+    // Lo que escribe un invitado nunca debe abrirse como fórmula en Excel: si una celda empieza con = + - @ lleva un apóstrofo delante.
+    const celda = x => { let s = String(x ?? ""); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return `"${s.replace(/"/g, '""')}"`; };
+    const csv = "﻿" + filas.map(f => f.map(celda).join(",")).join("\r\n");
     el("a", { href: URL.createObjectURL(new Blob([csv], { type: "text/csv" })), download: `invitados-${P.codigo}.csv` }).click();
   }
 
