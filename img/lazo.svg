@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="172 182 384 362" role="img" aria-label="Lazo">
+<g fill="none" stroke="#14315C" stroke-width="10" stroke-linejoin="miter">
+<rect x="189" y="211" width="319" height="317"/>
+<path d="M230 247H276V458H413V496H230Z"/>
+</g>
+<path fill="#A33E2B" d="M276 450V316A70 70 0 0 1 416 316A70 70 0 0 1 416 456H282A6 6 0 0 1 276 450Z"/>
+<g fill="none" stroke="#14315C" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+<path d="M505 214C490 196 452 192 447 206C442 222 478 228 505 214Z"/>
+<path d="M505 214C522 194 548 196 545 213C542 230 522 230 505 214Z"/>
+<path d="M500 220L468 268"/>
+<path d="M508 220L515 268"/>
+</g>
+</svg>

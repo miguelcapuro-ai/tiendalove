@@ -189,3 +189,5 @@ select.f-mesa { font: inherit; font-size: 14px; padding: 9px 8px; border: 1px so
 .estrellas-pick { display: flex; gap: 4px; }
 .estrellas-pick button { font: inherit; font-size: 2rem; line-height: 1; background: none; border: 0; padding: 2px; cursor: pointer; color: #D2AE66; }
 .p-card.resena .check { display: flex; gap: 8px; align-items: flex-start; font-size: .9rem; }
+
+.brand .lazo-mark{width:30px;height:auto;display:block;flex:none}

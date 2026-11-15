@@ -1,4 +1,4 @@
-/* Mejorativa Love · tienda: catálogo, planes, pedido en pasos y pago con Yappy (como CV en el Quirófano). */
+/* Lazo · tienda: catálogo, planes, pedido en pasos y pago con Yappy (como CV en el Quirófano). */
 (() => {
   "use strict";
   const CFG = window.LOVE || {};
@@ -660,7 +660,7 @@
     $("#wNav").hidden = true; $(".w-side").hidden = true; $("#humanoPedido").hidden = true; err.textContent = "";
     $("#wCount").textContent = `Pedido ${p.codigo}`; $("#wTitle").textContent = "Último paso: el pago."; $("#wSub").textContent = `Plan ${p.plan} para ${p.nombres}.`;
     $$("#progress i").forEach(b => b.classList.add("on"));
-    const msg = `Hola, Miguel. Somos ${p.nombres} y ya pagamos nuestra invitación de Mejorativa Love. Pedido ${p.codigo} por ${money(p.monto)}. Aquí va el comprobante de Yappy.`;
+    const msg = `Hola, Miguel. Somos ${p.nombres} y ya pagamos nuestra invitación de Lazo. Pedido ${p.codigo} por ${money(p.monto)}. Aquí va el comprobante de Yappy.`;
     form.textContent = "";
     form.append(el("div", { class: "pay", html: `
       <div class="pay-top">

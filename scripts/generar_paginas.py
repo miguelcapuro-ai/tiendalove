@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Genera las páginas de búsqueda de Mejorativa Love: una por país, una por modelo y el catálogo /modelos/.
+"""Genera las páginas de búsqueda de Lazo: una por país, una por modelo y el catálogo /modelos/.
 
 Uso: python3 scripts/generar_paginas.py   (desde la raíz del repo; necesita node para leer models.js)
 Vuelve a escribir sitemap.xml. Los textos de cada país están aquí abajo; el catálogo sale de models.js.
@@ -9,7 +9,7 @@ import json, os, subprocess, html, datetime
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE = "https://tiendalove.mejorativa.com"
 HOY = datetime.date.today().isoformat()
-V = "ix20261113a"
+V = "ix20261115a"
 PRECIO = {"esencial": 79, "clasico": 129, "premium": 199}
 NOMBRE_PLAN = {"esencial": "Íntima", "clasico": "Celebración", "premium": "Gran Fiesta"}
 
@@ -27,7 +27,7 @@ def imagen(m, cual="portada"):
 PAISES = [
     {
         "slug": "mexico", "nombre": "México", "hreflang": "es-MX", "locale": "es_MX",
-        "titulo": "Invitaciones de boda digitales en México · Mejorativa Love",
+        "titulo": "Invitaciones de boda digitales en México · Lazo",
         "desc": "Invitaciones de boda digitales para bodas en México: se abren como un sobre, cada invitado confirma desde su celular y ustedes ven todo en su portal. Desde US$79.",
         "h1": "Invitaciones de boda digitales para su boda en México.",
         "lead": "Su invitación llega al celular de cada invitado, se abre como un sobre de verdad y trae su nombre y sus lugares. Ustedes ven en vivo quién confirma.",
@@ -49,7 +49,7 @@ PAISES = [
     },
     {
         "slug": "estados-unidos", "nombre": "Estados Unidos", "hreflang": "es-US", "locale": "es_US",
-        "titulo": "Invitaciones de boda digitales en español en EE. UU. · Mejorativa Love",
+        "titulo": "Invitaciones de boda digitales en español en EE. UU. · Lazo",
         "desc": "Invitaciones de boda digitales en español para parejas latinas en Estados Unidos, con invitados en varios países. Confirmación por WhatsApp y portal de novios. Desde US$79.",
         "h1": "Su boda en Estados Unidos, con una invitación en español.",
         "lead": "Para parejas latinas que se casan en EE. UU. y tienen familia repartida en varios países. Cada invitado recibe la suya en su teléfono, esté donde esté.",
@@ -71,7 +71,7 @@ PAISES = [
     },
     {
         "slug": "espana", "nombre": "España", "hreflang": "es-ES", "locale": "es_ES",
-        "titulo": "Invitaciones de boda online en España · Mejorativa Love",
+        "titulo": "Invitaciones de boda online en España · Lazo",
         "desc": "Invitaciones de boda online para bodas en España: un sobre que se abre en el móvil, confirmación de asistencia, alergias y lista de invitados con plazas. Desde 79 dólares.",
         "h1": "Invitaciones de boda online para vuestra boda en España.",
         "lead": "Una invitación que se abre como un sobre en el móvil de cada invitado. Cada uno confirma su asistencia, cuántos van y si tiene alguna alergia, y vosotros lo veis todo en vuestro portal.",
@@ -93,7 +93,7 @@ PAISES = [
     },
     {
         "slug": "panama", "nombre": "Panamá", "hreflang": "es-PA", "locale": "es_PA",
-        "titulo": "Invitaciones de boda digitales en Panamá · Mejorativa Love",
+        "titulo": "Invitaciones de boda digitales en Panamá · Lazo",
         "desc": "Invitaciones de boda digitales hechas en Panamá: se abren como un sobre, cada invitado confirma desde su celular y pagas con Yappy, PayPal o tarjeta. Desde US$79.",
         "h1": "Invitaciones de boda digitales, hechas en Panamá.",
         "lead": "Su invitación llega al celular de cada invitado, se abre como un sobre y trae su nombre y sus cupos. Ustedes ven en su portal quién confirma y cuántas personas van.",
@@ -131,7 +131,7 @@ def pagina(ruta, titulo, desc, cuerpo, ld, profundidad, extra_head="", imagen_og
 {extra_head}<meta name="theme-color" content="#0B1F3A">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="{locale}">
-<meta property="og:site_name" content="Mejorativa Love">
+<meta property="og:site_name" content="Lazo">
 <meta property="og:title" content="{e(titulo)}">
 <meta property="og:description" content="{e(desc)}">
 <meta property="og:url" content="{url}">
@@ -148,7 +148,7 @@ def pagina(ruta, titulo, desc, cuerpo, ld, profundidad, extra_head="", imagen_og
 <body>
 <header class="top">
   <div class="island">
-    <a class="brand" href="{pre}" aria-label="Mejorativa Love, inicio"><span class="mark mono" aria-hidden="true"></span><b translate="no">Mejorativa</b><i class="love-tag">Love</i></a>
+    <a class="brand" href="{pre}" aria-label="Lazo, inicio"><img class="lazo-mark" src="/img/lazo.svg" alt="" width="34" height="32"><b translate="no">Lazo</b></a>
     <nav class="nav" aria-label="Principal"><a href="{pre}modelos/">Modelos</a><a href="{pre}#planes">Planes</a><a class="btn sm" href="{pre}#crear">Crear nuestra invitación</a></nav>
   </div>
 </header>
@@ -158,7 +158,7 @@ def pagina(ruta, titulo, desc, cuerpo, ld, profundidad, extra_head="", imagen_og
   </div>
 </main>
 <footer><div class="wrap"><span>© 2026 <span translate="no">Mejorativa</span> by Miguel Capuro · Hecho en Panamá</span><nav aria-label="Pie de página">
-<a href="{pre}">Mejorativa Love</a>{''.join(f'<a href="{pre}{p["slug"]}/">Bodas en {e(p["nombre"])}</a>' for p in PAISES)}<a href="{pre}modelos/">Modelos</a><a href="{pre}aviso/">Aviso y condiciones</a><a href="https://mejorativa.com">mejorativa.com</a></nav></div></footer>
+<a href="{pre}">Lazo</a>{''.join(f'<a href="{pre}{p["slug"]}/">Bodas en {e(p["nombre"])}</a>' for p in PAISES)}<a href="{pre}modelos/">Modelos</a><a href="{pre}aviso/">Aviso y condiciones</a><a href="https://mejorativa.com">mejorativa.com</a></nav></div></footer>
 <script>window.LOVE_BASE = "{pre}";</script>
 <script src="{pre}assets/love-config.js?v={V}"></script>
 <script src="{pre}assets/medir.js?v={V}"></script>
@@ -207,7 +207,7 @@ for p in PAISES:
     url = f"{BASE}/{ruta}"
     secciones = "".join(f"<h2>{e(t)}</h2><p>{e(c)}</p>" for t, c in p["secciones"])
     faq = "".join(f"<h3>{e(q)}</h3><p>{e(a)}</p>" for q, a in p["faq"])
-    cuerpo = f"""    <span class="label">Mejorativa Love · Bodas en {e(p['nombre'])}</span>
+    cuerpo = f"""    <span class="label">Lazo · Bodas en {e(p['nombre'])}</span>
     <h1 class="display">{e(p['h1'])}</h1>
     <p class="lead">{e(p['lead'])}</p>
     {cta('../')}
@@ -226,7 +226,7 @@ for p in PAISES:
          "provider": {"@id": "https://mejorativa.com/#org"}, "areaServed": {"@type": "Country", "name": p["nombre"]},
          "url": url, "description": p["desc"], "offers": ofertas(url)},
         {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in p["faq"]]},
-        migas(("Mejorativa Love", f"{BASE}/"), (f"Bodas en {p['nombre']}", url))]}
+        migas(("Lazo", f"{BASE}/"), (f"Bodas en {p['nombre']}", url))]}
     escribir(ruta, pagina(ruta, p["titulo"], p["desc"], cuerpo, ld, 1, alternos, locale=p["locale"]), "0.8")
 
 # ---- catálogo y fichas de modelos
@@ -235,15 +235,15 @@ grupos = {}
 for m in MODELOS:
     grupos.setdefault(m["family"], []).append(m)
 bloques = "".join(f"<h2>{e(f)}</h2><div class='mgrid'>{''.join(tarjeta_modelo(m, '../') for m in ms)}</div>" for f, ms in grupos.items())
-cuerpo = f"""    <span class="label">Mejorativa Love · Catálogo</span>
+cuerpo = f"""    <span class="label">Lazo · Catálogo</span>
     <h1 class="display">25 modelos de invitación de boda digital.</h1>
     <p class="lead">Cada modelo tiene su propio arte y su forma de abrirse: un sobre clásico, un cofre que se rompe a toques o un sobre holográfico que se rasga con el dedo. Toquen uno para ver cómo se abre.</p>
     <div class="body">{bloques}{planes_html()}{cta('../')}</div>"""
 ld = {"@context": "https://schema.org", "@graph": [ORG,
     {"@type": "ItemList", "name": "Modelos de invitación de boda digital", "itemListElement": [
         {"@type": "ListItem", "position": i + 1, "url": f"{BASE}/modelos/{m['id']}/", "name": m["name"]} for i, m in enumerate(MODELOS)]},
-    migas(("Mejorativa Love", f"{BASE}/"), ("Modelos", f"{BASE}/modelos/"))]}
-escribir(ruta, pagina(ruta, "25 modelos de invitaciones de boda digitales · Mejorativa Love",
+    migas(("Lazo", f"{BASE}/"), ("Modelos", f"{BASE}/modelos/"))]}
+escribir(ruta, pagina(ruta, "25 modelos de invitaciones de boda digitales · Lazo",
     "Catálogo de invitaciones de boda digitales: elegantes, de lujo, de playa, tropicales, gamer, anime e interactivas. Todas se abren como un sobre en el teléfono. Desde US$79.",
     cuerpo, ld, 1), "0.8", "weekly")
 
@@ -256,7 +256,7 @@ for m in MODELOS:
     hermanos = [x for x in MODELOS if x["family"] == m["family"] and x["id"] != m["id"]] or [x for x in MODELOS if x["id"] != m["id"]][:3]
     plan = m["plan"]
     nota_plan = "Disponible en todos los planes." if plan == "esencial" else "Exclusivo del plan Gran Fiesta." if plan == "premium" else "Exclusivo de los planes Celebración y Gran Fiesta."
-    titulo = f"Invitación de boda digital {m['name']} ({m['family']}) · Mejorativa Love"
+    titulo = f"Invitación de boda digital {m['name']} ({m['family']}) · Lazo"
     desc = f"{m['blurb']} Invitación de boda digital que se abre en el teléfono de cada invitado, con confirmación de asistencia. Desde US${PRECIO[plan]}."
     cuerpo = f"""    <span class="label"><a href="../">Modelos</a> · {e(m['family'])}</span>
     <h1 class="display">Invitación de boda {e(m['name'])}.</h1>
@@ -279,9 +279,9 @@ for m in MODELOS:
     img_og = f"{BASE}/{portada}" if portada else None
     ld = {"@context": "https://schema.org", "@graph": [ORG,
         {"@type": "Product", "name": f"Invitación de boda digital {m['name']}", "description": m["blurb"], "category": f"Invitaciones de boda digitales · {m['family']}",
-         "brand": {"@type": "Brand", "name": "Mejorativa Love"}, **({"image": img_og} if img_og else {}),
+         "brand": {"@type": "Brand", "name": "Lazo"}, **({"image": img_og} if img_og else {}),
          "offers": {"@type": "Offer", "price": str(PRECIO[plan]), "priceCurrency": "USD", "url": url, "availability": "https://schema.org/InStock"}},
-        migas(("Mejorativa Love", f"{BASE}/"), ("Modelos", f"{BASE}/modelos/"), (m["name"], url))]}
+        migas(("Lazo", f"{BASE}/"), ("Modelos", f"{BASE}/modelos/"), (m["name"], url))]}
     escribir(ruta, pagina(ruta, titulo, desc, cuerpo, ld, 2, imagen_og=img_og), "0.6")
 
 # ---- sitemap

@@ -352,3 +352,7 @@ button.link { background: none; border: 0; padding: 0 0 2px; font: inherit; font
 .pp-inv { margin: 2px 0 0; font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); }
 .std-hero { margin-top: 4px; }
 .std-hero a { color: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---- Marca Lazo en el encabezado ---- */
+.brand .lazo-mark { width: 34px; height: auto; display: block; flex: none; }
+.w-top .brand .lazo-mark { width: 30px; }
