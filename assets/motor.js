@@ -1096,7 +1096,21 @@
     if (video) { video.addEventListener("canplaythrough", () => { videoListo = true; }, { once: true }); video.addEventListener("error", () => { videoListo = false; video.remove(); }, { once: true }); }
     const flash = el("div", { class: "env-flash" });
     const vign = el("div", { class: "env-vignette" });
-    const card = el("div", { class: "env-card", style: `top:${m.cardY * 100}%;color:${m.cardInk};${tituloCSS}` }, [el("span", { class: "c-names", text: pareja }), el("span", { class: "c-date", text: shortDate(fecha) })]);
+    const card = el("div", { class: "env-card", style: `top:${m.cardY * 100}%;${m.cardW ? `width:${m.cardW * 100}%;` : ""}color:${m.cardInk};${tituloCSS}` }, [el("span", { class: "c-names", text: pareja }), el("span", { class: "c-date", text: shortDate(fecha) })]);
+    // Los nombres se achican hasta caber en la tarjeta (máximo dos líneas): «Valeria & Andrés» en una letra ancha
+    // no puede salirse del papel. Se mide cuando las letras ya cargaron y cada vez que cambia el tamaño.
+    const encajar = () => {
+      const nm = card.querySelector(".c-names"); if (!nm || !card.clientWidth) return;
+      nm.style.fontSize = ""; let k = 1;
+      const base = parseFloat(getComputedStyle(nm).fontSize) || 16, lh = parseFloat(getComputedStyle(nm).lineHeight) || base * 1.05;
+      // Se mide el texto escrito (no la caja): en una tarjeta en rejilla el texto puede desbordar sin que la caja crezca.
+      const rg = document.createRange(); rg.selectNodeContents(nm);
+      const ancho = () => { const r = rg.getBoundingClientRect(), c = card.getBoundingClientRect(); return r.width / Math.max(1, c.width); };
+      const alto = () => { const r = rg.getBoundingClientRect(), c = card.getBoundingClientRect(); return r.height / Math.max(1, c.width) * card.clientWidth; };
+      while (k > .45 && (ancho() > 1.001 || alto() > lh * k * 2.25)) { k -= .04; nm.style.fontSize = base * k + "px"; }
+    };
+    listoFuentes.then(encajar);
+    if (window.ResizeObserver) { const roC = new ResizeObserver(() => encajar()); roC.observe(screen); limpiezas.push(() => roC.disconnect()); }
     const hint = el("p", { class: "env-hint", text: IX ? IX.invita : "Toca el sobre para abrir" });
     const para = o.invitado ? el("p", { class: "env-para" }, ["Para", el("b", { text: o.invitado.nombre })]) : null;
     const cam = el("div", { class: "env-cam" }, [closed, opened, video, glow, card]);
