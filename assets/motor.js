@@ -174,7 +174,16 @@
     const src = asset(m, "foto");
     const par = el("img", { class: "tl-par", src, alt: "", draggable: false });
     const reflejo = el("img", { class: "tl-reflejo", src, alt: "", draggable: false });
-    const giro = el("div", { class: "tl-giro" }, [reflejo, par]);
+    // Si el modelo trae el vals grabado (baile.mp4: el mismo recuadro del escenario, en bucle), la pareja baila de verdad.
+    // La foto queda debajo como respaldo: si el video no carga o el invitado pidió menos movimiento, se ve la foto quieta.
+    const vid = m.baileVideo && !reduced ? el("video", { class: "tl-vid", muted: "", loop: "", playsinline: "", "webkit-playsinline": "", autoplay: "", preload: "auto", poster: "", "aria-hidden": "true" }) : null;
+    if (vid) {
+      vid.muted = true; vid.src = `${window.LOVE_BASE || ""}assets/baile/${m.id}.mp4`;
+      vid.addEventListener("playing", () => { par.style.opacity = "0"; reflejo.style.opacity = "0"; }, { once: true });
+      vid.addEventListener("error", () => vid.remove(), { once: true });
+      const p = vid.play(); if (p && p.catch) p.catch(() => {});
+    }
+    const giro = el("div", { class: "tl-giro" }, vid ? [reflejo, par, vid] : [reflejo, par]);
     const caja = el("div", { class: "tl-baile", "aria-hidden": "true" }, [giro]);
     const humo = el("div", { class: "tl-humo", "aria-hidden": "true" });
     caja.style.transformOrigin = `50% ${b.pie * 100}%`;
