@@ -996,7 +996,8 @@
         if (previa) nombres.value = previa.nombres || "";
         const camposSi = [
           max > 1 ? el("label", {}, ["Nombres de quienes van", nombres]) : null,
-          d.preguntarAlergias !== false ? el("label", {}, ["Alergias o comida especial", alergias]) : null,
+          // Ley 81: una alergia es un dato de salud. Es opcional, se dice para qué es y quién lo ve.
+          d.preguntarAlergias !== false ? el("label", {}, ["Alergias o comida especial (opcional)", alergias, el("small", { class: "inv-nota", style: "display:block", text: `Solo lo verán ${anfitriones} para preparar el menú. Se borra con la invitación.` })]) : null,
           d.preguntarCancion ? el("label", {}, ["Una canción para la fiesta", cancion]) : null,
         ];
         // Novedades de Mejorativa: solo si el invitado lo pide y escribe su propio correo. Nunca marcada de fábrica.
