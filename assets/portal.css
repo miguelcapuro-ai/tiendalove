@@ -191,3 +191,10 @@ select.f-mesa { font: inherit; font-size: 14px; padding: 9px 8px; border: 1px so
 .p-card.resena .check { display: flex; gap: 8px; align-items: flex-start; font-size: .9rem; }
 
 .brand .lazo-mark{width:30px;height:auto;display:block;flex:none}
+
+/* Confirmación propia (los navegadores dentro de WhatsApp o Instagram a veces ignoran confirm()) */
+.p-modal { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(11, 31, 58, .55); }
+.p-modal-caja { background: #fff; color: var(--text); border-radius: 20px; padding: 22px; max-width: 420px; width: 100%; box-shadow: 0 20px 60px rgba(0, 0, 0, .25); }
+.p-modal-caja p { margin: 0 0 18px; line-height: 1.5; font-size: 1.02rem; }
+.p-modal-acc { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.p-privado { margin: 10px 0 0; font-size: .86rem; color: var(--muted); }

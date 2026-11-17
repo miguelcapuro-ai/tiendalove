@@ -102,7 +102,7 @@
     art(m), sello(m), el("div", { class: "mmeta" }, [el("div", {}, [el("b", { text: `${pad(i + 1)} · ${m.name}` }), el("small", { text: m.family })]), el("span", { class: "see", html: `Ver modelo ${arrow}` })])])));
 
   // ---------- Volver a su portal ----------
-  (() => { const g = store.get("ml-boda"); const a = $("#navEntrar"); if (g && g.h && a) { a.href = `portal/#${g.h}`; a.textContent = "Mi portal"; a.title = `Continuar con la invitación de ${g.nombres}`; } })();
+  (() => { const g = store.get("ml-boda"); const a = $("#navEntrar"); if (g && g.h && a && Date.now() - (g.t || 0) < 30 * 864e5) { a.href = `portal/#${g.h}`; a.textContent = "Mi portal"; a.title = `Continuar con la invitación de ${g.nombres}`; } })();
 
   // ---------- Planes ----------
   function pintarPlanes() {
@@ -453,7 +453,7 @@
       const ul = el("ul", { class: "thumbs", id: "thumbs" });
       form.append(drop, ul,
         p.musica ? fila(campo("Su canción", inp("musica", { maxlength: "120", placeholder: "Nombre y artista" }), "", true), campo("Enlace de la canción", inp("musicaEnlace", { type: "url", placeholder: "https://open.spotify.com/…" }), "", true)) : null,
-        campo("Colores o estilo que les gustaría", inp("estilo", { maxlength: "300", placeholder: "Ej.: verde salvia y dorado, muy minimalista" }), "Claude lo toma en cuenta al diseñar.", true),
+        campo("Colores o estilo que les gustaría", inp("estilo", { maxlength: "300", placeholder: "Ej.: verde salvia y dorado, muy minimalista" }), "Claude afina los tonos dentro del modelo que eligieron. Si quieren otro estilo (por ejemplo, mármol o algo clásico), elijan ese modelo en el paso 1.", true),
         campo("¿Algo más que debamos saber?", area("notas", { maxlength: "1200", rows: "3" }), "", true));
       $("#fotoIn", form).addEventListener("change", subirFotos);
       pintarFotos();
