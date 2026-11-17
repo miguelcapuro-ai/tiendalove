@@ -27,13 +27,25 @@
 <body>
 <div class="estado" id="estado"><div><div class="sello" aria-hidden="true"></div><h1>Un momento…</h1><p>Estamos abriendo su invitación.</p></div></div>
 <div class="inv-page" id="pagina" hidden><div class="screen" id="screen"></div></div>
+<script>
+/* Navegadores que no pueden mover la invitación animada (Internet Explorer, Edge antiguo, teléfonos viejos)
+   reciben la versión clásica: misma información y confirmación de asistencia, sin animación. */
+window.LAZO_CLASICA = (function () {
+  try { new Function("let a = () => ({ ...{} }); return a?.() ?? 0;"); } catch (e) { return true; }
+  return !(window.fetch && window.Promise && window.CSS && CSS.supports && CSS.supports("width", "1cqw") && document.documentElement.animate);
+})();
+</script>
 <script>window.LOVE_BASE = "../";</script>
 <script src="../assets/love-config.js?v=ix20261115a"></script>
 <script src="../models.js?v=ix20261116b"></script>
 <script src="../assets/humano.js?v=ix20261115a"></script>
 <script src="../assets/motor.js?v=ix20261116c"></script>
 <script>
+if (window.LAZO_CLASICA) { var c = document.createElement("script"); c.src = "../assets/inv-clasica.js?v=ix20261117a"; document.body.appendChild(c); }
+</script>
+<script>
 (() => {
+  if (window.LAZO_CLASICA) return;
   const API = (window.LOVE.api || "").replace(/\/$/, "");
   const estado = document.getElementById("estado");
   const mostrar = (t, p) => { estado.innerHTML = `<div><div class="sello" aria-hidden="true" style="animation:none"></div><h1></h1><p></p></div>`; estado.querySelector("h1").textContent = t; estado.querySelector("p").textContent = p; estado.hidden = false; };

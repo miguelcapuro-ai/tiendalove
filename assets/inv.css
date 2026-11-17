@@ -222,7 +222,7 @@
 .loc-moon { border: 1px solid #c3cbd866; border-radius: 3cqw; padding: 6cqw; background: radial-gradient(circle at 85% 15%, #c3cbd833 0 8cqw, transparent 8.2cqw); }
 .loc-block { background: #111; color: #fff; padding: 8cqw 6cqw; text-align: left; }
 .loc-block .when { color: #fff; opacity: .7; }
-.loc-frame { padding: 7cqw 5cqw; border: 3px double var(--acc); background: color-mix(in srgb, var(--paper) 85%, #fff); }
+.loc-frame { padding: 7cqw 5cqw; border: 3px double var(--acc); background: var(--paper); background: color-mix(in srgb, var(--paper) 85%, #fff); }
 .L-real .loc-frame { background: #14493a; }
 .loc-plaque { padding: 7cqw 5cqw; border: 1px solid var(--acc); clip-path: polygon(6% 0, 94% 0, 100% 12%, 100% 88%, 94% 100%, 6% 100%, 0 88%, 0 12%); background: #1a1a1a; }
 .loc-simple .place { font-style: italic; font-size: 7cqw; }
@@ -280,7 +280,7 @@
 .inv-gal::-webkit-scrollbar { display: none; }
 .inv-gal img { flex: none; width: 70cqw; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 2cqw; scroll-snap-align: center; }
 .inv-faq { text-align: left; max-width: 80cqw; margin: 0 auto; }
-.inv-faq details { border-bottom: 1px solid color-mix(in srgb, var(--acc) 40%, transparent); }
+.inv-faq details { border-bottom: 1px solid var(--acc); border-bottom: 1px solid color-mix(in srgb, var(--acc) 40%, transparent); }
 .inv-faq summary { cursor: pointer; padding: 3.4cqw 0; font-weight: 600; list-style: none; }
 .inv-faq summary::-webkit-details-marker { display: none; }
 .inv-faq p { margin: 0 0 3.4cqw; opacity: .85; }
@@ -289,8 +289,8 @@
 /* Confirmación */
 .inv-rsvp-form { display: grid; gap: 3.6cqw; max-width: 76cqw; margin: 5cqw auto 0; text-align: left; }
 .inv-rsvp-form label { display: grid; gap: 1.4cqw; font-size: 3.3cqw; letter-spacing: .06em; }
-.inv-rsvp-form input, .inv-rsvp-form textarea, .inv-rsvp-form select { font: inherit; font-size: 4cqw; padding: 3cqw 3.6cqw; border-radius: 2cqw; border: 1px solid color-mix(in srgb, var(--acc) 55%, transparent);
-  background: color-mix(in srgb, var(--paper) 88%, #fff); color: var(--ink); width: 100%; box-sizing: border-box; }
+.inv-rsvp-form input, .inv-rsvp-form textarea, .inv-rsvp-form select { font: inherit; font-size: 4cqw; padding: 3cqw 3.6cqw; border-radius: 2cqw; border: 1px solid var(--acc); border: 1px solid color-mix(in srgb, var(--acc) 55%, transparent);
+  background: #fff; background: color-mix(in srgb, var(--paper) 88%, #fff); color: var(--ink); width: 100%; box-sizing: border-box; }
 .inv-sino { display: grid; grid-template-columns: 1fr 1fr; gap: 2.4cqw; }
 .inv-sino button { font: inherit; font-size: 3.8cqw; padding: 3.2cqw; border-radius: 999px; border: 1px solid var(--acc); background: transparent; color: var(--ink); cursor: pointer; }
 .inv-sino button[aria-pressed="true"] { background: var(--acc); color: var(--paper); }
