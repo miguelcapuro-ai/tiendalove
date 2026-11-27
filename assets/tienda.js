@@ -36,6 +36,8 @@
     {"id":"premium","nombre":"Gran Fiesta","precio":199,"revisiones":1,"maxFotos":20,"musica":true,"listaInvitados":true,"canales":["correo","whatsapp"],"maxInvitaciones":300,"mesas":true,"recordatorios":true,"aMedida":false,"modelosExclusivos":true,"cambiarModelo":true,"invitados":"Hasta 300 invitados","resumen":"Para la fiesta grande: mesas, recordatorios automáticos y los modelos Gran Estreno.","incluye":["Todo lo de Celebración","Hasta 300 invitaciones","Los modelos Gran Estreno (telón de teatro)","Mesas: cada invitado ve la suya","Recordatorios automáticos a quienes no responden","Hasta 20 fotos y 2 secciones extra"]},
   ];
   let PAGO = { yappy: "6665-3528", whatsapp: CFG.whatsapp || "50763454868" };
+  // Factura a nombre de empresa (RUC): solo se ofrece si el pedido sale desde Panamá (o si no se sabe el país).
+  const facturaPanama = () => !PAGO.pais || PAGO.pais === "PA";
   // Save the date (producto de entrada), precio de lanzamiento, descuento de planners y eventos activos: los manda el servidor.
   // Sin config del servidor (o con un servidor anterior) no se ofrece el Save the date.
   let STD = null;
@@ -469,14 +471,16 @@
           let t; i.addEventListener("input", () => { clearTimeout(t); data.referidoOk = false; m.textContent = ""; t = setTimeout(async () => { if (!i.value.trim()) { data.referido = ""; save(); return; } m.textContent = "Revisando…"; m.textContent = (await revisarReferido(i.value)) ? `Código de ${data.referidoNombre}: ${REF_DESC}% de descuento aplicado.` : "Ese código no existe o ya no está activo."; }, 500); });
           return el("label", { class: "field" }, [el("span", { html: "¿Los recomendó un wedding planner? <em>(opcional)</em>" }), i, m]);
         })(),
-        el("label", { class: "check" }, [el("input", { type: "checkbox", id: "f-quiereFactura", ...(data.quiereFactura ? { checked: true } : {}) }), el("span", { text: "Necesito factura" })]),
-        (() => {
+        // Factura a nombre de una empresa (nov. 2026): solo para pedidos desde Panamá. Desde otro país no aparece.
+        facturaPanama() ? el("label", { class: "check" }, [el("input", { type: "checkbox", id: "f-quiereFactura", ...(data.quiereFactura ? { checked: true } : {}) }), el("span", { text: "Necesito la factura a nombre de una empresa" })]) : null,
+        !facturaPanama() ? null : (() => {
           const b = el("div", { class: "sub-block", id: "facBlock" }, [
             campo("Nombre o razón social", el("input", { id: "fx-nombre", maxlength: "120", value: fx.nombre || "" })),
             fila(campo("RUC o cédula", el("input", { id: "fx-ruc", maxlength: "40", value: fx.ruc || "" })), campo("DV", el("input", { id: "fx-dv", maxlength: "4", inputmode: "numeric", value: fx.dv || "" }), "", true)),
             campo("Correo para la factura", el("input", { id: "fx-correo", type: "email", maxlength: "200", value: fx.correo || "" }))]);
           b.hidden = !data.quiereFactura; return b;
         })(),
+        facturaPanama() ? el("small", { class: "hint", text: "Su factura electrónica les llega al correo en un plazo máximo de 7 días. Si no marcan la casilla, sale a su nombre." }) : null,
         el("div", { class: "w-legal" }, [el("p", { html: "<b>Condiciones</b>" }),
           el("p", { text: `Usamos sus datos y fotos solo para crear y publicar su invitación. Es privada: no aparece en buscadores y está disponible hasta seis meses después ${deEv("").trim()}; después la borramos.` }),
           el("p", { text: `Desde que confirmamos su pago empezamos a diseñar. Por eso no hacemos devoluciones, ni si ${EV().cuando} se cancela. Si se pospone, la invitación sigue siendo suya y la fecha se cambia gratis.` }),
@@ -486,7 +490,7 @@
         el("label", { class: "check" }, [el("input", { type: "checkbox", id: "ac-reembolso" }), el("span", { text: "Entiendo que no hay devoluciones." })]),
         el("label", { class: "check opcional" }, [el("input", { type: "checkbox", id: "ac-novedades", checked: data.novedades === true }), el("span", { html: "<i>(Opcional)</i> Quiero recibir novedades y ofertas de Mejorativa, por correo, WhatsApp y redes sociales." })]),
       );
-      $("#f-quiereFactura", form).addEventListener("change", e => { data.quiereFactura = e.target.checked; $("#facBlock", form).hidden = !e.target.checked; save(); });
+      if (facturaPanama()) $("#f-quiereFactura", form).addEventListener("change", e => { data.quiereFactura = e.target.checked; $("#facBlock", form).hidden = !e.target.checked; save(); });
     }
     if (paso === 8) {
       const m = Motor.modelById(data.modelo);
@@ -608,6 +612,7 @@
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.correo || "")) return falla(f("correo"), "Revisen su correo: ahí les llega su invitación.");
       const d = digits(data.whatsapp);
       if (d.length < 8 || d.length > 15) return falla(f("whatsapp"), "Revisen su WhatsApp (con código de país: +52, +1, +34…).");
+      if (!facturaPanama()) data.quiereFactura = false;
       if (data.quiereFactura) {
         data.factura = { nombre: $("#fx-nombre").value.trim(), ruc: $("#fx-ruc").value.trim(), dv: $("#fx-dv").value.trim(), correo: $("#fx-correo").value.trim() };
         if (!data.factura.nombre) return falla($("#fx-nombre"), "Escriban el nombre o razón social para la factura.");
