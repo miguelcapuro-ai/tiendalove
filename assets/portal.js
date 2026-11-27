@@ -649,7 +649,7 @@
   }
 
   // ---------- Pedir cambios de diseño ----------
-  // Premium: cambiar de modelo con un toque. Gratis, sin gastar la ronda; los enlaces ya enviados muestran el modelo nuevo.
+  // Todos los planes pagados: cambiar de modelo con un toque (solo modelos de su plan). Gratis, sin gastar la ronda; los enlaces ya enviados muestran el modelo nuevo.
   function selectorModelo() {
     const orden = { esencial: 0, clasico: 1, premium: 2 };
     const disponibles = (window.MODELOS || []).filter(m => (orden[P.plan.id] ?? 0) >= (orden[m.plan || "esencial"] ?? 0));
