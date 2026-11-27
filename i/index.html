@@ -95,7 +95,20 @@
         compat.aplicar(scr);
       } catch (e) { return sinNavegador(); }
       // Si quedó sin tamaño (el navegador no entendió el diseño), no dejarla en blanco.
-      setTimeout(function () { var b = scr.getBoundingClientRect(); if (!scr.firstChild || b.height < 50 || b.width < 50) sinNavegador(); }, 1500);
+      // Solo se mide con la página visible y la ventana con tamaño real: una pestaña en segundo plano
+      // o una vista previa oculta mide 0 sin que haya ningún problema.
+      var revisada = false;
+      var revisar = function () {
+        if (revisada) return;
+        if (!scr.firstChild) { revisada = true; return sinNavegador(); }
+        if (document.visibilityState === "hidden" || window.innerWidth < 120 || window.innerHeight < 120) return;
+        revisada = true;
+        var b = scr.getBoundingClientRect();
+        if (b.height < 50 || b.width < 50) sinNavegador();
+      };
+      setTimeout(revisar, 2000);
+      document.addEventListener("visibilitychange", function () { setTimeout(revisar, 800); });
+      window.addEventListener("resize", function () { setTimeout(revisar, 800); });
     })
     .catch(function () { sinNavegador("No pudimos abrir la invitación", "Revisen su conexión e intenten de nuevo. Si sigue igual, ábranla en Chrome o Safari.", true); });
 })();
