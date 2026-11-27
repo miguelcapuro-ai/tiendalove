@@ -14,11 +14,15 @@
 <link rel="apple-touch-icon" href="../img/apple-touch-icon.png">
 <link rel="stylesheet" href="../assets/inv.css?v=ix20261116a">
 <style>
+  [hidden] { display: none !important; } /* sin esto, la tarjeta blanca tapaba los mensajes y la página se veía en blanco */
   html, body { margin: 0; height: 100%; background: #0b1424; font-family: 'Cormorant Garamond', Georgia, serif; }
-  .inv-page .screen { height: 100dvh; }
+  .inv-page .screen { height: 100vh; height: 100dvh; }
   .estado { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; color: #e9eef6; padding: 30px; }
   .estado h1 { font-weight: 400; font-size: 2rem; margin: 18px 0 8px; }
   .estado p { opacity: .75; max-width: 34ch; margin: 0 auto; line-height: 1.5; font-size: 1.15rem; }
+  .estado .acc { margin-top: 22px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+  .estado .acc a, .estado .acc button { font: 600 15px/1 Arial, sans-serif; padding: 14px 22px; border-radius: 999px; border: 1px solid rgba(255,255,255,.5); background: transparent; color: #fff; text-decoration: none; cursor: pointer; }
+  .estado .acc a.pri { background: #D2AE66; border-color: #D2AE66; color: #0b1424; }
   .estado .sello { width: 64px; height: 64px; border-radius: 50%; margin: 0 auto; background: radial-gradient(circle at 35% 30%, #EBD3A0, #D2AE66 55%, #A9853F); animation: lat 1.6s ease-in-out infinite; }
   @keyframes lat { 50% { transform: scale(.92); opacity: .8; } }
   .marca { position: fixed; left: 0; right: 0; bottom: calc(10px + env(safe-area-inset-bottom)); text-align: center; font: 11px/1 Arial, sans-serif; letter-spacing: .2em; text-transform: uppercase; color: rgba(255,255,255,.35); pointer-events: none; z-index: 0; }
@@ -29,31 +33,71 @@
 <div class="inv-page" id="pagina" hidden><div class="screen" id="screen"></div></div>
 <script>window.LOVE_BASE = "../";</script>
 <script src="../assets/love-config.js?v=ix20261115a"></script>
+<script src="../assets/compat.js?v=ix20261117a"></script>
 <script src="../models.js?v=ix20261116b"></script>
 <script src="../assets/humano.js?v=ix20261115a"></script>
 <script src="../assets/motor.js?v=ix20261116c"></script>
 <script>
-(() => {
-  const API = (window.LOVE.api || "").replace(/\/$/, "");
-  const estado = document.getElementById("estado");
-  const mostrar = (t, p) => { estado.innerHTML = `<div><div class="sello" aria-hidden="true" style="animation:none"></div><h1></h1><p></p></div>`; estado.querySelector("h1").textContent = t; estado.querySelector("p").textContent = p; estado.hidden = false; };
-  const [slug, g] = decodeURIComponent(location.hash.slice(1)).split(/[.\/]/);
-  const vista = new URLSearchParams(location.search).get("vista") === "1";
+(function () {
+  var estado = document.getElementById("estado");
+  // Si algo falla, nunca dejar la pantalla en blanco: explicar y ofrecer abrirla en otro navegador.
+  function sinNavegador(titulo, texto, reintentar) {
+    var url = location.href.replace(/[?&]vista=1/, "");
+    estado.innerHTML = '<div><div class="sello" aria-hidden="true" style="animation:none"></div><h1></h1><p></p><div class="acc"></div></div>';
+    estado.querySelector("h1").textContent = titulo || "Ábranla en otro navegador";
+    estado.querySelector("p").textContent = texto || "Este navegador no pudo mostrar la invitación. En Chrome o Safari se ve completa.";
+    var acc = estado.querySelector(".acc");
+    if (reintentar) { var otra = document.createElement("button"); otra.type = "button"; otra.textContent = "Intentar de nuevo"; otra.onclick = function () { location.reload(); }; acc.appendChild(otra); }
+    if (/Android/i.test(navigator.userAgent)) {
+      var chrome = document.createElement("a"); chrome.className = "pri"; chrome.textContent = "Abrir en Chrome";
+      // Chrome recibe la invitación en ?inv= (el # no viaja dentro de un enlace intent).
+      var h = location.hash.slice(1) || ((location.search.match(/[?&]inv=([^&]+)/) || [])[1] || "");
+      var limpio = location.origin + location.pathname + "?inv=" + encodeURIComponent(decodeURIComponent(h));
+      chrome.href = "intent://" + limpio.replace(/^https?:\/\//, "") + "#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=" + encodeURIComponent(limpio) + ";end";
+      acc.appendChild(chrome);
+    }
+    var copiar = document.createElement("button"); copiar.type = "button"; copiar.textContent = "Copiar el enlace";
+    copiar.onclick = function () {
+      var hecho = function () { copiar.textContent = "Enlace copiado: péguenlo en Chrome o Safari"; };
+      try { navigator.clipboard.writeText(url).then(hecho, function () { prompt("Copien este enlace:", url); }); }
+      catch (e) { try { prompt("Copien este enlace:", url); } catch (x) {} }
+    };
+    acc.appendChild(copiar);
+    estado.hidden = false; document.getElementById("pagina").hidden = true;
+  }
+  window.LAZO_SIN_NAVEGADOR = sinNavegador;
+  if (!window.fetch || !window.Promise || !window.Motor || !window.LOVE) { sinNavegador(); return; }
+  var API = (window.LOVE.api || "").replace(/\/$/, "");
+  var mostrar = function (t, p) { estado.innerHTML = '<div><div class="sello" aria-hidden="true" style="animation:none"></div><h1></h1><p></p></div>'; estado.querySelector("h1").textContent = t; estado.querySelector("p").textContent = p; estado.hidden = false; };
+  var ref = location.hash.slice(1) || ((location.search.match(/[?&]inv=([^&]+)/) || [])[1] || "");
+  var partes = decodeURIComponent(ref).split(/[.\/]/), slug = partes[0], g = partes[1];
+  var vista = /[?&]vista=1(&|$)/.test(location.search);
   if (!/^[a-z0-9]{10}$/.test(slug || "")) { mostrar("No encontramos esta invitación", "Revisen que el enlace esté completo. Si lo copiaron de un mensaje, cópienlo de nuevo."); return; }
-  fetch(`${API}/love/api/inv?s=${slug}${g ? "&g=" + encodeURIComponent(g) : ""}${vista ? "&vista=1" : ""}`)
-    .then(r => r.json().then(j => ({ r, j })))
-    .then(({ r, j }) => {
+  // Si llegó por ?inv= (desde «Abrir en Chrome»), se pasa al # para que el código del invitado no quede en el historial ni se comparta así.
+  if (!/^[a-z0-9]{8}$/.test(g || "")) g = "";
+  if (!location.hash && history.replaceState) { try { history.replaceState(null, "", location.pathname + "#" + slug + (g ? "." + g : "")); } catch (e) {} }
+  var compat = window.LazoCompat || { preparar: function () { return Promise.resolve(); }, aplicar: function () {} };
+  Promise.all([fetch(API + "/love/api/inv?s=" + slug + (g ? "&g=" + encodeURIComponent(g) : "") + (vista ? "&vista=1" : "")), compat.preparar()])
+    .then(function (x) { var r = x[0]; return r.json().then(function (j) { return { r: r, j: j }; }); })
+    .then(function (o) {
+      var r = o.r, j = o.j;
       if (r.status === 410) return mostrar("Esta celebración ya pasó", "Gracias por haber sido parte. La invitación ya no está disponible.");
       if (!r.ok || !j.ok) return mostrar("No encontramos esta invitación", j.mensaje || "Revisen el enlace o pídanselo de nuevo a los novios.");
-      const d = j.datos;
-      document.title = `${d.nombre1} & ${d.nombre2} · ${j.invitado ? "Invitación para " + j.invitado.nombre : "Nuestra boda"}`;
+      var d = j.datos;
+      document.title = d.nombre1 + " & " + d.nombre2 + " · " + (j.invitado ? "Invitación para " + j.invitado.nombre : "Nuestra boda");
       estado.hidden = true; document.getElementById("pagina").hidden = false;
-      Motor.construir(document.getElementById("screen"), { arte: j.arte || null,
-        modelo: j.modelo, diseno: j.diseno, datos: d, fotos: j.fotos.map(u => API + u), portada: j.portada,
-        invitado: j.invitado, cupoGeneral: j.cupoGeneral, cerrado: j.cerrado, api: API, slug: j.slug, vista: vista, turnstile: j.turnstile || null,
-      });
+      var scr = document.getElementById("screen");
+      try {
+        Motor.construir(scr, { arte: j.arte || null,
+          modelo: j.modelo, diseno: j.diseno, datos: d, fotos: j.fotos.map(function (u) { return API + u; }), portada: j.portada,
+          invitado: j.invitado, cupoGeneral: j.cupoGeneral, cerrado: j.cerrado, api: API, slug: j.slug, vista: vista, turnstile: j.turnstile || null,
+        });
+        compat.aplicar(scr);
+      } catch (e) { return sinNavegador(); }
+      // Si quedó sin tamaño (el navegador no entendió el diseño), no dejarla en blanco.
+      setTimeout(function () { var b = scr.getBoundingClientRect(); if (!scr.firstChild || b.height < 50 || b.width < 50) sinNavegador(); }, 1500);
     })
-    .catch(() => mostrar("No pudimos abrir la invitación", "Revisen su conexión e intenten de nuevo en un momento."));
+    .catch(function () { sinNavegador("No pudimos abrir la invitación", "Revisen su conexión e intenten de nuevo. Si sigue igual, ábranla en Chrome o Safari.", true); });
 })();
 </script>
 </body>

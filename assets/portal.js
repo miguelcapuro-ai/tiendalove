@@ -26,6 +26,22 @@
   const NP = id => ({ esencial: "Íntima", clasico: "Celebración", premium: "Gran Fiesta" }[id] || id);
   let P = null, tab = sessionStorage.getItem("ml-tab") || "invitacion", tPoll = null;
 
+  // Confirmaciones dentro de la página: los navegadores de WhatsApp, Instagram o Facebook a veces
+  // ignoran confirm() y el botón «no hace nada». Esta ventana funciona en todos.
+  function preguntar(texto, si = "Sí, seguir") {
+    return new Promise(res => {
+      if (document.querySelector(".p-modal")) return res(false);
+      const prev = document.activeElement;
+      const fondo = el("div", { class: "p-modal", role: "dialog", "aria-modal": "true", "aria-label": "Confirmar" });
+      const cerrar = v => { fondo.remove(); document.removeEventListener("keydown", tecla); if (prev && prev.focus) prev.focus(); res(v); };
+      const tecla = e => { if (e.key === "Escape") cerrar(false); };
+      const bSi = el("button", { class: "btn", type: "button", text: si, onclick: () => cerrar(true) });
+      fondo.append(el("div", { class: "p-modal-caja" }, [el("p", { text: texto }), el("div", { class: "p-modal-acc" }, [bSi, el("button", { class: "link", type: "button", text: "Cancelar", onclick: () => cerrar(false) })])]));
+      fondo.addEventListener("click", e => { if (e.target === fondo) cerrar(false); });
+      document.addEventListener("keydown", tecla); document.body.append(fondo); bSi.focus();
+    });
+  }
+
   async function api(path, body) {
     const r = await fetch(API + path + (body ? "" : `?id=${encodeURIComponent(id)}&key=${encodeURIComponent(key)}`),
       body ? { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, key, ...body }) } : undefined);
@@ -40,6 +56,8 @@
   async function cargar() {
     if (!id || !key) {
       let guardada = null; try { guardada = JSON.parse(localStorage.getItem("ml-boda")); } catch {}
+      // El acceso recordado vence a los 30 días: en un teléfono o computadora compartida no queda abierto para siempre.
+      if (guardada && !(Date.now() - (guardada.t || 0) < 30 * 864e5)) { olvidar(); guardada = null; }
       if (guardada && guardada.h) { location.replace(`#${guardada.h}`); setTimeout(() => location.reload(), 30); return; }
       return fallo("Este enlace no está completo", "Ábranlo desde el correo que les enviamos, o entren con su código de pedido.", true);
     }
@@ -54,11 +72,13 @@
   // Seguridad: cambiar la llave (la vieja deja de servir) o salir de este dispositivo.
   function olvidar() { try { localStorage.removeItem("ml-boda"); sessionStorage.removeItem("ml-tab"); } catch {} }
   function seguridad() {
+    const priv = $("#pPrivado"); if (priv) priv.hidden = false;
     const caja = $("#pSeguro"); if (!caja) return; caja.hidden = false;
     $("#pSalir").onclick = () => { olvidar(); history.replaceState(null, "", location.pathname); location.replace("../"); };
     $("#pCambiar").onclick = async (ev) => {
-      if (!confirm("El enlace actual dejará de funcionar en todos los dispositivos, también en este. El nuevo les llega a su correo. ¿Cambiarlo?")) return;
-      const b = ev.currentTarget; b.disabled = true;
+      const b = ev.currentTarget;
+      if (!(await preguntar("El enlace actual dejará de funcionar en todos los dispositivos, también en este. El nuevo les llega a su correo. ¿Cambiarlo?", "Sí, cambiar el enlace"))) return;
+      b.disabled = true;
       try {
         const j = await api("/love/api/cambiar-enlace", {});
         olvidar(); history.replaceState(null, "", location.pathname);
@@ -127,7 +147,8 @@
       P.diseno.nota_para_novios ? el("p", { class: "p-nota", text: P.diseno.nota_para_novios }) : null,
       el("div", { class: "p-acc" }, [
         el("a", { class: "btn", href: P.enlaceGeneral + "?vista=1", target: "_blank", rel: "noopener", html: `Abrir en grande ${arrow}` }),
-        el("button", { class: "link", type: "button", text: "Abrir el sobre otra vez", onclick: () => dibujar(true) })]),
+        el("button", { class: "link", type: "button", text: "Abrir el sobre otra vez", onclick: () => dibujar(true) }),
+        P.plan.cambiarModelo ? el("button", { class: "link", type: "button", text: "Cambiar de modelo", onclick: () => { tab = "cambios"; sessionStorage.setItem("ml-tab", tab); pintar(); } }) : null]),
       el("div", { class: "p-card" }, [el("b", { text: P.plan.listaInvitados ? "Enlace general" : "Su enlace para compartir" }),
         el("p", { class: "hint", text: P.plan.std ? "Compártanlo con todos sus invitados para que reserven la fecha. La invitación con confirmación llega después." : P.plan.listaInvitados ? "Sirve para quien no esté en su lista. Para cada invitado usen su enlace personal (pestaña Invitados)." : `Compártanlo con todos. Cada respuesta puede incluir hasta ${P.totales.cupoGeneral} ${P.totales.cupoGeneral === 1 ? "persona" : "personas"}.` }),
         el("div", { class: "p-link" }, [el("input", { value: P.enlaceGeneral, readonly: true, "aria-label": "Enlace general" }), el("button", { class: "btn sm", type: "button", text: "Copiar", onclick: e => copiar(P.enlaceGeneral, e.currentTarget) })]),
@@ -380,9 +401,9 @@
           el("button", { class: "btn sm", type: "button", text: "Editar igual", onclick: () => { desbloqueados.add(i.id); r.nota.hidden = true; refrescarFila(i); r.nombre.focus(); } }),
           el("button", { class: "link", type: "button", text: "Cancelar", onclick: () => { r.nota.hidden = true; } })]));
     }
-    function quitar(i) {
-      if (i.rsvp && !confirm(`${i.nombre} ya respondió. Si lo quitan, se borra su respuesta. ¿Quitarlo igual?`)) return;
-      if (i.enviado_at && !confirm(`${i.nombre} ya recibió su invitación y su enlace dejará de funcionar. ¿Quitarlo igual?`)) return;
+    async function quitar(i) {
+      if (i.rsvp && !(await preguntar(`${i.nombre} ya respondió. Si lo quitan, se borra su respuesta. ¿Quitarlo igual?`))) return;
+      if (i.enviado_at && !(await preguntar(`${i.nombre} ya recibió su invitación y su enlace dejará de funcionar. ¿Quitarlo igual?`))) return;
       lista.splice(lista.indexOf(i), 1); refs.get(i)?.fila.remove(); refs.delete(i);
       vacio.hidden = lista.length > 0; pintarCuadre(); programar();
     }
@@ -406,7 +427,7 @@
       await guardar();
       const n = porEnviarCorreo();
       if (!n) { aviso("No hay invitaciones por correo pendientes."); return; }
-      if (!confirm(`¿Enviar ${n} ${n === 1 ? "invitación" : "invitaciones"} por correo ahora?`)) return;
+      if (!(await preguntar(`¿Enviar ${n} ${n === 1 ? "invitación" : "invitaciones"} por correo ahora?`))) return;
       masivo.disabled = true; masivo.textContent = "Enviando…";
       try { const r = await api("/love/api/enviar", {}); aviso(r.configurado ? `Listo: enviamos ${r.enviados} ${r.enviados === 1 ? "invitación" : "invitaciones"}.${r.fallos.length ? ` No salieron: ${r.fallos.join(", ")}.` : ""}` : "El envío por correo todavía no está activo. Usen WhatsApp por ahora.", !r.configurado); P = await api("/love/api/portal"); pintar(); }
       catch (x) { aviso(x.message, true); masivo.disabled = false; masivo.innerHTML = `Enviar por correo a los que faltan ${arrow}`; }
@@ -450,7 +471,7 @@
     const hace = P.recordatorioAt ? Math.round((Date.now() / 1000 - P.recordatorioAt) / 3600) : null;
     const btn = el("button", { class: "btn sm", type: "button", html: `Recordar ahora a ${pendientes} ${pendientes === 1 ? "invitado" : "invitados"} ${arrow}`, disabled: !pendientes || (hace !== null && hace < 24) });
     btn.addEventListener("click", async () => {
-      if (!confirm(`¿Enviar ahora un recordatorio por correo a ${pendientes} ${pendientes === 1 ? "invitado que no ha respondido" : "invitados que no han respondido"}?`)) return;
+      if (!(await preguntar(`¿Enviar ahora un recordatorio por correo a ${pendientes} ${pendientes === 1 ? "invitado que no ha respondido" : "invitados que no han respondido"}?`))) return;
       btn.disabled = true; btn.textContent = "Enviando…";
       try { const r = await api("/love/api/recordar", {}); aviso(r.configurado ? `Listo: enviamos ${r.enviados} ${r.enviados === 1 ? "recordatorio" : "recordatorios"}.` : "El envío por correo todavía no está activo.", !r.configurado); P.recordatorioAt = Date.now() / 1000; btn.textContent = "Recordatorio enviado hoy"; }
       catch (e) { aviso(e.message, true); btn.disabled = false; btn.innerHTML = `Recordar ahora ${arrow}`; }
@@ -491,12 +512,12 @@
     const cant = el("input", { type: "number", min: "1", max: "120", inputmode: "numeric", value: M.length || "", placeholder: "15", id: "mzCant" });
     const cap = el("input", { type: "number", min: "1", max: "40", inputmode: "numeric", value: M[0]?.c || 10, id: "mzCap" });
     const crear = el("button", { class: "btn sm", type: "button", text: M.length ? "Ajustar mesas" : "Crear mesas" });
-    crear.addEventListener("click", () => {
+    crear.addEventListener("click", async () => {
       const n = Math.min(120, Math.max(1, Math.round(+cant.value) || 0)), k = Math.min(40, Math.max(1, Math.round(+cap.value) || 10));
       if (!+cant.value) { aviso("Escriban cuántas mesas tendrán.", true); cant.focus(); return; }
       if (n < M.length) {
         const sobran = M.slice(n).filter(m => sentados(m.n).length);
-        if (sobran.length && !confirm(`Las mesas ${sobran.map(m => m.n).join(", ")} tienen invitados sentados: quedarán «sin mesa». ¿Seguir?`)) return;
+        if (sobran.length && !(await preguntar(`Las mesas ${sobran.map(m => m.n).join(", ")} tienen invitados sentados: quedarán «sin mesa». ¿Seguir?`))) return;
         M.slice(n).forEach(m => sentados(m.n).forEach(i => { i.mesa = ""; asignar.set(i.id, ""); }));
         M = M.slice(0, n);
       }
@@ -540,8 +561,8 @@
         const capIn = el("input", { class: "mz-c", type: "number", min: "1", max: "40", value: m.c, "aria-label": `Capacidad de ${m.n}` });
         capIn.addEventListener("change", () => { m.c = Math.min(40, Math.max(1, Math.round(+capIn.value) || m.c)); programar(); dibujar(); });
         const quitarM = el("button", { class: "rm", type: "button", "aria-label": `Quitar ${m.n}`, html: svg("i-x") });
-        quitarM.addEventListener("click", () => {
-          if (sentados(m.n).length && !confirm(`${m.n} tiene ${sentados(m.n).length} ${sentados(m.n).length === 1 ? "invitado" : "invitados"}: quedarán sin mesa. ¿Quitarla?`)) return;
+        quitarM.addEventListener("click", async () => {
+          if (sentados(m.n).length && !(await preguntar(`${m.n} tiene ${sentados(m.n).length} ${sentados(m.n).length === 1 ? "invitado" : "invitados"}: quedarán sin mesa. ¿Quitarla?`))) return;
           sentados(m.n).forEach(i => { i.mesa = ""; asignar.set(i.id, ""); }); M.splice(k, 1); cant.value = M.length || ""; programar(); dibujar();
         });
         const lista = sentados(m.n);
@@ -640,7 +661,7 @@
       b.addEventListener("click", async () => {
         if (actual || P.disenando) return;
         const enviadas = P.invitados.filter(i => i.enviado_at).length;
-        if (!confirm(`¿Cambiar su invitación al modelo ${m.name}?${enviadas ? ` Las ${enviadas} invitaciones que ya enviaron se verán con el modelo nuevo, con el mismo enlace: no hay que reenviarlas.` : ""} Sus textos y datos se quedan igual.`)) return;
+        if (!(await preguntar(`¿Cambiar su invitación al modelo ${m.name}?${enviadas ? ` Las ${enviadas} invitaciones que ya enviaron se verán con el modelo nuevo, con el mismo enlace: no hay que reenviarlas.` : ""} Sus textos y datos se quedan igual.`, "Sí, cambiar de modelo"))) return;
         grid.classList.add("cargando");
         try { P = await api("/love/api/modelo", { modelo: m.id }); aviso(`Listo: su invitación ahora es ${m.name}.`); tab = "invitacion"; pintar(); }
         catch (e) { aviso(e.message, true); grid.classList.remove("cargando"); }
@@ -659,7 +680,7 @@
       const b = el("button", { class: "btn", type: "button", html: `Enviar cambios ${arrow}`, disabled: P.disenando });
       b.addEventListener("click", async () => {
         if (t.value.trim().length < 4) { aviso("Cuéntennos qué quieren cambiar.", true); return; }
-        if (!confirm(r.quedan === 1 ? "Esto usa su ronda de ajustes. ¿Enviar?" : `Esto usa 1 de sus ${r.quedan} rondas de ajustes. ¿Enviar?`)) return;
+        if (!(await preguntar(r.quedan === 1 ? "Esto usa su ronda de ajustes. ¿Enviar?" : `Esto usa 1 de sus ${r.quedan} rondas de ajustes. ¿Enviar?`))) return;
         b.disabled = true; b.textContent = "Enviando…";
         try { const j = await api("/love/api/revision", { cambios: t.value }); aviso(j.mensaje); P = await api("/love/api/portal"); pintar(); }
         catch (x) { aviso(x.message, true); b.disabled = false; b.innerHTML = `Enviar cambios ${arrow}`; }
